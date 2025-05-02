@@ -1,0 +1,21 @@
+{
+  "name": "loyalty_ecosystem-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Monorepo for the Loyalty Ecosystem SaaS",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:portal": "npm run dev --workspace=portal-next",
+    "dev:kiosk": "npm run dev --workspace=kiosk-next",
+    "dev:client": "npm run start --workspace=client-react-native",
+    "dev": "npm run dev:backend & npm run dev:portal & npm run dev:kiosk & npm run dev:client" 
+  },
+  "keywords": [],
+  "author": "Manus",
+  "license": "ISC"
+}
+
