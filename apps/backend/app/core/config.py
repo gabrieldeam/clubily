@@ -1,28 +1,49 @@
-import os
-from pydantic_settings import BaseSettings
-from dotenv import load_dotenv
+# backend/app/core/config.py
 
-# Load .env file from the backend directory
-dotenv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), '.env')
-load_dotenv(dotenv_path=dotenv_path)
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import PostgresDsn, EmailStr
 
 class Settings(BaseSettings):
-    # Supabase
-    SUPABASE_URL: str = os.getenv("SUPABASE_URL", "")
-    SUPABASE_ANON_KEY: str = os.getenv("SUPABASE_ANON_KEY", "")
-    SUPABASE_SERVICE_ROLE_KEY: str = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
+    # Indica onde está o .env
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+    )
 
-    # FastAPI / JWT
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "default_secret_key") # Replace default in .env
-    ALGORITHM: str = os.getenv("ALGORITHM", "HS256")
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
+    PROJECT_NAME: str = "Clubily API"
+    API_V1_STR: str = "/api/v1"
 
-    # Add other application settings here
-    # EXAMPLE_SETTING: str = os.getenv("EXAMPLE_SETTING", "default_value")
+    # Database
+    POSTGRES_SERVER: str = "localhost"
+    POSTGRES_USER: str = "postgres"
+    POSTGRES_PASSWORD: str = "postgres"
+    POSTGRES_DB: str = "clubily_db"
+    DATABASE_URI: PostgresDsn | None = None  # calculada abaixo
 
-    class Config:
-        case_sensitive = True
-        # If using Pydantic v1, use env_file = ".env"
+    # Auth
+    SECRET_KEY: str
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    COOKIE_NAME: str = "access_token"
+
+    # Crypto
+    FERNET_KEY: str  # 32-byte base64 URL-safe key
+
+    # E-mail
+    SMTP_HOST: str
+    SMTP_PORT: int = 587
+    SMTP_USER: EmailStr
+    SMTP_PASSWORD: str
+    EMAIL_FROM: EmailStr
+
+    # CORS
+    BACKEND_CORS_ORIGINS: list[str] = ["http://localhost:3000"]
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        if not self.DATABASE_URI:
+            self.DATABASE_URI = (
+                f"postgresql+psycopg2://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
+                f"@{self.POSTGRES_SERVER}/{self.POSTGRES_DB}"
+            )
 
 settings = Settings()
-
