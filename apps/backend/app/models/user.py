@@ -5,6 +5,8 @@ from enum import Enum as PyEnum
 from sqlalchemy import Column, String, Boolean, DateTime, Enum, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
+from app.models.association import user_companies
 
 from app.db.base import Base
 
@@ -16,17 +18,24 @@ class User(Base):
     __tablename__ = "users"
     __table_args__ = (
         UniqueConstraint("email"),
-        UniqueConstraint("cpf_enc"),
+        UniqueConstraint("phone"),
     )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     name = Column(String(100), nullable=False)
     email = Column(String(255), nullable=False, unique=True, index=True)
     hashed_password = Column(String(255), nullable=False)
-    company_name = Column(String(255))
+    companies = relationship(
+        "Company",
+        secondary=user_companies,
+        back_populates="users",
+        lazy="joined",
+    )
     phone = Column(String(20))
-    cpf_enc = Column(String(255), nullable=False, unique=True)
     is_active = Column(Boolean, default=True)
-    is_verified = Column(Boolean, default=False)
     role = Column(Enum(Role), default=Role.user)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    accepted_terms = Column(Boolean, default=False, nullable=False)
+    pre_registered = Column(Boolean, default=True, nullable=False)
+    email_verified_at = Column(DateTime(timezone=True))
+    phone_verified_at = Column(DateTime(timezone=True))

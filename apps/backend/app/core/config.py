@@ -10,6 +10,12 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
     )
 
+    # SMS
+    TWILIO_ACCOUNT_SID: str
+    TWILIO_AUTH_TOKEN: str
+    TWILIO_VERIFY_SERVICE_SID: str
+    
+    # Project
     PROJECT_NAME: str = "Clubily API"
     API_V1_STR: str = "/api/v1"
 

@@ -9,3 +9,6 @@ cryptography==42.0.5
 pydantic==2.7.0
 email-validator==2.1.1
 pydantic-settings
+phonenumbers==8.13.14
+httpx==0.24.0
+twilio==8.13.0

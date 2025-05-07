@@ -1,3 +1,5 @@
+# backend/app/api/__init__.py
+
 from fastapi import APIRouter
 from .v1.router import router as v1_router
 from ..core.config import settings

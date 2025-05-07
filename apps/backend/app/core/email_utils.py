@@ -1,3 +1,5 @@
+# backend/app/core/email_utils.py
+
 import smtplib, ssl
 from email.message import EmailMessage
 from ..core.config import settings

@@ -8,7 +8,7 @@ from .db.init_db import init_db
 app = FastAPI(title=settings.PROJECT_NAME)
 
 # Garante que as tabelas existam antes de subir a API
-init_db()
+# init_db()
 
 app.add_middleware(
     CORSMiddleware,
