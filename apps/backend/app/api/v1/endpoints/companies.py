@@ -1,7 +1,8 @@
 # backend/app/api/v1/endpoints/companies.py
 
-from typing import List
-from fastapi import APIRouter, Depends, Response, BackgroundTasks, HTTPException, status
+from typing import List, Optional
+import os, uuid
+from fastapi import APIRouter, Depends, Response, BackgroundTasks, HTTPException, status, UploadFile, File, Query
 from app.db.session import SessionLocal
 from sqlalchemy.orm import Session
 from datetime import datetime
@@ -14,9 +15,9 @@ from ....core.email_utils import send_email
 from jose import jwt
 from app.models.company import Company
 from ....schemas.user import UserRead
-from ...deps import get_current_company, get_db
+from ...deps import get_current_company, get_db, require_admin
 
-router = APIRouter(prefix="/companies", tags=["companies"])
+router = APIRouter(tags=["companies"])
 
 def get_db():
     db = SessionLocal()
@@ -25,7 +26,11 @@ def get_db():
     finally:
         db.close()
 
-@router.post("/register", response_model=CompanyRead, status_code=201)
+@router.post(
+    "/register",
+    response_model=CompanyRead,
+    status_code=status.HTTP_201_CREATED,
+)
 def register_company(
     payload: CompanyCreate,
     background: BackgroundTasks,
@@ -33,17 +38,52 @@ def register_company(
 ):
     """
     Registra uma nova empresa.
+    Verifica:
+    - aceitação dos termos (accepted_terms deve ser True)
+    - unicidade de email, telefone e CNPJ
+    Envia um e-mail de confirmação após criar.
     """
+    # 1) Checa aceitação dos termos
+    if not payload.accepted_terms:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Você precisa aceitar os termos de uso para se registrar.",
+        )
+
+    # 2) Verifica unicidade de email
+    if db.query(Company).filter(Company.email == payload.email.lower()).first():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Já existe uma empresa cadastrada com esse e-mail.",
+        )
+
+    # 3) Verifica unicidade de telefone
+    if db.query(Company).filter(Company.phone == payload.phone).first():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Já existe uma empresa cadastrada com esse telefone.",
+        )
+
+    # 4) Verifica unicidade de CNPJ
+    if db.query(Company).filter(Company.cnpj == payload.cnpj).first():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Já existe uma empresa cadastrada com esse CNPJ.",
+        )
+
+    # 5) Cria a empresa
     company = create(db, payload)
-    # enviar email de verificação
+
+    # 6) Dispara envio de e-mail de verificação em background
     token = jwt.encode({"sub": str(company.id)}, settings.SECRET_KEY, algorithm="HS256")
     verify_url = f"{settings.BACKEND_CORS_ORIGINS[0]}/companies/verify-email?token={token}"
     background.add_task(
         send_email,
         to=company.email,
         subject="Confirme sua conta empresarial",
-        html=f"<p>Clique <a href='{verify_url}'>aqui</a> para confirmar.</p>",
+        html=f"<p>Clique <a href='{verify_url}'>aqui</a> para confirmar sua conta.</p>",
     )
+
     return company
 
 @router.get("/verify-email", status_code=200)
@@ -85,6 +125,21 @@ def login_company(
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
     return {"access_token": token}
+
+@router.get(
+    "/me",
+    response_model=CompanyRead,
+    status_code=status.HTTP_200_OK,
+    summary="Dados da empresa autenticada",
+)
+def read_current_company(
+    current_company: Company = Depends(get_current_company),
+):
+    """
+    Retorna os dados da empresa logada com base no cookie de sessão.
+    Se o cookie for inválido ou ausente, devolve 401.
+    """
+    return current_company
 
 @router.post("/forgot-password", status_code=202)
 def forgot_password_company(email: str, background: BackgroundTasks, db: Session = Depends(get_db)):
@@ -141,3 +196,89 @@ def list_company_clients(
     """
     # como usamos relationship(secondary=user_companies), current_company.users já vem populado
     return current_company.users
+
+
+@router.post(
+    "/{company_id}/activate",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_admin)]
+)
+def activate_company(
+    company_id: str,
+    db: Session = Depends(get_db),
+):
+    comp = db.get(Company, company_id)
+    if not comp:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Empresa não encontrada")
+    comp.is_active = True
+    db.commit()
+    return
+
+@router.post(
+    "/{company_id}/deactivate",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_admin)]
+)
+def deactivate_company(
+    company_id: str,
+    db: Session = Depends(get_db),
+):
+    comp = db.get(Company, company_id)
+    if not comp:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Empresa não encontrada")
+    comp.is_active = False
+    db.commit()
+    return
+
+
+@router.post(
+    "/logo",
+    status_code=status.HTTP_200_OK,
+    response_model=dict[str, str],  # retorna {"logo_url": "..."}
+)
+async def upload_company_logo(
+    image: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_company: Company = Depends(get_current_company),
+):
+    # 1) valida imagem
+    if not image.content_type.startswith("image/"):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Envie um arquivo de imagem válido")
+
+    # 2) salva em disco
+    save_dir = os.path.join(os.getcwd(), "backend", "app", "static", "companies")
+    os.makedirs(save_dir, exist_ok=True)
+    ext = os.path.splitext(image.filename)[1]
+    filename = f"{uuid.uuid4()}{ext}"
+    path = os.path.join(save_dir, filename)
+    content = await image.read()
+    with open(path, "wb") as f:
+        f.write(content)
+
+    # 3) atualiza campo logo_url e comita
+    public_url = f"/static/companies/{filename}"
+    current_company.logo_url = public_url
+    db.commit()
+
+    return {"logo_url": public_url}
+
+
+@router.get("/search", response_model=List[CompanyRead])
+def search_companies(
+    city: Optional[str] = Query(None),
+    state: Optional[str] = Query(None),
+    postal_code: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+):
+    """
+    Filtra empresas pela combinação de city, state e/ou postal_code.
+    Se nenhum parâmetro for passado, retorna todas.
+    """
+    q = db.query(Company)
+    if city:
+        q = q.filter(Company.city.ilike(f"%{city}%"))
+    if state:
+        q = q.filter(Company.state.ilike(f"%{state}%"))
+    if postal_code:
+        q = q.filter(Company.postal_code == postal_code)
+    return q.all()

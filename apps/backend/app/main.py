@@ -3,12 +3,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .core.config import settings
 from .api import api_router
-from .db.init_db import init_db
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI(title=settings.PROJECT_NAME)
-
-# Garante que as tabelas existam antes de subir a API
-# init_db()
 
 app.add_middleware(
     CORSMiddleware,
@@ -16,6 +13,12 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+
+app.mount(
+    "/static",
+    StaticFiles(directory="app/static"),
+    name="static",
 )
 
 app.include_router(api_router)

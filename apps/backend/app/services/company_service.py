@@ -18,14 +18,21 @@ def get_by_identifier(db: Session, ident: str) -> Optional[Company]:
 
 def create(db: Session, obj_in: CompanyCreate) -> Company:
     """
-    Cria uma nova empresa com dados validados e senha criptografada.
+    Cria uma nova empresa com dados validados e senha criptografada,
+    incluindo CNPJ, endereço e descrição.
     """
     company = Company(
         name=obj_in.name,
         email=obj_in.email.lower(),
         phone=obj_in.phone,
-        hashed_password=hash_password(obj_in.password),
+        cnpj=obj_in.cnpj,
+        street=obj_in.street,
+        city=obj_in.city,
+        state=obj_in.state,
+        postal_code=obj_in.postal_code,
         accepted_terms=obj_in.accepted_terms,
+        description=obj_in.description,
+        hashed_password=hash_password(obj_in.password),
     )
     db.add(company)
     db.commit()

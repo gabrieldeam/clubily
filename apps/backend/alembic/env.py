@@ -22,6 +22,11 @@ from app.models.user import User
 from app.models.company import Company
 from app.models.phone_verification import PhoneVerification
 from app.models.association import user_companies
+from app.models.category import Category
+from app.models.association import company_categories
+from app.models.address import Address
+
+
 # ...importe aqui outros models quando criar novos
 
 # 4) Metadata alvo para autogenerate

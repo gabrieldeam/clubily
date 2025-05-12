@@ -7,6 +7,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.models.association import user_companies
+from app.models.address import Address
 
 from app.db.base import Base
 
@@ -39,3 +40,9 @@ class User(Base):
     pre_registered = Column(Boolean, default=True, nullable=False)
     email_verified_at = Column(DateTime(timezone=True))
     phone_verified_at = Column(DateTime(timezone=True))
+    addresses = relationship(
+        "Address",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        lazy="joined",
+    )

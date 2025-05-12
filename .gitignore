@@ -39,4 +39,4 @@ Thumbs.db
 
 # Zip files
 *.zip
-
+backend/app/static/
