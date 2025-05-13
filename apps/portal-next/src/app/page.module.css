@@ -1,0 +1,62 @@
+/* src/app/page.module.css */
+
+/* Container geral: coluna com header + conteúdo */
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  margin: 0;
+  gap: 10px;
+}
+
+/* Cabeçalho amarelo com logo centralizada */
+.header {
+  background-color: #FFA600;
+  padding: 1rem 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 0 0 20px 20px;
+}
+
+/* Área principal: split left/right */
+.main {
+  flex: 1;
+  display: flex;
+  gap: 10px;
+}
+
+/* Painel esquerdo (login/register) */
+.leftPanel {
+  width: 30%;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: #fff;
+  border-radius: 20px;
+  height: calc(100% - 10px);
+}
+
+/* Painel direito amarelo */
+.rightPanel {
+  width: 70%;
+  background-color: #FFA600;
+  border-radius: 20px;
+  height: calc(100% - 10px);
+}
+
+/* Texto de toggle abaixo dos formulários */
+.toggleText {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+}
+
+/* Link clicável de toggle */
+.toggleLink {
+  margin-left: 0.25rem;
+  font-weight: bold;
+  text-decoration: underline;
+  cursor: pointer;
+}
