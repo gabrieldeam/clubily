@@ -1,14 +1,18 @@
 import "./globals.css";
+import { AuthProvider } from '@/context/AuthContext';
+import 'leaflet/dist/leaflet.css';
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html lang="en">
+    <html lang="pt-BR">
       <body>
-        {children}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );

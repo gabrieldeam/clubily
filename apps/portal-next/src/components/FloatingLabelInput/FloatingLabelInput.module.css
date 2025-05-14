@@ -1,23 +1,26 @@
+/* src/components/FloatingLabelInput/FloatingLabelInput.module.css */
+
 .container {
   position: relative;
-  margin: 1rem 0;
+  margin: 0;
   font-family: inherit;
 }
 
 /* O input */
 .input {
   width: 100%;
-  padding: 15px;
-  border: 1px solid #000000;
+  padding: 12px;
+  padding-right: 2.5rem; /* espaço extra para o ícone */
+  border: 1px solid #000;
   border-radius: 0.5rem;
-  font-size: 20px;
+  font-size: 15px;
   background: transparent;
   outline: none;
   transition: border-color 0.2s;
 }
 
 .input:focus {
-  border-color: #000000;
+  border-color: #000;
 }
 
 /* O label */
@@ -26,11 +29,11 @@
   left: 1rem;
   top: 50%;
   transform: translateY(-50%);
-  color: #000000;
+  color: #000;
   font-size: 1rem;
   pointer-events: none;
-  background-color: white;
-  padding: 0 10px;
+  background-color: #fff;
+  padding: 0 0.5rem;
   transition:
     transform 0.2s ease-out,
     font-size 0.2s ease-out,
@@ -38,10 +41,23 @@
     top 0.2s ease-out;
 }
 
-/* Quando o container estiver preenchido ou focado */
 .filled .label {
   top: 0.3rem;
   transform: translateY(-0.7rem) scale(1);
-  font-size: 15px;
-  color: #000000;
+  font-size: 12px;
+  color: #000;
+}
+
+/* Botão de toggle de senha */
+.toggleButton {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
 }

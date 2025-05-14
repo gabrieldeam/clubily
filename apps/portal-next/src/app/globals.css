@@ -25,6 +25,10 @@ select {
   outline: none;
 }
 
+button {
+  cursor: pointer;
+}
+
 /* Base do HTML e Body */
 html,
 body {
