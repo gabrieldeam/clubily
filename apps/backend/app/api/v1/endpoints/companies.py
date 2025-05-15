@@ -5,9 +5,10 @@ import os, uuid
 from fastapi import APIRouter, Depends, Response, BackgroundTasks, HTTPException, status, UploadFile, File, Query
 from app.db.session import SessionLocal
 from sqlalchemy.orm import Session
+from sqlalchemy import select
 from datetime import datetime
 
-from ....schemas.company import CompanyCreate, CompanyRead, CompanyLogin
+from ....schemas.company import CompanyCreate, CompanyRead, CompanyLogin, CompanyUpdate
 from ....schemas.token import Token
 from ....services.company_service import create, authenticate
 from ....core.config import settings
@@ -15,6 +16,7 @@ from ....core.email_utils import send_email
 from jose import jwt
 from app.models.company import Company
 from ....schemas.user import UserRead
+from app.models.category import Category
 from ...deps import get_current_company, get_db, require_admin
 
 router = APIRouter(tags=["companies"])
@@ -282,3 +284,71 @@ def search_companies(
     if postal_code:
         q = q.filter(Company.postal_code == postal_code)
     return q.all()
+
+
+@router.get(
+    "/{company_id}/status",
+    response_model=dict[str, bool],
+    status_code=status.HTTP_200_OK,
+    summary="Cheque se a empresa está ativa"
+)
+def get_company_status(
+    company_id: str,
+    db: Session = Depends(get_db),
+):
+    comp = db.get(Company, company_id)
+    if not comp:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Empresa não encontrada")
+    return {"is_active": comp.is_active}
+
+from app.schemas.company import CompanyRead
+
+@router.get(
+    "/{company_id}/info",
+    response_model=CompanyRead,
+    status_code=status.HTTP_200_OK,
+    summary="Dados públicos da empresa (logo, categorias, status)"
+)
+def get_company_info(
+    company_id: str,
+    db: Session = Depends(get_db),
+):
+    comp = db.get(Company, company_id)
+    if not comp:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Empresa não encontrada")
+    return comp
+
+
+@router.patch(
+    "/{company_id}",
+    response_model=CompanyRead,
+    status_code=status.HTTP_200_OK,
+    summary="Atualiza campos da empresa (parcial)"
+)
+def update_company(
+    company_id: str,
+    payload: CompanyUpdate,
+    db: Session = Depends(get_db),
+    current_company: Company = Depends(get_current_company),
+):
+    # 1) só o próprio lojista pode editar sua empresa
+    if str(current_company.id) != company_id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Permissão negada")
+
+    # 2) aplica apenas os campos enviados
+    data = payload.model_dump(exclude_unset=True)
+
+    # 3) categorias: sobrescreve lista
+    if "category_ids" in data:
+        cats = db.scalars(
+            select(Category).where(Category.id.in_(data.pop("category_ids")))
+        ).all()
+        current_company.categories = cats
+
+    # 4) resto dos campos
+    for field, value in data.items():
+        setattr(current_company, field, value)
+
+    db.commit()
+    db.refresh(current_company)
+    return current_company

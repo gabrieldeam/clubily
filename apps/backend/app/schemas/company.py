@@ -3,6 +3,10 @@
 from datetime import datetime
 from uuid import UUID
 import re
+from typing import List, Optional
+from uuid import UUID
+from app.schemas.category import CategoryRead
+
 
 from pydantic import (
     BaseModel,
@@ -46,6 +50,7 @@ class CompanyRead(CompanyBase):
     phone_verified_at: datetime | None = None
     is_active: bool
     logo_url: HttpUrl | None = None
+    categories: List[CategoryRead] = []
 
     @computed_field
     @property
@@ -63,3 +68,24 @@ class CompanyRead(CompanyBase):
 class CompanyLogin(BaseModel):
     identifier: str  # email ou telefone
     password: str
+
+class CompanyUpdate(BaseModel):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    cnpj: Optional[str] = None
+    street: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    postal_code: Optional[str] = None
+    description: Optional[str] = None
+    category_ids: Optional[List[UUID]] = None
+
+    @field_validator("cnpj", mode="before")
+    def normalize_cnpj(cls, v: str) -> str:
+        from re import sub
+        digits = sub(r"\D", "", v or "")
+        if len(digits) != 14:
+            raise ValueError("CNPJ inválido")
+        return digits
+
+    model_config = ConfigDict(from_attributes=True)

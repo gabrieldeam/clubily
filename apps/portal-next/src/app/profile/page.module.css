@@ -23,11 +23,136 @@
   display: flex;
   justify-content: space-around;
   flex-direction: column;
+  gap: 10px;  
+  width: 100%;
+}
+
+.profileHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.leftSection {
+  display: flex;
+  align-items: center;
+}
+
+.avatarWrapper {
+  position: relative;
+  width: 92px;
+  height: 92px;
+  flex-shrink: 0;
+}
+
+.avatarCircle {
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  background-color: #FFA600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  color: #fff;
+  font-weight: bold;
+}
+
+.addCircle {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #F0F0F0;
+  border: 1px solid #D9D9D9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+
+.userInfo {
+  margin-left: 16px;
+}
+
+.userNameLarge {
+  margin: 0;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.userDesc {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.editIcon {
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px;
+}
+
+.itemLink {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px;
+  width: 100%;
+}
+
+.itemLink:hover {
+  background-color: #f0f0f0;
+  border-radius: 10px;  
+  padding: 5px;
+}
+
+.itemDelete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px;
+  width: 100%;
+  color: red;  
+}
+
+.itemDelete:hover {
+  background-color: #f0f0f0;
+  border-radius: 10px;  
+  padding: 5px;
+}
+
+.item span {
+  color: #878787;
 }
 
 .userName {
   font-size: 60px;
   font-weight: bold;
+}
+
+.statusActive {
+  padding: 5px 20px;
+  background-color: #2BD700;
+  border: 2px solid #22BA15;
+  border-radius: 20px;
+  color: white;
+}
+
+.statusDesactive {
+  padding: 5px 20px;
+  background-color: #F0F0F0;
+  border: 1px solid #D9D9D9;
+  border-radius: 20px;
+  color: black;
 }
 
 .subGrid {
@@ -36,8 +161,38 @@
   row-gap: 10px;
 }
 
+.gridDiv {
+  display: flex;  
+  gap: 10px;
+}
+
+.buttomHelp {
+  background: transparent;
+  border: none;
+  font-size: 15px;
+  cursor: pointer;
+  color: black;
+  background-color: #F0F0F0;
+  border: 1px solid #D9D9D9;
+  padding: 5px 30px;
+  border-radius: 20px;
+}
+
 .mapContainer {
   margin-top: 12px;
   border-radius: 12px;
   overflow: hidden;
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  .gridContainer > :nth-child(1),
+  .gridContainer > :nth-child(2) {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 767px) {
+  .gridContainer {
+    grid-template-columns: 1fr;
+  }
 }

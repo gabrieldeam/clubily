@@ -4,6 +4,8 @@ import type {
   CompanyRead,
   CompanyLogin,
   TokenResponse,
+  CompanyStatus,
+  CompanyUpdate,
 } from '@/types/company';
 import type { UserRead } from '@/types/user';
 
@@ -66,3 +68,16 @@ export const searchCompanies = (filters: {
  */
 export const getCurrentCompany = () => 
   api.get<CompanyRead>('/companies/me');
+
+
+// Status público (GET /companies/{id}/status)
+export const getCompanyStatus = (companyId: string) =>
+  api.get<CompanyStatus>(`/companies/${companyId}/status`);
+
+// Info pública (GET /companies/{id}/info)
+export const getCompanyInfo = (companyId: string) =>
+  api.get<CompanyRead>(`/companies/${companyId}/info`);
+
+// Atualização parcial (PATCH /companies/{id})
+export const updateCompany = (companyId: string, payload: CompanyUpdate) =>
+  api.patch<CompanyRead>(`/companies/${companyId}`, payload);

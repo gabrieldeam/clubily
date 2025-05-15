@@ -1,8 +1,10 @@
+import type { CategoryRead } from './category';
+
 export interface CompanyBase {
   name: string;
   email: string;
   phone: string;
-  cnpj: string;           // somente dígitos, 14 caracteres
+  cnpj: string;  
   street: string;
   city: string;
   state: string;
@@ -22,6 +24,7 @@ export interface CompanyRead extends CompanyBase {
   phone_verified: boolean;
   is_active: boolean;
   logo_url: string;
+  categories: [CategoryRead];
 }
 
 export interface CompanyLogin {
@@ -32,3 +35,20 @@ export interface CompanyLogin {
 export interface TokenResponse {
   access_token: string;
 }
+
+export interface CompanyStatus {
+  is_active: boolean;
+}
+
+export interface CompanyUpdate {
+  name?: string;
+  phone?: string;
+  cnpj?: string;
+  street?: string;
+  city?: string;
+  state?: string;
+  postal_code?: string;
+  description?: string;
+  category_ids?: string[];
+}
+
