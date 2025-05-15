@@ -13,7 +13,7 @@ import CustomMapLeaflet from '@/components/CustomMapLeaflet';
 import styles from './page.module.css';
 
 export default function ProfilePage() {
-  const { user, loading } = useAuth();
+  const { user, loading, logout } = useAuth();
   const router = useRouter();
   const [openEdit, setOpenEdit] = useState(false);
   const { refreshUser } = useAuth();
@@ -31,6 +31,11 @@ export default function ProfilePage() {
     return null;
   }
 
+  const handleLogout = async () => {
+    await logout();
+    router.replace('/');
+  };
+
   const fullAddress = `${user.street}, ${user.postal_code}, ${user.city}, ${user.state}`;
 
   return (
@@ -46,7 +51,7 @@ export default function ProfilePage() {
               <div className={styles.avatarWrapper}>
                 {user.logo_url?.trim() ? (
                   <Image
-                    src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${user.logo_url}`}
+                    src={`${process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL}${user.logo_url}`}
                     alt={`${user.name} logo`}
                     width={92}
                     height={92}
@@ -60,7 +65,7 @@ export default function ProfilePage() {
                 {/* Categoria ou botão de adicionar */}
                 {user.categories?.[0]?.image_url?.trim() ? (
                   <Image
-                    src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${user.categories[0].image_url}`}
+                    src={`${process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL}${user.categories[0].image_url}`}
                     alt="Categoria"
                     width={32}
                     height={32}
@@ -159,7 +164,7 @@ export default function ProfilePage() {
               </div>
             </div>
             <div className={styles.gridItem}>
-              <div className={styles.itemLink}>
+              <div className={styles.itemLink} onClick={handleLogout}>
                 <p>Sair</p>
                 <Image src="/seta.svg" alt="Logo" width={22} height={22} />
               </div>

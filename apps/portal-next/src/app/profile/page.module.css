@@ -195,4 +195,8 @@
   .gridContainer {
     grid-template-columns: 1fr;
   }
+  .gridDiv {
+    display: flex;
+    flex-direction: column;
+  }
 }

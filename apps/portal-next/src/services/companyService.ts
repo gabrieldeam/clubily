@@ -81,3 +81,10 @@ export const getCompanyInfo = (companyId: string) =>
 // Atualização parcial (PATCH /companies/{id})
 export const updateCompany = (companyId: string, payload: CompanyUpdate) =>
   api.patch<CompanyRead>(`/companies/${companyId}`, payload);
+
+
+/**
+ * Encerra a sessão no servidor e limpa o cookie.
+ */
+export const logoutCompany = () =>
+  api.post<void>('/companies/logout');

@@ -80,3 +80,30 @@
 .accountButtonActive {
   background-color: #FF4C00;
 }
+
+@media (min-width: 768px) and (max-width: 1024px) {
+
+  .searchInput {
+    width: 200px;
+  }
+
+  .accountButton span {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .header {
+    padding: 20px;
+  }
+  .logo {
+    width: 100px;
+  }
+  .searchInput {
+    width: 150px;
+  }
+
+  .accountButton span {
+    display: none;
+  }
+}

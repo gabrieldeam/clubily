@@ -79,7 +79,7 @@ def register(
         key=settings.COOKIE_NAME,
         value=token,
         httponly=True,
-        secure=True,
+        secure=False,
         samesite="lax",
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
@@ -108,7 +108,7 @@ def login(
         key=settings.COOKIE_NAME,
         value=token,
         httponly=True,
-        secure=True,
+        secure=False,
         samesite="lax",
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
@@ -197,7 +197,7 @@ def verify_phone_code_endpoint(
         key=settings.COOKIE_NAME,
         value=token,
         httponly=True,
-        secure=True,
+        secure=False,
         samesite="lax",
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )

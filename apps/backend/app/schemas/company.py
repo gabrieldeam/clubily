@@ -49,7 +49,7 @@ class CompanyRead(CompanyBase):
     email_verified_at: datetime | None = None
     phone_verified_at: datetime | None = None
     is_active: bool
-    logo_url: HttpUrl | None = None
+    logo_url: str | None = None
     categories: List[CategoryRead] = []
 
     @computed_field
@@ -71,6 +71,7 @@ class CompanyLogin(BaseModel):
 
 class CompanyUpdate(BaseModel):
     name: Optional[str] = None
+    email: Optional[EmailStr] = None
     phone: Optional[str] = None
     cnpj: Optional[str] = None
     street: Optional[str] = None

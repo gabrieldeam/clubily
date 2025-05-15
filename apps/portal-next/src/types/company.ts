@@ -42,6 +42,7 @@ export interface CompanyStatus {
 
 export interface CompanyUpdate {
   name?: string;
+  email?: string;
   phone?: string;
   cnpj?: string;
   street?: string;

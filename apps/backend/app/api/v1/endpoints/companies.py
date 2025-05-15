@@ -122,7 +122,7 @@ def login_company(
         key=settings.COOKIE_NAME,
         value=token,
         httponly=True,
-        secure=True,
+        secure=False,
         samesite="lax",
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
@@ -182,7 +182,7 @@ def reset_password_company(token: str, new_password: str, response: Response, db
         key=settings.COOKIE_NAME,
         value=new_token,
         httponly=True,
-        secure=True,
+        secure=False,
         samesite="lax",
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
@@ -236,33 +236,53 @@ def deactivate_company(
 @router.post(
     "/logo",
     status_code=status.HTTP_200_OK,
-    response_model=dict[str, str],  # retorna {"logo_url": "..."}
+    response_model=dict[str, str],
 )
 async def upload_company_logo(
     image: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_company: Company = Depends(get_current_company),
 ):
-    # 1) valida imagem
+    # 1) Valida imagem
     if not image.content_type.startswith("image/"):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Envie um arquivo de imagem válido")
 
-    # 2) salva em disco
-    save_dir = os.path.join(os.getcwd(), "backend", "app", "static", "companies")
+    # 2) Define diretório e garante existência
+    save_dir = os.path.join(os.getcwd(), "app", "static", "companies")
     os.makedirs(save_dir, exist_ok=True)
+
+    # 3) Se já existia uma logo, apaga o arquivo antigo
+    if current_company.logo_url:
+        old_filename = os.path.basename(current_company.logo_url)
+        old_path = os.path.join(save_dir, old_filename)
+        if os.path.exists(old_path):
+            try:
+                os.remove(old_path)
+            except OSError:
+                # se falhar, apenas ignore
+                pass
+
+    # 4) Gera nome único e salva a nova imagem
     ext = os.path.splitext(image.filename)[1]
     filename = f"{uuid.uuid4()}{ext}"
-    path = os.path.join(save_dir, filename)
+    new_path = os.path.join(save_dir, filename)
     content = await image.read()
-    with open(path, "wb") as f:
+    with open(new_path, "wb") as f:
         f.write(content)
 
-    # 3) atualiza campo logo_url e comita
+    # 5) Atualiza logo_url no banco usando a sessão `db`
     public_url = f"/static/companies/{filename}"
-    current_company.logo_url = public_url
+    company = db.get(Company, current_company.id)
+    if not company:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Empresa não encontrada")
+    company.logo_url = public_url
+
     db.commit()
+    db.refresh(company)
 
     return {"logo_url": public_url}
+
+
 
 
 @router.get("/search", response_model=List[CompanyRead])
@@ -328,27 +348,70 @@ def get_company_info(
 def update_company(
     company_id: str,
     payload: CompanyUpdate,
+    background: BackgroundTasks,
     db: Session = Depends(get_db),
     current_company: Company = Depends(get_current_company),
 ):
-    # 1) só o próprio lojista pode editar sua empresa
     if str(current_company.id) != company_id:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Permissão negada")
 
-    # 2) aplica apenas os campos enviados
+    company = db.get(Company, company_id)
+    if not company:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Empresa não encontrada")
+
     data = payload.model_dump(exclude_unset=True)
 
-    # 3) categorias: sobrescreve lista
-    if "category_ids" in data:
-        cats = db.scalars(
-            select(Category).where(Category.id.in_(data.pop("category_ids")))
-        ).all()
-        current_company.categories = cats
+    # trata mudança de e-mail
+    if "email" in data:
+        new_email = data.pop("email").lower()
+        if new_email != company.email:
+            company.email = new_email
+            company.email_verified_at = None
+            token = jwt.encode({"sub": str(company.id)}, settings.SECRET_KEY, algorithm="HS256")
+            verify_url = f"{settings.BACKEND_CORS_ORIGINS[0]}/companies/verify-email?token={token}"
+            background.add_task(
+                send_email,
+                to=new_email,
+                subject="Verifique seu novo e-mail",
+                html=f"<p>Você alterou seu e-mail. Clique <a href='{verify_url}'>aqui</a> para confirmar.</p>",
+            )
 
-    # 4) resto dos campos
+    # trata categorias
+    if "category_ids" in data:
+        ids = data.pop("category_ids")
+        cats = db.scalars(select(Category).where(Category.id.in_(ids))).all()
+        company.categories = cats
+
+    # trata logo_url
+    if "logo_url" in data:
+        company.logo_url = data.pop("logo_url")
+
+    # aplica demais campos
     for field, value in data.items():
-        setattr(current_company, field, value)
+        setattr(company, field, value)
 
     db.commit()
-    db.refresh(current_company)
-    return current_company
+    db.refresh(company)
+    return company
+
+
+@router.post(
+    "/logout",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Encerra sessão de empresa (limpa cookie)"
+)
+def logout_company(
+    response: Response,
+    current_company: Company = Depends(get_current_company),
+):
+    """
+    Limpa o cookie de autenticação, encerrando a sessão.
+    """
+    response.delete_cookie(
+        key=settings.COOKIE_NAME,
+        httponly=True,
+        secure=False,      # em prod, coloque True se usar HTTPS
+        samesite="lax",
+        path="/",
+    )
+    return

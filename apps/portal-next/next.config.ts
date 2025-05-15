@@ -1,18 +1,23 @@
-// next.config.js
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  // Se você estiver no Next ≥13.4, pode usar a flag experimental:
-  // experimental: {
-  //   svgr: true,
-  // },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '8000',
+        pathname: '/static/**',
+      },
+    ],
+  },
 
-  webpack(config) {
+  webpack(config: any) {
     // Injeta o loader do SVGR antes da regra padrão de arquivos
     config.module.rules.unshift({
       test: /\.svg$/,
       issuer: /\.[jt]sx?$/,
-      use: ["@svgr/webpack"],
+      use: ['@svgr/webpack'],
     });
     return config;
   },

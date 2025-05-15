@@ -7,22 +7,24 @@ import React, {
   ReactNode,
   useContext,
 } from 'react';
-import { getCurrentCompany } from '@/services/companyService';
+import {
+  getCurrentCompany,
+  logoutCompany,
+} from '@/services/companyService';
 import type { CompanyRead } from '@/types/company';
 
 interface AuthContextType {
-  /** Dados da empresa logada (ou null) */
   user: CompanyRead | null;
-  /** Indica se ainda está checando o login */
   loading: boolean;
-  /** Recarrega o usuário chamando GET /companies/me */
   refreshUser: () => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   refreshUser: async () => {},
+  logout: async () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -41,18 +43,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const logout = async () => {
+    try {
+      await logoutCompany();
+    } catch {
+      // ignore
+    } finally {
+      setUser(null);
+    }
+  };
+
   useEffect(() => {
     refreshUser();
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, refreshUser }}>
+    <AuthContext.Provider value={{ user, loading, refreshUser, logout }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
-/** Hook para usar em qualquer componente */
 export function useAuth() {
   return useContext(AuthContext);
 }
