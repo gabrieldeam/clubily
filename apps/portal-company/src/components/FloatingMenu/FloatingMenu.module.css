@@ -1,0 +1,45 @@
+.menu {
+  position: fixed;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 50px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 0.5rem;
+  background-color: #000;
+  border: 1px solid #1D1D1D;
+  border-radius: 50px;
+  padding: 0.5rem;
+  z-index: 9999;
+}
+
+.link {
+  display: flex;
+  align-items: center;     /* alinha ícone e texto */
+  gap: 0.6rem;             /* espaço entre ícone e texto */
+  color: #fff;
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  border-radius: 50px;
+  background: transparent;
+  transition: background 0.2s ease;
+}
+
+.link:hover {
+  background-color: #FF4C00;
+}
+
+.active {
+  background-color: #FF4C00;
+}
+
+.icon {
+  /* garante tamanho e não distorce */
+  width: 25px;
+  height: 25px;
+}
+
+.label {
+  /* pode ajustar tipografia se quiser */
+  font-size: 0.9rem;
+  white-space: nowrap;
+}

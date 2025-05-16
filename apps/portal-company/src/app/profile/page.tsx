@@ -1,7 +1,7 @@
 // app/profile/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo  } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -17,6 +17,13 @@ export default function ProfilePage() {
   const router = useRouter();
   const [openEdit, setOpenEdit] = useState(false);
   const { refreshUser } = useAuth();
+
+   const displayName = useMemo(() => {
+    const name = user?.name ?? '';
+    const MAX = 30;
+    return name.length > MAX ? name.slice(0, MAX) + '...' : name;
+  }, [user?.name]);
+
 
   useEffect(() => {
     if (!loading && !user) {
@@ -97,7 +104,7 @@ export default function ProfilePage() {
         <div className={styles.subGrid}>
           <div className={styles.gridItem}>
             <div className={styles.item}>
-              <p className={styles.userName}>{user.name}</p>
+              <p className={styles.userName}  style={{whiteSpace: 'pre-wrap', wordBreak: 'break-word'}}>{displayName}</p>
               <p className={
                 user.is_active
                   ? styles.statusActive
@@ -150,7 +157,7 @@ export default function ProfilePage() {
           <div className={styles.gridItem}>
             <div className={styles.item}>
               <p>Ajuda</p>
-              <div className={styles.gridDiv}>
+              <div className={styles.gridDivHelp}>
                 <button type="button" className={styles.buttomHelp}>Chat</button>
                 <button type="button" className={styles.buttomHelp}>E-mail</button>
               </div>

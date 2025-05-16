@@ -137,7 +137,15 @@
 .userName {
   font-size: 60px;
   font-weight: bold;
+
+  white-space: nowrap;
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+
+  max-width: 100%;
 }
+
 
 .statusActive {
   padding: 5px 20px;
@@ -166,6 +174,11 @@
   gap: 10px;
 }
 
+.gridDivHelp {
+  display: flex;  
+  gap: 10px;
+}
+
 .buttomHelp {
   background: transparent;
   border: none;
@@ -185,9 +198,14 @@
 }
 
 @media (min-width: 768px) and (max-width: 1024px) {
+  
   .gridContainer > :nth-child(1),
   .gridContainer > :nth-child(2) {
     grid-column: 1 / -1;
+  }
+
+  .userName {
+    font-size: 40px;
   }
 }
 
@@ -198,5 +216,9 @@
   .gridDiv {
     display: flex;
     flex-direction: column;
+  }
+
+  .userName {
+    font-size: 30px;
   }
 }
