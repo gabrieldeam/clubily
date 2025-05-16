@@ -1,0 +1,224 @@
+/* app/profile/page.module.css */
+.container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  margin: 0;
+}
+
+.gridContainer {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-auto-rows: auto;
+  gap: 10px;
+  padding: 10px 0;
+}
+
+.gridItem {
+  background: #fff;
+  padding: 20px;
+  border-radius: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  height: auto;
+  display: flex;
+  justify-content: space-around;
+  flex-direction: column;
+  gap: 10px;  
+  width: 100%;
+}
+
+.profileHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.leftSection {
+  display: flex;
+  align-items: center;
+}
+
+.avatarWrapper {
+  position: relative;
+  width: 92px;
+  height: 92px;
+  flex-shrink: 0;
+}
+
+.avatarCircle {
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  background-color: #FFA600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  color: #fff;
+  font-weight: bold;
+}
+
+.addCircle {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #F0F0F0;
+  border: 1px solid #D9D9D9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+
+.userInfo {
+  margin-left: 16px;
+}
+
+.userNameLarge {
+  margin: 0;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.userDesc {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.editIcon {
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px;
+}
+
+.itemLink {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px;
+  width: 100%;
+}
+
+.itemLink:hover {
+  background-color: #f0f0f0;
+  border-radius: 10px;  
+  padding: 5px;
+}
+
+.itemDelete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px;
+  width: 100%;
+  color: red;  
+}
+
+.itemDelete:hover {
+  background-color: #f0f0f0;
+  border-radius: 10px;  
+  padding: 5px;
+}
+
+.item span {
+  color: #878787;
+}
+
+.userName {
+  font-size: 60px;
+  font-weight: bold;
+
+  white-space: nowrap;
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+
+  max-width: 100%;
+}
+
+
+.statusActive {
+  padding: 5px 20px;
+  background-color: #2BD700;
+  border: 2px solid #22BA15;
+  border-radius: 20px;
+  color: white;
+}
+
+.statusDesactive {
+  padding: 5px 20px;
+  background-color: #F0F0F0;
+  border: 1px solid #D9D9D9;
+  border-radius: 20px;
+  color: black;
+}
+
+.subGrid {
+  display: grid;
+  grid-template-rows: repeat(2, auto);
+  row-gap: 10px;
+}
+
+.gridDiv {
+  display: flex;  
+  gap: 10px;
+}
+
+.gridDivHelp {
+  display: flex;  
+  gap: 10px;
+}
+
+.buttomHelp {
+  background: transparent;
+  border: none;
+  font-size: 15px;
+  cursor: pointer;
+  color: black;
+  background-color: #F0F0F0;
+  border: 1px solid #D9D9D9;
+  padding: 5px 30px;
+  border-radius: 20px;
+}
+
+.mapContainer {
+  margin-top: 12px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  
+  .gridContainer > :nth-child(1),
+  .gridContainer > :nth-child(2) {
+    grid-column: 1 / -1;
+  }
+
+  .userName {
+    font-size: 40px;
+  }
+}
+
+@media (max-width: 767px) {
+  .gridContainer {
+    grid-template-columns: 1fr;
+  }
+  .gridDiv {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .userName {
+    font-size: 30px;
+  }
+}

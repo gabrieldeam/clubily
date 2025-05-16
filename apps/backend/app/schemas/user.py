@@ -28,6 +28,16 @@ class UserRead(BaseModel):
     class Config:
         model_config = ConfigDict(from_attributes=True)
 
+class UserUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    password: Optional[str] = Field(None, min_length=8)
+    phone: Optional[str] = None
+    company_ids: Optional[List[str]] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class LeadCreate(BaseModel):
     phone: str | None = None
     company_id: str

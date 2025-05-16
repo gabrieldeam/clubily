@@ -1,8 +1,12 @@
 # backend/app/api/v1/endpoints/auth.py
 
 from fastapi import APIRouter, Depends, Response, BackgroundTasks, HTTPException, status
+from jose import jwt, JWTError
 import app.api.deps as deps
+from sqlalchemy.orm import Session
+from app.api.deps import get_current_user
 from pydantic import EmailStr  
+from app.core.security import hash_password
 from jose import jwt
 from datetime import datetime
 import secrets
@@ -136,6 +140,53 @@ def forgot_password(
         )
     return {"msg": "Se o e-mail existir, enviaremos instruções"}
 
+@router.post(
+    "/reset-password",
+    response_model=Token,
+    status_code=status.HTTP_200_OK,
+    summary="Reseta a senha do usuário via token enviado por e-mail",
+)
+def reset_password_user(
+    *,
+    token: str,
+    new_password: str,
+    response: Response,
+    db: Session = Depends(deps.get_db),
+):
+    """
+    Valida o JWT de reset e atualiza o hash da nova senha.
+    Em seguida gera um novo access_token e o seta no cookie.
+    """
+    # 1) Decodifica e valida o token
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+        user_id = payload.get("sub")
+    except JWTError:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Token inválido")
+
+    # 2) Busca o usuário
+    user = db.query(User).get(user_id)
+    if not user:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Usuário não encontrado")
+
+    # 3) Atualiza a senha
+    user.hashed_password = hash_password(new_password)
+    db.commit()
+
+    # 4) Gera novo token de sessão e seta cookie
+    new_token = auth_service.create_access_token(str(user.id))
+    response.set_cookie(
+        key=settings.COOKIE_NAME,
+        value=new_token,
+        httponly=True,
+        secure=False,  # em produção, use True se for HTTPS
+        samesite="lax",
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+    )
+
+    return {"access_token": new_token}
+
+
 @router.get("/verify", status_code=200)
 def verify_email(
     *,
@@ -202,3 +253,25 @@ def verify_phone_code_endpoint(
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
     return {"access_token": token}
+
+
+@router.post(
+"/logout",
+status_code=status.HTTP_204_NO_CONTENT,
+summary="Encerra sessão do usuário (limpa cookie)"
+)
+def logout_user(
+    response: Response,
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Faz logout do usuário limpando o cookie de autenticação.
+    """
+    response.delete_cookie(
+        key=settings.COOKIE_NAME,
+        httponly=True,
+        secure=False,     # em produção, use True se estiver em HTTPS
+        samesite="lax",
+        path="/",
+    )
+    return

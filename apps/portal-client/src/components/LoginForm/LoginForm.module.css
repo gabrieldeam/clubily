@@ -1,0 +1,38 @@
+.form {
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.title {
+  font-size: 1.5rem;
+  text-align: center;
+  margin-bottom: 1.3rem;
+}
+
+.secondaryButton {
+  background: transparent;
+  border: none;
+  color: #FF4C00;
+  cursor: pointer;
+  font-size: 0.9rem;
+  margin: 0;
+}
+.secondaryButton:hover {
+  opacity: 0.8;
+}
+
+.link {
+  margin-top: 1rem;
+  text-align: center;
+}
+.link a {
+  color: #FF4C00;
+  cursor: pointer;
+  text-decoration: none;
+}
+.link a:hover {
+  opacity: 0.8;
+}
