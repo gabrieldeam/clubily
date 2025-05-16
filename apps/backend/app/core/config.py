@@ -43,6 +43,13 @@ class Settings(BaseSettings):
 
     # CORS
     BACKEND_CORS_ORIGINS: list[str] = ["http://localhost:3000"]
+    BACKEND_CORS_ORIGINS: list[str] = [
+       "http://localhost:3000",
+       "http://localhost:3001", 
+       # se no futuro tiver outros:
+       # "https://clubily.com",
+       # "https://clubi.ly",
+   ]
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

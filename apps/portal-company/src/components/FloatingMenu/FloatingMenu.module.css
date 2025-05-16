@@ -39,7 +39,19 @@
 }
 
 .label {
-  /* pode ajustar tipografia se quiser */
   font-size: 0.9rem;
   white-space: nowrap;
+}
+
+
+@media (max-width: 780px) {
+  .label {
+    display: none;
+  }
+  .link {
+    padding: 0.5rem;
+  }
+  .menu {
+    gap: 0.25rem;
+  }
 }

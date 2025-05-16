@@ -1,14 +1,16 @@
+// components/FloatingMenu/FloatingMenu.tsx
 'use client';
 
-import Link from 'next/link';
-import Image from 'next/image';
+import Link        from 'next/link';
+import Image       from 'next/image';
 import { usePathname } from 'next/navigation';
-import styles from './FloatingMenu.module.css';
+import { useAuth } from '@/context/AuthContext';   // ➊
+import styles      from './FloatingMenu.module.css';
 
 interface NavLink {
   name: string;
   href: string;
-  icon: string;   // caminho relativo em public/
+  icon: string;
 }
 
 const links: NavLink[] = [
@@ -19,7 +21,11 @@ const links: NavLink[] = [
 ];
 
 export default function FloatingMenu() {
-  const pathname = usePathname();
+  const pathname          = usePathname();
+  const { user, loading } = useAuth();           // ➋
+
+  // Enquanto carrega ou se não houver usuário → não mostra nada
+  if (loading || !user) return null;             // ➌
 
   return (
     <nav className={styles.menu}>
