@@ -221,6 +221,7 @@ export default function CompanySettings({ companyId, onClose, onSaved }: Company
 
         {!showAddress ? (
           <>
+          <div className={editStyles.back}>
             <div className={editStyles.background}>
               <div className={editStyles.logoUpload}>
                 {logoPreview ? (
@@ -267,6 +268,7 @@ export default function CompanySettings({ companyId, onClose, onSaved }: Company
                 onChange={handleChange}
               />
             </div>
+            
 
             <div className={editStyles.background}>
               <FloatingLabelInput
@@ -311,7 +313,8 @@ export default function CompanySettings({ companyId, onClose, onSaved }: Company
               >
                 Editar Endereço
               </button>
-            </div>
+            </div>            
+          </div>
 
             <div className={editStyles.buttons}>
               <Button type="submit">Salvar</Button>

@@ -79,17 +79,6 @@
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
 .logoUpload {
   display: flex;
   align-items: center;
@@ -121,4 +110,30 @@
 }
 .logoBtn:hover {
   opacity: 0.9;
+}
+
+.back {
+    display:flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+  }
+
+@media screen and (min-width: 1024px) and (max-height: 900px) {
+ 
+  .back {
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .form,
+  .forgotBackground,
+  .background {
+    /* agora cada bloco tem largura fixa/limitada */
+    width: auto;
+    flex: 0 0 100%;  /* fixa 400px de largura, sem esticar */
+  }
 }

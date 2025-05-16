@@ -210,6 +210,10 @@
 }
 
 @media (max-width: 767px) {
+  .container {
+    margin-bottom: 150px;
+  }
+  
   .gridContainer {
     grid-template-columns: 1fr;
   }

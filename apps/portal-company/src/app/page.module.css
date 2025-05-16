@@ -6,6 +6,7 @@
   height: 100vh;
   margin: 0;
   gap: 10px;
+  overflow: hidden;
 }
 
 .header {
@@ -32,7 +33,7 @@
   padding: 2rem;
   background: #fff;
   border-radius: 20px;
-  height: calc(100% - 10px);
+  height: calc(100vh - 106.91px);
 }
 
 .content {
@@ -73,7 +74,7 @@
   background-position: center;
   background-repeat: no-repeat;
   border-radius: 20px;
-  height: calc(100% - 10px);
+  height: calc(100vh - 106.91px);
   display: flex;
   justify-content: center;
   align-items: center;

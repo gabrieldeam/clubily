@@ -43,7 +43,7 @@ export interface UserCreate {
   password: string;
   phone?: string;
   accepted_terms: boolean;
-  company_id: string;
+  company_id?: string;
 }
 
 /**

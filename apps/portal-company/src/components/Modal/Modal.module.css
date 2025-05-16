@@ -5,7 +5,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 1010;
 }
 
 .content {
@@ -26,4 +26,11 @@
   background-color: white;
   padding: 5px;
   border-radius: 100px;
+}
+
+
+@media screen and (min-width: 1024px) and (max-height: 900px) {
+ .closeBtn {
+  right: -12rem;
+}
 }

@@ -6,8 +6,8 @@ import styles from './RegisterForm.module.css';
 import FloatingLabelInput from '@/components/FloatingLabelInput/FloatingLabelInput';
 import Notification from '@/components/Notification/Notification';
 import Button from '@/components/Button/Button';
-import { registerCompany } from '@/services/companyService';
-import type { CompanyCreate } from '@/types/company';
+import { registerUser } from '@/services/userService';
+import type { UserCreate } from '@/types/user';
 
 type NotificationType = 'success' | 'error' | 'info';
 interface NotificationData {
@@ -15,7 +15,7 @@ interface NotificationData {
   message: string;
 }
 
-type LocalForm = CompanyCreate & { confirm_password: string };
+type LocalForm = UserCreate & { confirm_password: string };
 
 interface RegisterFormProps {
   onSuccess: () => void;
@@ -26,14 +26,8 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
     name: '',
     email: '',
     phone: '',
-    cnpj: '',
     password: '',
     confirm_password: '',
-    postal_code: '',
-    street: '',
-    city: '',
-    state: '',
-    description: '',
     accepted_terms: false,
   });
   const [notification, setNotification] = useState<NotificationData | null>(null);
@@ -41,26 +35,6 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
 
   const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
 
-  useEffect(() => {
-    const cep = form.postal_code.replace(/\D/g, '');
-    if (showAddress && cep.length === 8) {
-      fetch(`https://viacep.com.br/ws/${cep}/json/`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.erro) {
-            setNotification({ type: 'error', message: 'CEP não encontrado.' });
-          } else {
-            setForm(prev => ({
-              ...prev,
-              street: data.logradouro || '',
-              city: data.localidade || '',
-              state: data.uf || '',
-            }));
-          }
-        })
-        .catch(() => setNotification({ type: 'error', message: 'Erro ao buscar CEP.' }));
-    }
-  }, [form.postal_code, showAddress]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, type, value, checked } = e.target as HTMLInputElement;
@@ -94,13 +68,8 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
     if (!form.name) missing.push('Nome');
     if (!form.email) missing.push('E-mail');
     if (!form.phone) missing.push('Telefone');
-    if (!form.cnpj) missing.push('CNPJ');
     if (!form.password) missing.push('Senha');
     if (!form.confirm_password) missing.push('Confirmação de senha');
-    if (!form.postal_code) missing.push('CEP');
-    if (!form.street) missing.push('Rua');
-    if (!form.city) missing.push('Cidade');
-    if (!form.state) missing.push('Estado');
     if (!form.accepted_terms) missing.push('Termos de uso');
 
     if (missing.length > 0) {
@@ -127,7 +96,7 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
     const { confirm_password, ...payload } = form;
 
     try {
-      await registerCompany(payload);
+      await registerUser(payload);
       setNotification({ type: 'success', message: 'Cadastro realizado! Verifique seu e-mail.' });
       setForm(prev => ({ ...prev, password: '', confirm_password: '' }));
       onSuccess();
@@ -162,12 +131,6 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
           <FloatingLabelInput id="register-name" name="name" label="Nome" type="text" value={form.name} onChange={handleChange} />
           <FloatingLabelInput id="register-email" name="email" label="E-mail" type="email" value={form.email} onChange={handleChange} />
           <FloatingLabelInput id="register-phone" name="phone" label="Telefone" type="text" value={form.phone} onChange={handleChange} />
-          <FloatingLabelInput id="register-cnpj" name="cnpj" label="CNPJ" type="text" value={form.cnpj} onChange={handleChange} />
-
-          <button type="button" className={styles.addressButton} onClick={() => setShowAddress(true)}>
-            Adicionar Endereço
-          </button>
-
           <FloatingLabelInput id="register-password" name="password" label="Senha" type="password" value={form.password} onChange={handleChange} />
           <FloatingLabelInput id="register-confirm-password" name="confirm_password" label="Confirme a senha" type="password" value={form.confirm_password} onChange={handleChange} />
 
@@ -178,20 +141,7 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
 
           <Button type="submit">Cadastrar</Button>
         </>
-      )}
-
-      {showAddress && (
-        <>
-          <FloatingLabelInput id="register-postal_code" name="postal_code" label="CEP" type="text" value={form.postal_code} onChange={handleChange} />
-          <FloatingLabelInput id="register-street" name="street" label="Rua" type="text" value={form.street} onChange={handleChange} />
-          <FloatingLabelInput id="register-city" name="city" label="Cidade" type="text" value={form.city} onChange={handleChange} />
-          <FloatingLabelInput id="register-state" name="state" label="Estado" type="text" value={form.state} onChange={handleChange} />
-
-          <Button bgColor="#FFA600" onClick={() => setShowAddress(false)}>
-            Continuar
-          </Button>
-        </>
-      )}
+      )}    
     </form>
   );
 }
