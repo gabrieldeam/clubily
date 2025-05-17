@@ -3,6 +3,7 @@
 from typing import Optional, List
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from enum import Enum
+from uuid import UUID
 
 class Role(str, Enum):
     admin = "admin"
@@ -18,7 +19,7 @@ class UserCreate(BaseModel):
     accepted_terms: bool = Field(..., description="Usuário aceitou políticas")
 
 class UserRead(BaseModel):
-    id: str
+    id: UUID
     name: Optional[str] = None
     email: Optional[EmailStr] = None
     company_ids: List[str] = []

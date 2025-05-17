@@ -35,10 +35,6 @@ export default function Header({
     onSearch('');
   };
 
-  const accountButtonClass = isProfile
-    ? `${styles.accountButton} ${styles.accountButtonActive}`
-    : styles.accountButton;
-
   return (
     <header className={styles.header}>
       {/* Logo com link para a Home */}
@@ -77,33 +73,6 @@ export default function Header({
             </button>
           )}
         </form>
-
-        {/* Se receber onAccountClick usa botão, senão usa Link */}
-        {onAccountClick ? (
-          <button
-            type="button"
-            className={accountButtonClass}
-            onClick={onAccountClick}
-          >
-            <Image
-              src="/user.svg"
-              alt="Minha conta"
-              width={24}
-              height={24}
-            />
-            <span>Minha Conta</span>
-          </button>
-        ) : (
-          <Link href="/profile" className={accountButtonClass}>
-            <Image
-              src="/user.svg"
-              alt="Minha conta"
-              width={24}
-              height={24}
-            />
-            <span>Minha Conta</span>
-          </Link>
-        )}
       </div>
     </header>
   );

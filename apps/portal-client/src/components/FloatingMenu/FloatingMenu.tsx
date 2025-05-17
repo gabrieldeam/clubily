@@ -4,7 +4,7 @@
 import Link        from 'next/link';
 import Image       from 'next/image';
 import { usePathname } from 'next/navigation';
-import { useAuth } from '@/context/AuthContext';   // ➊
+import { useAuth } from '@/context/AuthContext';
 import styles      from './FloatingMenu.module.css';
 
 interface NavLink {
@@ -15,7 +15,7 @@ interface NavLink {
 
 const links: NavLink[] = [
   { name: 'Home', href: '/',        icon: '/icons/dashboard.svg' },
-  { name: 'Minha conta',  href: '/client',  icon: '/user.svg'    },
+  { name: 'Minha conta',  href: '/profile',  icon: '/user.svg'    },
 ];
 
 export default function FloatingMenu() {

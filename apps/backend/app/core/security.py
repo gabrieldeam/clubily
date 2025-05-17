@@ -17,12 +17,6 @@ def hash_password(password: str) -> str:
 def verify_password(password: str, hashed: str) -> bool:
     return ph.verify(hashed, password)
 
-def encrypt_cpf(cpf: str) -> str:
-    return fernet.encrypt(cpf.encode()).decode()
-
-def decrypt_cpf(token: str) -> str:
-    return fernet.decrypt(token.encode()).decode()
-
 def create_access_token(subject: str) -> str:
     expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode = {"sub": subject, "exp": expire}
