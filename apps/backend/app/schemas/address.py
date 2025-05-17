@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Optional
+from uuid import UUID
 from pydantic import BaseModel, ConfigDict
 
 class AddressBase(BaseModel):
@@ -13,7 +14,7 @@ class AddressCreate(AddressBase):
     pass
 
 class AddressRead(AddressBase):
-    id: str
+    id: UUID
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

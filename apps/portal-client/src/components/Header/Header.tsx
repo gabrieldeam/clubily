@@ -3,13 +3,12 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState } from 'react';
-import { usePathname } from 'next/navigation';
+import Modal from '@/components/Modal/Modal'; 
+import AddressManager from '@/components/AddressManager/AddressManager';
 import styles from './Header.module.css';
 
 interface HeaderProps {
-  /** Callback para pesquisa */
   onSearch?: (query: string) => void;
-  /** Callback opcional para clique em 'Minha Conta' */
   onAccountClick?: () => void;
 }
 
@@ -18,8 +17,8 @@ export default function Header({
   onAccountClick,
 }: HeaderProps) {
   const [query, setQuery] = useState('');
-  const pathname = usePathname();
-  const isProfile = pathname === '/profile';
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const isProfile = isModalOpen;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setQuery(e.target.value);
@@ -35,45 +34,68 @@ export default function Header({
     onSearch('');
   };
 
-  return (
-    <header className={styles.header}>
-      {/* Logo com link para a Home */}
-      <div className={styles.logo}>
-        <Link href="/">
-          <Image src="/logo.svg" alt="Logo" width={120} height={32} />
-        </Link>
-      </div>
+  const openAccountModal = () => {
+    onAccountClick?.();
+    setIsModalOpen(true);
+  };
 
-      {/* Seção de pesquisa + Minha Conta */}
-      <div className={styles.searchSection}>
-        <form className={styles.searchWrapper} onSubmit={handleSearch}>
-          <div className={styles.searchIcon}>
-            <Image
-              src="/procurar.svg"
-              alt="Buscar"
-              width={20}
-              height={20}
+  const closeAccountModal = () => {
+    setIsModalOpen(false);
+  };
+
+  const accountButtonClass = isProfile
+    ? `${styles.accountButton} ${styles.accountButtonActive}`
+    : styles.accountButton;
+
+  return (
+    <>
+      <header className={styles.header}>
+        <div className={styles.logo}>
+          <Link href="/">
+            <Image src="/logo.svg" alt="Logo" width={120} height={32} />
+          </Link>
+        </div>
+
+        <div className={styles.searchSection}>
+          <button
+            type="button"
+            className={accountButtonClass}
+            onClick={openAccountModal}
+          >
+            <Image src="/icons/address.svg" alt="Endereços" width={24} height={24} />
+            <span>Endereços</span>
+          </button>
+
+          <form className={styles.searchWrapper} onSubmit={handleSearch}>
+            <div className={styles.searchIcon}>
+              <Image src="/procurar.svg" alt="Buscar" width={20} height={20} />
+            </div>
+            <input
+              name="search"
+              type="text"
+              placeholder="Pesquisar..."
+              className={styles.searchInput}
+              value={query}
+              onChange={handleInputChange}
             />
-          </div>
-          <input
-            name="search"
-            type="text"
-            placeholder="Pesquisar..."
-            className={styles.searchInput}
-            value={query}
-            onChange={handleInputChange}
-          />
-          {query && (
-            <button
-              type="button"
-              className={styles.clearButton}
-              onClick={clearSearch}
-            >
-              Cancelar
-            </button>
-          )}
-        </form>
-      </div>
-    </header>
+            {query && (
+              <button
+                type="button"
+                className={styles.clearButton}
+                onClick={clearSearch}
+              >
+                Cancelar
+              </button>
+            )}
+          </form>
+        </div>
+      </header>
+
+      <Modal open={isModalOpen} onClose={closeAccountModal}>
+        <div className={styles.background}>
+           <AddressManager />
+         </div>
+      </Modal>
+    </>
   );
 }

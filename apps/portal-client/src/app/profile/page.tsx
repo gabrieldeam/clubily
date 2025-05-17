@@ -6,6 +6,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { listAddresses, deleteAddress } from '@/services/addressService';
+import type { AddressRead } from '@/types/address';
 import Header from '@/components/Header/Header';
 import Modal from '@/components/Modal/Modal';
 import EditUserForm from '@/components/EditUserForm/EditUserForm';
@@ -16,8 +18,10 @@ export default function ProfilePage() {
   const router = useRouter();
   const [openEdit, setOpenEdit] = useState(false);
   const { refreshUser } = useAuth();
+  const [addresses, setAddresses] = useState<AddressRead[]>([]);
+  const [loadingAddr, setLoadingAddr] = useState(true);
 
-   const displayName = useMemo(() => {
+  const displayName = useMemo(() => {
     const name = user?.name ?? '';
     const MAX = 30;
     return name.length > MAX ? name.slice(0, MAX) + '...' : name;
@@ -29,6 +33,12 @@ export default function ProfilePage() {
       router.replace('/');
     }
   }, [loading, user, router]);
+
+  useEffect(() => {
+    listAddresses()
+      .then(res => setAddresses(res.data))
+      .finally(() => setLoadingAddr(false));
+  }, []);
 
   if (loading) {
     return <div className={styles.container}>Carregando perfil...</div>;
@@ -42,6 +52,15 @@ export default function ProfilePage() {
     router.replace('/');
   };
 
+  const handleDelete = async (id: string) => {
+    if (!confirm('Deseja realmente excluir este endereço?')) return;
+    try {
+      await deleteAddress(id);
+      setAddresses(prev => prev.filter(a => a.id !== id));
+    } catch {
+      alert('Falha ao excluir endereço.');
+    }
+  };
 
   return (
     <div className={styles.container}>
@@ -119,9 +138,33 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
-        </div>
-
+        </div>          
       </main>
+
+      <div className={styles.gridItem}>
+        <h4>Endereços</h4>
+        {loadingAddr ? (
+          <p>Carregando endereços…</p>
+        ) : addresses.length === 0 ? (
+          <p>Nenhum endereço cadastrado.</p>
+        ) : (
+          <ul className={styles.addressList}>
+            {addresses.map(addr => (
+              <li key={addr.id} className={styles.addressItem}>
+                <div className={styles.addressInfo}>
+                  {addr.street}, {addr.city} – {addr.state}
+                </div>
+                <button
+                  className={styles.button}
+                  onClick={() => handleDelete(addr.id)}
+                >
+                  Excluir
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       <Modal open={openEdit} onClose={() => setOpenEdit(false)}>
         <EditUserForm

@@ -1,0 +1,73 @@
+.gridItem {
+  background: #fff;
+  padding: 20px;
+  border-radius: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;  
+  width: 100%;
+  margin-top: 10px;
+}
+
+.categoriesGrid {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+}
+
+.categoriesGrid {
+  -ms-overflow-style: none;
+  scrollbar-width: none; 
+}
+.categoriesGrid::-webkit-scrollbar {
+  display: none;     
+}
+
+.card {
+  flex: 0 0 auto; 
+  padding: 12px 18px;
+  background: #F0F0F0;
+  border-radius: 50px;
+  border: 1px solid #D9D9D9;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.logo {
+  border-radius: 8px;
+}
+
+.name {
+  font-size: 16px;
+}
+
+.arrowButton {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255,255,255,0.8);
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  z-index: 10;
+}
+
+.arrowLeft  { left: 4px;  }
+.arrowRight { right: 4px; }
+
+/* Esconde setas em mobile/tablet (até 768px) */
+@media (max-width: 768px) {
+  .arrowButton {
+    display: none;
+  }
+}

@@ -197,6 +197,43 @@
   overflow: hidden;
 }
 
+
+
+
+
+/* src/components/AddressManager/AddressManager.module.css */
+
+.addressList {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.addressItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f0f0f0;
+  padding: 20px;
+  border-radius: 10px;
+}
+
+.addressInfo {
+  flex: 1;
+  margin-right: 1rem;
+  word-break: break-word;
+}
+
+.button {
+  color: #FF4C00;
+}
+
+.button:hover {
+  text-decoration: underline;
+}
+
 @media (min-width: 768px) and (max-width: 1024px) {
   
   .gridContainer > :nth-child(1),
@@ -210,10 +247,7 @@
 }
 
 @media (max-width: 767px) {
-  .container {
-    margin-bottom: 150px;
-  }
-  
+    
   .gridContainer {
     grid-template-columns: 1fr;
   }
@@ -224,5 +258,9 @@
 
   .userName {
     font-size: 30px;
+  }
+
+  .addressList {
+    grid-template-columns: 1fr;
   }
 }

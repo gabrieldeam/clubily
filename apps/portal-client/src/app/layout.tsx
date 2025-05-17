@@ -1,5 +1,6 @@
 import "./globals.css";
 import { AuthProvider } from '@/context/AuthContext';
+import { AddressProvider } from '@/context/AddressContext';
 import FloatingMenu from '@/components/FloatingMenu/FloatingMenu';
 import 'leaflet/dist/leaflet.css';
 
@@ -12,8 +13,10 @@ export default function RootLayout({
     <html lang="pt-BR">
       <body>
         <AuthProvider>
-          <FloatingMenu />
-          {children}
+          <AddressProvider>
+            <FloatingMenu />
+              {children}
+          </AddressProvider>          
         </AuthProvider>
       </body>
     </html>

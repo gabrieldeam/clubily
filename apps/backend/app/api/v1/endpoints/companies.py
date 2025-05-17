@@ -305,6 +305,35 @@ def search_companies(
         q = q.filter(Company.postal_code == postal_code)
     return q.all()
 
+@router.get(
+    "/search-by-category",
+    response_model=List[CompanyRead],
+    status_code=status.HTTP_200_OK,
+    summary="Busca empresas por localização e categoria"
+)
+def search_companies_by_category(
+    category_id: str = Query(..., description="ID da categoria para filtrar"),
+    city: Optional[str] = Query(None, description="Parte do nome da cidade"),
+    state: Optional[str] = Query(None, description="Parte do nome do estado"),
+    postal_code: Optional[str] = Query(None, description="CEP exato"),
+    db: Session = Depends(get_db),
+):
+    """
+    Retorna empresas que pertencem à `category_id` e opcionalmente filtradas
+    por cidade, estado e/ou CEP.
+    """
+    q = db.query(Company)
+    if city:
+        q = q.filter(Company.city.ilike(f"%{city}%"))
+    if state:
+        q = q.filter(Company.state.ilike(f"%{state}%"))
+    if postal_code:
+        q = q.filter(Company.postal_code == postal_code)
+
+    # junta com categorias e filtra pela escolhida
+    q = q.join(Company.categories).filter(Category.id == category_id)
+    q = q.distinct()
+    return q.all()
 
 @router.get(
     "/{company_id}/status",
@@ -379,7 +408,13 @@ def update_company(
     # trata categorias
     if "category_ids" in data:
         ids = data.pop("category_ids")
-        cats = db.scalars(select(Category).where(Category.id.in_(ids))).all()
+
+        # busca categorias e elimina duplicatas por causa de joined eager loads
+        cats_result = db.scalars(
+            select(Category).where(Category.id.in_(ids))
+        )
+        cats = cats_result.unique().all()
+
         company.categories = cats
 
     # trata logo_url

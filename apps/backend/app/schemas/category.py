@@ -1,14 +1,15 @@
 from datetime import datetime
-from pydantic import BaseModel, HttpUrl, ConfigDict
+from pydantic import BaseModel, ConfigDict
+from uuid import UUID
 
 class CategoryBase(BaseModel):
     name: str
-    image_url: HttpUrl | None = None
+    image_url: str | None = None
 
 class CategoryCreate(CategoryBase):
     pass
 
 class CategoryRead(CategoryBase):
-    id: str
+    id: UUID
 
     model_config = ConfigDict(from_attributes=True)

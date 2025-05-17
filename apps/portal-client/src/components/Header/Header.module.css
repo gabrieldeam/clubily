@@ -20,7 +20,7 @@
   position: relative;    
   display: flex;
   align-items: center;
-  margin: 0 1rem;
+  margin: 0 0 0 0.5rem ;
 }
 
 .searchIcon {
@@ -58,12 +58,47 @@
   border: 1px solid #b4b3b3;
 }
 
+.accountButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: transparent;
+  border: none;
+  font-size: 1rem;
+  color: white;
+  cursor: pointer;
+  padding: 9px 20px;
+  transition: background-color 0.2s;
+  border-radius: 50px;
+  background-color: black;
+}
 
+.accountButton:hover {
+  background-color: #FF4C00;
+}
+
+.accountButtonActive {
+  background-color: #FF4C00;
+}
+
+.background {
+  width: 100%;  
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background-color: white;
+  padding: 20px;
+  border-radius: 20px;
+}
 
 @media (min-width: 768px) and (max-width: 1024px) {
 
   .searchInput {
     width: 200px;
+  }
+
+  .accountButton span {
+    display: none;
   }
 
 }
@@ -77,6 +112,10 @@
   }
   .searchInput {
     width: 150px;
+  }
+
+  .accountButton span {
+    display: none;
   }
 
 }
