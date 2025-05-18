@@ -284,7 +284,6 @@ async def upload_company_logo(
 
 
 
-
 @router.get("/search", response_model=List[CompanyRead])
 def search_companies(
     city: Optional[str] = Query(None),

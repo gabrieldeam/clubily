@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Modal from '@/components/Modal/Modal'; 
 import AddressManager from '@/components/AddressManager/AddressManager';
 import styles from './Header.module.css';
@@ -19,6 +19,14 @@ export default function Header({
   const [query, setQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const isProfile = isModalOpen;
+
+  useEffect(() => {
+    const handler = () => setIsModalOpen(true);
+    window.addEventListener('openAddressModal', handler);
+    return () => {
+      window.removeEventListener('openAddressModal', handler);
+    };
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setQuery(e.target.value);

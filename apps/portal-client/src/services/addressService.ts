@@ -20,3 +20,8 @@ export const listAddresses = () =>
  */
 export const deleteAddress = (addressId: string) =>
   api.delete<void>(`/addresses/${addressId}`);
+
+
+/** Busca um endereço pelo ID */
+export const getAddressById = (id: string) =>
+  api.get<AddressRead>(`/addresses/${id}`);

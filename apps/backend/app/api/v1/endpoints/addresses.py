@@ -36,3 +36,22 @@ def remove_user_address(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Endereço não encontrado")
     delete_address(db, address_id)
     return
+
+@router.get(
+    "/{address_id}",
+    response_model=AddressRead,
+    status_code=status.HTTP_200_OK,
+    summary="Retorna um endereço pelo ID (do usuário logado)"
+)
+def read_user_address(
+    address_id: str,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    # 1) Busca o endereço
+    addr = get_address(db, address_id)
+    # 2) Verifica existência + pertence ao usuário
+    if not addr or str(addr.user_id) != str(current_user.id):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Endereço não encontrado")
+    # 3) Devolve
+    return addr

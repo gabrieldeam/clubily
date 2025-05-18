@@ -1,148 +1,327 @@
+// src/app/dashboard/page.tsx
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
-import Header from '@/components/Header/Header';
 import Image from 'next/image';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAddress } from '@/context/AddressContext';
-import { listUsedCategories } from '@/services/categoryService';
+import {
+  listUsedCategories,
+} from '@/services/categoryService';
+import {
+  searchCompanies,
+} from '@/services/companyService';
 import type { CategoryRead } from '@/types/category';
+import type { CompanyRead } from '@/types/company';
+import Header from '@/components/Header/Header';
+import {
+  MapContainer,
+  TileLayer,
+} from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import styles from './Dashboard.module.css';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+} from 'lucide-react';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
+
+// corrige ícone padrão Leaflet no Next.js
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: '/leaflet/marker-icon-2x.png',
+  iconUrl: '/leaflet/marker-icon.png',
+  shadowUrl: '/leaflet/marker-shadow.png',
+});
 
 export default function Dashboard() {
-  const { selectedAddress } = useAddress();
+  const router = useRouter();  
+  const { loading } = useRequireAuth();
+
+  if (loading) return <p>Carregando…</p>;
+
+  const {
+    selectedAddress,
+    filterField,
+    setFilterField,
+  } = useAddress();
+
+
+  /* ------- abre modal se não houver endereço -------- */
+  useEffect(() => {
+    if (!selectedAddress) {
+      window.dispatchEvent(new Event('openAddressModal'));
+    }
+  }, [selectedAddress]);
+
+  /* ------------- estados ------------- */
   const [cats, setCats] = useState<CategoryRead[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingCats, setLoadingCats] = useState(true);
 
-  // Campo de filtro: city, street, postal_code, country
-  const [filterField, setFilterField] = useState<'city' | 'street' | 'postal_code' | 'country'>('city');
+  const [companies, setCompanies] = useState<CompanyRead[]>([]);
+  const [loadingCompanies, setLoadingCompanies] = useState(true);
 
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
+  /* mapa */
+  const [coords, setCoords] = useState<[number, number] | null>(null);
+
+  /* scroll categorias */
+  const listRef = useRef<HTMLDivElement>(null);
+  const [canLeft, setCanLeft] = useState(false);
+  const [canRight, setCanRight] = useState(false);
+  const updateArrows = () => {
+    const el = listRef.current;
+    if (!el) return;
+    setCanLeft(el.scrollLeft > 0);
+    setCanRight(el.scrollWidth - el.clientWidth - el.scrollLeft > 0);
+  };
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+    el.addEventListener('scroll', updateArrows);
+    window.addEventListener('resize', updateArrows);
+    updateArrows();
+    return () => {
+      el.removeEventListener('scroll', updateArrows);
+      window.removeEventListener('resize', updateArrows);
+    };
+  }, [cats]);
+
+  const scrollBy = (d: number) =>
+    listRef.current?.scrollBy({ left: d, behavior: 'smooth' });
 
   const baseUrl = process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL ?? '';
 
-  // Fetch de categorias quando muda endereço ou tipo de filtro
+  /* --------- busca categorias --------- */
   useEffect(() => {
     let mounted = true;
     async function fetchCats() {
-      if (!selectedAddress || !selectedAddress[filterField]) {
-        if (mounted) {
-          setCats([]);
-          setLoading(false);
-        }
+      setLoadingCats(true);
+      if (!selectedAddress?.[filterField]) {
+        mounted && setCats([]);
+        setLoadingCats(false);
         return;
       }
-      setLoading(true);
       try {
-        const params: Record<string, string> = {};
-        params[filterField] = selectedAddress[filterField] as string;
+        const params = { [filterField]: selectedAddress[filterField] as string };
         const res = await listUsedCategories(params);
-        if (mounted) setCats(res.data);
-      } catch (err) {
-        console.error('Erro ao carregar categorias:', err);
-        if (mounted) setCats([]);
+        mounted && setCats(res.data);
+      } catch {
+        mounted && setCats([]);
       } finally {
-        if (mounted) setLoading(false);
-        updateScrollButtons();
+        mounted && setLoadingCats(false);
+        updateArrows();
       }
     }
     fetchCats();
     return () => { mounted = false; };
   }, [selectedAddress, filterField]);
 
-  const updateScrollButtons = () => {
-    const el = containerRef.current;
-    if (!el) return;
-    setCanScrollLeft(el.scrollLeft > 0);
-    setCanScrollRight(el.scrollWidth - el.clientWidth - el.scrollLeft > 0);
-  };
-
+  /* --------- busca empresas --------- */
   useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    el.addEventListener('scroll', updateScrollButtons);
-    window.addEventListener('resize', updateScrollButtons);
-    updateScrollButtons();
-    return () => {
-      el.removeEventListener('scroll', updateScrollButtons);
-      window.removeEventListener('resize', updateScrollButtons);
-    };
-  }, [cats]);
+    let mounted = true;
+    async function fetchComps() {
+      setLoadingCompanies(true);
+      if (!selectedAddress?.[filterField]) {
+        mounted && setCompanies([]);
+        setLoadingCompanies(false);
+        return;
+      }
+      try {
+        const params = { [filterField]: selectedAddress[filterField] as string };
+        const res   = await searchCompanies(params);
+        mounted && setCompanies(res.data.slice(0, 10));
+      } catch {
+        mounted && setCompanies([]);
+      } finally {
+        mounted && setLoadingCompanies(false);
+      }
+    }
+    fetchComps();
+    return () => { mounted = false; };
+  }, [selectedAddress, filterField]);
 
-  const scrollBy = (distance: number) => {
-    containerRef.current?.scrollBy({ left: distance, behavior: 'smooth' });
-  };
+  /* --------- geocode para mapa --------- */
+  useEffect(() => {
+    if (!selectedAddress) return;
+    const q = `${selectedAddress.street}, ${selectedAddress.city}, ${selectedAddress.state}, ${selectedAddress.postal_code}`;
+    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`)
+      .then(r => r.json())
+      .then((d:any[]) => d[0]
+        ? setCoords([+d[0].lat, +d[0].lon])
+        : setCoords(null))
+      .catch(() => setCoords(null));
+  }, [selectedAddress]);
+
+  /* -------------------------------------------------- */
+  const noData =
+    !loadingCats &&
+    (!selectedAddress || cats.length === 0);
 
   return (
     <div>
-      <Header onSearch={q => console.log('Pesquisar por:', q)} />
+      <Header />
 
-      <div className={styles.gridItem}>
-        {/* Cabeçalho com select embutido */}
-        <h4 className={styles.inlineHeader}>
-          Categorias em{' '}
-          <select
-            value={filterField}
-            onChange={e => setFilterField(e.target.value as typeof filterField)}
-            className={styles.filterSelect}
-          >
-            <option value="city">Cidade</option>
-            <option value="street">Rua</option>
-            <option value="postal_code">CEP</option>
-            <option value="country">País</option>
-          </select>
-          {' '}
-          <span className={styles.filterValue}>
-            {selectedAddress?.[filterField] ?? '...'}
-          </span>
-        </h4>
-
-        {loading && <p>Carregando categorias...</p>}
-
-        {!loading && !selectedAddress && (
-          <p>Por favor, selecione um endereço para ver categorias.</p>
-        )}
-
-        {canScrollLeft && (
+      {/* ---------- MSG sem dados / trocar endereço ---------- */}
+      {noData && (
+        <section className={styles.gridItem}>
+          <p>
+            Infelizmente não temos empresas parceiras na sua região.
+          </p>
           <button
-            className={`${styles.arrowButton} ${styles.arrowLeft}`}
-            onClick={() => scrollBy(-200)}
-            aria-label="Scroll para esquerda"
+            className={styles.changeBtn}
+            onClick={() =>
+              window.dispatchEvent(new Event('openAddressModal'))
+            }
           >
-            <ChevronLeft size={20} />
+            Trocar de endereço
           </button>
-        )}
+        </section>
+      )}
 
-        <div
-          ref={containerRef}
-          className={styles.categoriesGrid}
-        >
-          {!loading && cats.map(cat => (
-            <div key={cat.id} className={styles.card}>
-              <Image
-                src={`${baseUrl}${cat.image_url ?? ''}`}
-                alt={cat.name}
-                width={30}
-                height={30}
-                className={styles.logo}
-              />
-              <span className={styles.name}>{cat.name}</span>
+      {/* Renderiza conteúdo somente se há categorias */}
+      {selectedAddress && cats.length > 0 && (
+        <>
+          {/* --------- CATEGORIAS --------- */}
+          <section className={styles.gridItem}>
+            <h4 className={styles.inlineHeader}>
+              Categorias em
+              <div className={styles.filterWrapper}>
+                <select
+                  value={filterField}
+                  onChange={e =>
+                    setFilterField(e.target.value as any)
+                  }
+                  className={styles.filterSelect}
+                >
+                  <option value="city">
+                    {filterField === 'city'
+                      ? selectedAddress?.city ?? '...'
+                      : 'Cidade'}
+                  </option>
+                  <option value="street">
+                    {filterField === 'street'
+                      ? selectedAddress?.street ?? '...'
+                      : 'Rua'}
+                  </option>
+                  <option value="postal_code">
+                    {filterField === 'postal_code'
+                      ? selectedAddress?.postal_code ?? '...'
+                      : 'CEP'}
+                  </option>
+                  <option value="country">
+                    {filterField === 'country'
+                      ? selectedAddress?.country ?? '...'
+                      : 'País'}
+                  </option>
+                </select>
+                <ChevronDown size={16} className={styles.selectIcon} />
+              </div>
+            </h4>
+
+            {loadingCats && <p>Carregando categorias…</p>}
+
+            {canLeft && (
+              <button
+                className={`${styles.arrowButton} ${styles.arrowLeft}`}
+                onClick={() => scrollBy(-200)}
+              >
+                <ChevronLeft size={20} />
+              </button>
+            )}
+
+            <div ref={listRef} className={styles.categoriesGrid}>
+              {cats.map(cat => (
+                <Link
+                  key={cat.id}
+                  href={`/categories/${cat.id}`}
+                  className={styles.card}
+                >
+                  <Image
+                    src={`${baseUrl}${cat.image_url ?? ''}`}
+                    alt={cat.name}
+                    width={30}
+                    height={30}
+                    className={styles.logo}
+                  />
+                  <span className={styles.name}>{cat.name}</span>
+                </Link>
+              ))}
             </div>
-          ))}
-        </div>
 
-        {canScrollRight && (
-          <button
-            className={`${styles.arrowButton} ${styles.arrowRight}`}
-            onClick={() => scrollBy(200)}
-            aria-label="Scroll para direita"
-          >
-            <ChevronRight size={20} />
-          </button>
-        )}
-      </div>
+            {canRight && (
+              <button
+                className={`${styles.arrowButton} ${styles.arrowRight}`}
+                onClick={() => scrollBy(200)}
+              >
+                <ChevronRight size={20} />
+              </button>
+            )}
+          </section>
+
+          {/* --------- EMPRESAS + MAPA --------- */}
+          <section className={styles.gridItem}>
+            <h4>Descubra agora</h4>
+
+            <div className={styles.mapSection}>
+              {coords ? (
+                <MapContainer
+                  center={coords}
+                  zoom={15}
+                  zoomControl={false}
+                  attributionControl={false}
+                  className={styles.mapContainer}
+                >
+                  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                </MapContainer>
+              ) : (
+                <p className={styles.mapMessage}>
+                  Não foi possível localizar este endereço.
+                </p>
+              )}
+
+              <button
+                className={styles.exploreMap}
+                onClick={() => router.push('/maps')}
+              >
+                Explorar mapa
+              </button>
+            </div>
+
+            {loadingCompanies && <p>Carregando empresas…</p>}
+
+            <div className={styles.companiesList}>
+              {companies.map(comp => (
+                <div key={comp.id} className={styles.companyCard}>
+                  <div className={styles.companyInfo}>
+                    {comp.logo_url && (
+                      <Image
+                        src={`${baseUrl}${comp.logo_url}`}
+                        alt={comp.name}
+                        width={60}
+                        height={60}
+                        className={styles.companyLogo}
+                      />
+                    )}
+                    <div>
+                      <h5 className={styles.companyName}>{comp.name}</h5>
+                      <p className={styles.companyDesc}>{comp.description}</p>
+                    </div>
+                  </div>
+                  <Link
+                    href={`/companies/${comp.id}`}
+                    className={styles.companyButton}
+                  >
+                    Ver empresa
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </section>
+        </>
+      )}
     </div>
   );
 }
