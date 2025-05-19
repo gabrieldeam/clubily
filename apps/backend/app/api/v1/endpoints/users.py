@@ -13,8 +13,6 @@ from ....schemas.user import UserRead
 from ....models.user import User
 from ....schemas.user import UserRead, UserUpdate
 
-
-
 router = APIRouter()
 
 @router.get("/me", response_model=UserRead)

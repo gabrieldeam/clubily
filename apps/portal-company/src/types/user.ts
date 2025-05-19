@@ -8,3 +8,16 @@ export interface UserRead {
   phone?: string;
   role: Role;
 }
+
+export interface LeadCreate {
+  company_id: string;
+  phone?: string;
+}
+
+export interface PreRegisterResponse {
+  msg: string;
+}
+
+export interface PreRegisteredResponse {
+  pre_registered: boolean;
+}

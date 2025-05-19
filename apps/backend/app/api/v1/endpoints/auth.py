@@ -36,7 +36,6 @@ def pre_register(
 @router.get("/pre-registered", status_code=200)
 def is_pre_registered(
     *,
-    email: EmailStr | None = None,
     phone: str | None = None,
     company_id: str,
     db=Depends(deps.get_db),
@@ -46,9 +45,7 @@ def is_pre_registered(
     """
     from sqlalchemy import and_
     q = db.query(User).join(User.companies)
-    if email:
-        q = q.filter(User.email == email.lower())
-    elif phone:
+    if phone:
         q = q.filter(User.phone == phone)
     q = q.filter(Company.id == company_id, User.pre_registered == True)
     exists = db.query(q.exists()).scalar()
