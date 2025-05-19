@@ -162,7 +162,7 @@ export default function Dashboard() {
 
   return (
     <div>
-      <Header />
+      <Header onSearch={q => router.push(`/search?name=${encodeURIComponent(q)}`)} />
 
       {/* ---------- MSG sem dados / trocar endereço ---------- */}
       {noData && (

@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select
 from datetime import datetime
 
-from ....schemas.company import CompanyCreate, CompanyRead, CompanyLogin, CompanyUpdate
+from ....schemas.company import CompanyCreate, CompanyRead, CompanyLogin, CompanyUpdate, CompanyReadWithService
 from ....schemas.token import Token
 from ....services.company_service import create, authenticate
 from ....core.config import settings
@@ -333,6 +333,49 @@ def search_companies_by_category(
     q = q.join(Company.categories).filter(Category.id == category_id)
     q = q.distinct()
     return q.all()
+
+@router.get(
+    "/search-by-name",
+    response_model=List[CompanyReadWithService],
+    status_code=status.HTTP_200_OK,
+    summary="Busca empresas por nome e indica se servem o endereço dado"
+)
+def search_companies_by_name(
+    name: str = Query(..., description="Termo de busca no nome da empresa"),
+    city: Optional[str] = Query(None, description="Cidade para verificar atendimento"),
+    street: Optional[str] = Query(None, description="Rua para verificar atendimento"),
+    postal_code: Optional[str] = Query(None, description="CEP para verificar atendimento"),
+    db: Session = Depends(get_db),
+):
+    """
+    Procura empresas cujo nome contenha 'name' (case-insensitive),
+    e para cada uma indica se ela atende o endereço (city, street, postal_code) fornecido.
+    """
+    # 1) busca pelo nome
+    companies = (
+        db.query(Company)
+        .filter(Company.name.ilike(f"%{name}%"))
+        .all()
+    )
+
+    results: list[dict] = []
+    for comp in companies:
+        # 2) calcula o flag serves_address
+        served = True
+        if city and comp.city.lower() != city.lower():
+            served = False
+        if street and comp.street.lower() != street.lower():
+            served = False
+        if postal_code and comp.postal_code != postal_code:
+            served = False
+
+        # 3) serializa o Company para dict via CompanyRead
+        comp_dict = CompanyRead.model_validate(comp).model_dump()
+        # 4) injeta o novo campo
+        comp_dict["serves_address"] = served
+        results.append(comp_dict)
+
+    return results
 
 @router.get(
     "/{company_id}/status",

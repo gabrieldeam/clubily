@@ -90,3 +90,10 @@ class CompanyUpdate(BaseModel):
         return digits
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class CompanyReadWithService(CompanyRead):
+    serves_address: bool
+
+    # herdando o mesmo from_attributes para converter do ORM
+    model_config = ConfigDict(from_attributes=True)

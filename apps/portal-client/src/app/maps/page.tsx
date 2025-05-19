@@ -194,7 +194,7 @@ export default function MapsPage() {
 
   return (
     <div className={styles.container}>
-      <Header />
+      <Header onSearch={q => router.push(`/search?name=${encodeURIComponent(q)}`)} />
 
       {outside && (
         <button

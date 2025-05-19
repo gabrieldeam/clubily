@@ -4,6 +4,7 @@ import api from './api';
 import type {
   CompanyRead,
   CompanyFilter,
+  CompanyReadWithService,
 } from '@/types/company';
 
 // … outros imports e métodos já existentes …
@@ -48,3 +49,15 @@ export const activateCompany = (companyId: string) =>
  */
 export const deactivateCompany = (companyId: string) =>
   api.post<void>(`/companies/${companyId}/deactivate`);
+
+/**
+ * Busca empresas por nome e informa se servem o endereço dado
+ * GET /companies/search-by-name?name=…&city=…&street=…&postal_code=…
+ */
+export const searchCompaniesByName = (
+  name: string,
+  filters: CompanyFilter = {}
+) =>
+  api.get<CompanyReadWithService[]>('/companies/search-by-name', {
+    params: { name, ...filters },
+  });

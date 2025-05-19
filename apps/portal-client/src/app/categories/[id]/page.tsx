@@ -142,7 +142,7 @@ useEffect(() => {
   // 4. Render
   return (
     <div>
-      <Header onSearch={q => console.log('Pesquisar por:', q)} />
+      <Header onSearch={q => router.push(`/search?name=${encodeURIComponent(q)}`)} />
 
       <div className={styles.gridItem}>
         <div>

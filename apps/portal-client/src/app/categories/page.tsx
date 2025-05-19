@@ -3,6 +3,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link  from 'next/link';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { listUsedCategories } from '@/services/categoryService';
 import type { CategoryRead } from '@/types/category';
@@ -12,6 +13,7 @@ import { useRequireAuth } from '@/hooks/useRequireAuth';
 import styles from './page.module.css';
 
 export default function CategoriesPage() {
+  const router = useRouter();
   /* ─── login obrigatório ──────────────────────────────── */
   const { loading: authLoading } = useRequireAuth();
   if (authLoading) return null;      
@@ -77,7 +79,7 @@ export default function CategoriesPage() {
 
   return (
     <div className={styles.container}>
-      <Header />
+      <Header onSearch={q => router.push(`/search?name=${encodeURIComponent(q)}`)} />
 
       <main className={styles.gridContainer}>
         {cats.map(cat => (

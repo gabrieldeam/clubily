@@ -10,7 +10,7 @@
 /* mapa em si */
 .mapContainer {
   width: 100%;
-  height: 700px;
+  height: 650px;
 }
 
 /* overlay fixa na parte inferior do mapa */
@@ -271,3 +271,32 @@
 
 
 
+@media (max-width: 767px) {
+    
+  .mapContainer {
+    width: 100%;
+    height: 550px;
+  }
+
+  .companyItem {
+    min-width: 350px; 
+  }
+
+  .companyLogo {
+    width: 60px;
+    height: 60px;
+  }
+
+ .companyName {
+    font-size: 16px;
+  }
+
+
+  .companyButton, .exploreMap {
+    font-size: 12px;
+  }
+
+  .companyDesc {
+    font-size: 12px;
+  }
+}

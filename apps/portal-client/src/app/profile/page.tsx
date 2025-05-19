@@ -64,7 +64,7 @@ export default function ProfilePage() {
 
   return (
     <div className={styles.container}>
-      <Header onSearch={(q) => console.log('Pesquisar por:', q)} />
+      <Header onSearch={q => router.push(`/search?name=${encodeURIComponent(q)}`)} />
 
       <main className={styles.gridContainer}>
 
