@@ -30,6 +30,10 @@ export default function AdminPage() {
   await router.push('/admin/categories');
 };
 
+ const goToCompanies = async () => {
+  await router.push('/admin/companies');
+};
+
   return (
     <div className={styles.container}>        
         <h1>Painel de Administração</h1>
@@ -37,10 +41,12 @@ export default function AdminPage() {
       
       <main className={styles.main}>
         <div className={styles.gridItem} onClick={() => goToCategories()}>    
-              <Image src="/icons/categoria.svg" alt="Editar perfil" width={40} height={40} />
-              <span>Categorias</span>   
+            <Image src="/icons/categoria.svg" alt="Editar perfil" width={40} height={40} />
+            <span>Categorias</span>   
         </div>
-        <div className={styles.gridItem}>
+        <div className={styles.gridItem} onClick={() => goToCompanies()}>
+            <Image src="/icons/categoria.svg" alt="Editar perfil" width={40} height={40} />
+            <span>Empresas</span>  
         </div>
       </main>
     </div>

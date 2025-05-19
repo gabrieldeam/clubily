@@ -1,0 +1,55 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 400px;
+}
+.title {
+  text-align: center;
+}
+.logoUpload {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.logoPreview,
+.logoPlaceholder {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #eee;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.logoBtn {
+  background: #ffa600;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+.label {
+  font-weight: bold;
+}
+.textarea {
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 0.5rem;
+  min-height: 80px;
+}
+.catContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.catItem {
+  background: #f7f7f7;
+  padding: 0.4rem 0.8rem;
+  border-radius: 0.4rem;
+}
+.actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
