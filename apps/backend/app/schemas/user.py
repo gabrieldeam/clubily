@@ -25,6 +25,7 @@ class UserRead(BaseModel):
     company_ids: List[str] = []
     phone: Optional[str] = None
     role: Role
+    pre_registered: bool
 
     class Config:
         model_config = ConfigDict(from_attributes=True)

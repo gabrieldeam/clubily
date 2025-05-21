@@ -46,6 +46,7 @@ class Settings(BaseSettings):
     BACKEND_CORS_ORIGINS: list[str] = [
        "http://localhost:3000",
        "http://localhost:3001", 
+       "http://localhost:3002",
        # se no futuro tiver outros:
        # "https://clubily.com",
        # "https://clubi.ly",

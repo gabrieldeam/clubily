@@ -14,10 +14,12 @@ from ....services.company_service import create, authenticate
 from ....core.config import settings
 from ....core.email_utils import send_email
 from jose import jwt
+from app.models.user import User
 from app.models.company import Company
 from ....schemas.user import UserRead
 from app.models.category import Category
 from ...deps import get_current_company, get_db, require_admin
+from app.models.association import user_companies
 
 router = APIRouter(tags=["companies"])
 
@@ -189,15 +191,28 @@ def reset_password_company(token: str, new_password: str, response: Response, db
     return {"access_token": new_token}
 
 
-@router.get("/clients", response_model=List[UserRead])
+@router.get(
+    "/clients",
+    response_model=List[UserRead],
+    summary="Lista paginada de clientes de uma empresa",
+)
 def list_company_clients(
+    skip: int = Query(0, ge=0, description="Quantos registros pular"),
+    limit: int = Query(10, ge=1, le=100, description="Máximo de registros a retornar"),
+    db: Session = Depends(get_db),
     current_company: Company = Depends(get_current_company),
 ):
     """
-    Retorna todos os usuários (incluindo pre-registrados) vinculados a esta empresa.
+    Retorna todos os usuários vinculados a esta empresa, com paginação.
     """
-    # como usamos relationship(secondary=user_companies), current_company.users já vem populado
-    return current_company.users
+    # Faz join na tabela de associação para paginar diretamente no banco
+    q = (
+        db.query(User)
+        .join(user_companies, user_companies.c.user_id == User.id)
+        .filter(user_companies.c.company_id == current_company.id)
+    )
+    users = q.offset(skip).limit(limit).all()
+    return users
 
 
 @router.post(

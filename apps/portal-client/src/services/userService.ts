@@ -12,6 +12,8 @@ import type {
   LoginCredentials,
 } from '@/types/user';
 
+import type { CompanyRead } from '@/types/company';
+
 // 1. Perfil
 export const getCurrentUser = () =>
   api.get<UserRead>('/users/me');
@@ -75,3 +77,16 @@ export const verifyPhoneCodeUser = (phone: string, code: string) =>
  */
 export const logoutUser = () =>
   api.post<void>('/auth/logout');
+
+
+/**
+ * Lista as empresas vinculadas ao usuário logado, paginadas
+ * GET /users/me/companies?page=1&page_size=10
+ */
+export const getMyCompanies = (
+  page = 1,
+  page_size = 10
+) =>
+  api.get<CompanyRead[]>('/users/me/companies', {
+    params: { page, page_size }
+  });

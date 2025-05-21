@@ -1,22 +1,23 @@
 # backend/app/api/v1/endpoints/users.py
 
-from fastapi import APIRouter, Depends, status, BackgroundTasks, HTTPException
+from fastapi import APIRouter, Depends, Query, status, BackgroundTasks, HTTPException
 from sqlalchemy import select
+from typing import List
 from sqlalchemy.orm import Session
-import app.api.deps as deps
+from app.api.deps import get_current_user, get_db
 from jose import jwt
 from app.core.config import settings
 from app.core.email_utils import send_email
 from app.core.security import hash_password
 from app.models.company import Company
-from ....schemas.user import UserRead
+from ....schemas.company import CompanyRead
 from ....models.user import User
 from ....schemas.user import UserRead, UserUpdate
 
 router = APIRouter()
 
 @router.get("/me", response_model=UserRead)
-def read_me(current_user: User = Depends(deps.get_current_user)):
+def read_me(current_user: User = Depends(get_current_user)):
     return current_user
 
 
@@ -29,8 +30,8 @@ def read_me(current_user: User = Depends(deps.get_current_user)):
 def update_me(
     payload: UserUpdate,
     background: BackgroundTasks,
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Atualiza apenas os campos enviados do usuário logado.
@@ -76,3 +77,58 @@ def update_me(
     db.commit()
     db.refresh(user)
     return user
+
+
+@router.get(
+    "/me/companies",
+    response_model=list[CompanyRead],
+    summary="Lista de empresas associadas ao usuário",
+)
+def read_my_companies(
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Retorna todas as empresas (CompanyRead) às quais
+    o usuário logado está vinculado.
+    """
+    # como usamos relationship(secondary=user_companies),
+    # current_user.companies já vem populado
+    return current_user.companies
+
+
+@router.get(
+    "/me/companies",
+    response_model=List[CompanyRead],
+    summary="Lista paginada de empresas do usuário",
+)
+def read_my_companies(
+    page: int = Query(1, ge=1, description="Número da página"),
+    page_size: int = Query(10, ge=1, le=100, description="Tamanho da página"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Retorna uma página de empresas (CompanyRead) às quais
+    o usuário autenticado está vinculado.
+    """
+    # cálculo de offset
+    skip = (page - 1) * page_size
+
+    # consulta paginada diretamente no banco (mais eficiente que fatiar a lista já carregada)
+    companies = (
+        db.query(Company)
+          .join(User.companies)
+          .filter(User.id == current_user.id)
+          .offset(skip)
+          .limit(page_size)
+          .all()
+    )
+
+    if not companies and page != 1:
+        # opcional: avisa se página fora do alcance
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            f"Página {page} não contém resultados."
+        )
+
+    return companies

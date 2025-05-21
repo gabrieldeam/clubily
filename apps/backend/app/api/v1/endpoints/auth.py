@@ -1,11 +1,12 @@
 # backend/app/api/v1/endpoints/auth.py
 
-from fastapi import APIRouter, Depends, Response, BackgroundTasks, HTTPException, status
+from fastapi import APIRouter, Depends, Query, Response, BackgroundTasks, HTTPException, status
 from jose import jwt, JWTError
+import re
 import app.api.deps as deps
 from sqlalchemy.orm import Session
-from app.api.deps import get_current_user
-from pydantic import EmailStr  
+from app.api.deps import get_current_user, get_db
+from ....core.phone_utils import normalize_phone
 from app.core.security import hash_password
 from jose import jwt
 from datetime import datetime
@@ -27,27 +28,48 @@ def pre_register(
     payload: LeadCreate,
     db=Depends(deps.get_db),
 ):
-    """
-    Cria ou atualiza um pré-cadastro com telefone.
-    """
+    # normaliza o telefone (remove espaços, padroniza +55…)
+    payload.phone = normalize_phone(payload.phone)
     lead_service.create_or_update_lead(db, payload)
     return {"msg": "Pré-cadastro recebido"}
 
-@router.get("/pre-registered", status_code=200)
+@router.get(
+    "/pre-registered",
+    status_code=status.HTTP_200_OK,
+    summary="Verifica se já existe pré-cadastro de telefone para uma empresa"
+)
 def is_pre_registered(
     *,
-    phone: str | None = None,
-    company_id: str,
-    db=Depends(deps.get_db),
+    phone: str = Query(..., description="Telefone do lead, em qualquer formato"),
+    company_id: str = Query(..., description="UUID da empresa"),
+    db: Session = Depends(get_db),
 ):
     """
-    Verifica se já existe pré-cadastro (lead) para este email/phone E esta empresa.
+    Retorna {"pre_registered": true/false} indicando
+    se já existe um usuário pré-cadastrado (lead) com esse
+    telefone para a empresa informada.
     """
-    from sqlalchemy import and_
-    q = db.query(User).join(User.companies)
-    if phone:
-        q = q.filter(User.phone == phone)
-    q = q.filter(Company.id == company_id, User.pre_registered == True)
+    # 1) normaliza o telefone para E.164
+    try:
+        normalized_phone = normalize_phone(phone)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Telefone inválido"
+        )
+
+    # 2) monta a query
+    q = (
+        db.query(User)
+        .join(User.companies)
+        .filter(
+            Company.id == company_id,
+            User.pre_registered == True,
+            User.phone == normalized_phone
+        )
+    )
+
+    # 3) verifica existência
     exists = db.query(q.exists()).scalar()
     return {"pre_registered": exists}
 
