@@ -1,31 +1,25 @@
 // apps/client-react-native/app/_layout.tsx
-import React, { useEffect } from 'react';
-import { Slot, useRouter } from 'expo-router';
-import { ActivityIndicator, View } from 'react-native';
+import { useEffect } from 'react';
+import { Slot, useRouter, usePathname } from 'expo-router';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 
-function AppContent() {
-  const { user, loading } = useAuth();
+function Inner() {
   const router = useRouter();
+  const pathname = usePathname();      
+  const { user, loading } = useAuth(); 
 
   useEffect(() => {
-    if (!loading) {
-      if (user) {
-        router.replace('./home');
+    if (loading) return;       
 
-      } else {
-        router.replace({ pathname: '/' });
-      }
+    if (user && pathname !== '/home') {
+      router.replace('/home');
+      return;
     }
-  }, [loading, user, router]);
 
-  if (loading) {
-    return (
-      <View style={{ flex:1, justifyContent:'center', alignItems:'center' }}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
-  }
+    if (!user && pathname !== '/') {
+      router.replace('/');
+    }
+  }, [user, loading, pathname, router]);
 
   return <Slot />;
 }
@@ -33,7 +27,7 @@ function AppContent() {
 export default function Layout() {
   return (
     <AuthProvider>
-      <AppContent />
+      <Inner />
     </AuthProvider>
   );
 }

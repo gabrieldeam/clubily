@@ -6,6 +6,7 @@ import {
   GestureResponderEvent,
   ViewStyle,
   TextStyle,
+  StyleProp,
 } from 'react-native';
 import { styles } from './styles';
 
@@ -14,8 +15,8 @@ interface ButtonProps {
   onPress?: (e: GestureResponderEvent) => void;
   disabled?: boolean;
   bgColor?: string;
-  style?: ViewStyle;
-  textStyle?: TextStyle;
+  style?: StyleProp<ViewStyle>;
+  textStyle?: StyleProp<TextStyle>;
 }
 
 export function Button({
