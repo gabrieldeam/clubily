@@ -7,13 +7,19 @@ import {
   Switch,
   Text,
   StyleSheet,
+  TouchableOpacity,
 } from 'react-native';
 import { Button } from './Button';
 import { registerUser } from '../services/userService';
 import { useAuth } from '../context/AuthContext';
 import { useRouter } from 'expo-router';
 
-export default function RegisterForm({ onBack }: { onBack?: () => void }) {
+interface RegisterFormProps {
+  onBack?: () => void;
+  onLogin?: () => void;
+}
+
+export default function RegisterForm({ onBack, onLogin }: RegisterFormProps) {
   const { refreshUser } = useAuth();
   const router = useRouter();
   const [name, setName] = useState('');
@@ -60,6 +66,10 @@ export default function RegisterForm({ onBack }: { onBack?: () => void }) {
         </Button>
       )}
 
+      {/* TÍTULO */}
+      <Text style={styles.title}>Cadastrar-se no Clubily</Text>
+
+      {/* INPUTS */}
       <TextInput
         placeholder="Nome"
         value={name}
@@ -86,6 +96,7 @@ export default function RegisterForm({ onBack }: { onBack?: () => void }) {
         <Text style={styles.termsText}>Aceito os termos</Text>
       </View>
 
+      {/* BOTÃO CADASTRAR */}
       <Button
         onPress={handleRegister}
         disabled={loading}
@@ -93,6 +104,14 @@ export default function RegisterForm({ onBack }: { onBack?: () => void }) {
       >
         {loading ? 'Cadastrando...' : 'Cadastrar'}
       </Button>
+
+      {/* FOOTER REGISTRO */}
+      <Text style={styles.footerText}>Já tem uma conta?</Text>
+      {onLogin && (
+        <TouchableOpacity onPress={onLogin}>
+          <Text style={styles.linkText}>Entrar</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -104,6 +123,12 @@ const styles = StyleSheet.create({
   backButton: {
     marginBottom: 12,
     alignSelf: 'flex-start',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '600',
+    marginBottom: 24,
+    textAlign: 'center',
   },
   input: {
     borderWidth: 1,
@@ -122,5 +147,16 @@ const styles = StyleSheet.create({
   },
   registerButton: {
     marginTop: 8,
+  },
+  footerText: {
+    marginTop: 16,
+    textAlign: 'center',
+    color: '#666',
+  },
+  linkText: {
+    marginTop: 4,
+    textAlign: 'center',
+    color: '#007AFF',
+    fontWeight: '500',
   },
 });

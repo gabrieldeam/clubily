@@ -189,9 +189,9 @@ export default function WelcomeScreen() {
               </>
             )}
 
-            {view === 'login' && <LoginForm onBack={goButtons} />}
+            {view === 'login' && <LoginForm onRegister={goRegister} />}
 
-            {view === 'register' && <RegisterForm onBack={goButtons} />}
+            {view === 'register' && <RegisterForm onBack={goButtons} onLogin={goLogin} />}
           </View>
         </Animated.View>
       </KeyboardAvoidingView>
