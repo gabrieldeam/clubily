@@ -6,7 +6,6 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  // se quiser mandar cookies (JWT via cookie) nas requisições:
   withCredentials: true,
 });
 

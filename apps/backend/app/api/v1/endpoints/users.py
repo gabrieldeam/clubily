@@ -51,7 +51,7 @@ def update_me(
             user.email = new_email
             user.email_verified_at = None
             token = jwt.encode({"sub": str(user.id)}, settings.SECRET_KEY, algorithm="HS256")
-            verify_url = f"{settings.BACKEND_CORS_ORIGINS[0]}/verify?token={token}"
+            verify_url = f"{settings.FRONTEND_ORIGINS[0]}/verify?token={token}"
             background.add_task(
                 send_email,
                 to=new_email,
@@ -78,22 +78,6 @@ def update_me(
     db.refresh(user)
     return user
 
-
-@router.get(
-    "/me/companies",
-    response_model=list[CompanyRead],
-    summary="Lista de empresas associadas ao usuário",
-)
-def read_my_companies(
-    current_user: User = Depends(get_current_user),
-):
-    """
-    Retorna todas as empresas (CompanyRead) às quais
-    o usuário logado está vinculado.
-    """
-    # como usamos relationship(secondary=user_companies),
-    # current_user.companies já vem populado
-    return current_user.companies
 
 
 @router.get(

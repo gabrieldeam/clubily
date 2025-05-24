@@ -11,6 +11,12 @@ import type {
   LoginCredentials,
 } from '../types/user';
 import type { CompanyRead } from '../types/company';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+export const setAuthHeader = (token?: string) => {
+  if (token) api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  else delete api.defaults.headers.common['Authorization'];
+};
 
 // 1. Perfil
 export const getCurrentUser = () =>
@@ -40,8 +46,13 @@ export const verifyEmailUser = (token: string) =>
   api.get<MsgResponse>('/auth/verify', { params: { token } });
 
 // 4. Login / senha
-export const loginUser = (credentials: LoginCredentials) =>
-  api.post<TokenResponse>('/auth/login', credentials);
+export const loginUser = async (credentials: LoginCredentials) => {
+  const resp = await api.post<TokenResponse>('/auth/login', credentials);
+  const token = resp.data.access_token;
+  await AsyncStorage.setItem('jwt', token);
+  setAuthHeader(token);
+  return resp;
+};
 
 export const forgotPasswordUser = (email: string) =>
   api.post<MsgResponse>('/auth/forgot-password', null, {
@@ -65,8 +76,10 @@ export const verifyPhoneCodeUser = (phone: string, code: string) =>
   });
 
 // 6. Logout
-export const logoutUser = () =>
-  api.post<void>('/auth/logout');
+export const logoutUser = async () => {
+  await AsyncStorage.removeItem('jwt');
+  setAuthHeader(); 
+};
 
 // 7. Empresas do usuário (paginado)
 export const getMyCompanies = (

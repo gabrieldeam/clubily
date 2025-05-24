@@ -18,9 +18,3 @@ export const listUsedCategories = (filters: CategoryFilter = {}) =>
   api.get<CategoryRead[]>('/categories/used', {
     params: filters,
   });
-
-/**
- * Vincula a categoria à empresa logada
- */
-export const addCategoryToCompany = (categoryId: string) =>
-  api.post<void>(`/categories/${categoryId}`);

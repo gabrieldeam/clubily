@@ -1,6 +1,17 @@
-import React, { createContext, useState, useEffect, ReactNode, useContext } from 'react';
+// src/context/AuthContext.tsx
+import React, {
+  createContext,
+  useState,
+  useEffect,
+  ReactNode,
+  useContext,
+} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getCurrentUser, logoutUser } from '../services/userService';
+import {
+  getCurrentUser,
+  logoutUser as logoutService,
+} from '../services/userService';
+import api from '../services/api';
 import type { UserRead } from '../types/user';
 
 interface AuthContextType {
@@ -24,38 +35,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const isAdmin = user?.role === 'admin';
 
+  /* ---------------------------------------------------- */
+  // 1) Coloca token do AsyncStorage (se existir) no header
+  const hydrateToken = async () => {
+    const saved = await AsyncStorage.getItem('jwt');
+    if (saved) {
+      api.defaults.headers.common.Authorization = `Bearer ${saved}`;
+    }
+  };
+
+  /* ---------------------------------------------------- */
+  // 2) Busca usuário ou zera caso token inválido
   const refreshUser = async () => {
     setLoading(true);
     try {
       const res = await getCurrentUser();
       setUser(res.data);
-      // opcional: persistir ID do usuário
-      await AsyncStorage.setItem('userId', res.data.id);
     } catch {
       setUser(null);
-      await AsyncStorage.removeItem('userId');
+      await AsyncStorage.removeItem('jwt');
+      delete api.defaults.headers.common.Authorization;
     } finally {
       setLoading(false);
     }
   };
 
+  /* ---------------------------------------------------- */
   const logout = async () => {
-    try {
-      await logoutUser();
-    } catch {
-      /* ignore */
-    } finally {
-      setUser(null);
-      await AsyncStorage.removeItem('userId');
-    }
+    await logoutService(); // já remove token + header
+    setUser(null);
   };
 
+  /* ---------------------------------------------------- */
   useEffect(() => {
-    refreshUser();
+    (async () => {
+      await hydrateToken();
+      await refreshUser();
+    })();
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, refreshUser, logout, isAdmin }}>
+    <AuthContext.Provider
+      value={{ user, loading, refreshUser, logout, isAdmin }}
+    >
       {children}
     </AuthContext.Provider>
   );

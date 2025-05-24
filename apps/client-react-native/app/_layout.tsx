@@ -2,6 +2,7 @@
 import { useEffect } from 'react';
 import { Slot, useRouter, usePathname } from 'expo-router';
 import { AuthProvider, useAuth } from '../context/AuthContext';
+import { AddressProvider } from '../context/AddressContext';
 
 function Inner() {
   const router = useRouter();
@@ -27,7 +28,9 @@ function Inner() {
 export default function Layout() {
   return (
     <AuthProvider>
-      <Inner />
+        <AddressProvider>
+            <Inner />
+        </AddressProvider>
     </AuthProvider>
   );
 }

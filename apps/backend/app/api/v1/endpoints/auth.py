@@ -89,7 +89,7 @@ def register(
     token = auth_service.create_access_token(str(user.id))
 
     # envia e-mail de verificação em background
-    verify_url = f"{settings.BACKEND_CORS_ORIGINS[0]}/verify?token={token}"
+    verify_url = f"{settings.FRONTEND_ORIGINS[0]}/verify?token={token}"
     background.add_task(
         send_email,
         to=user.email,
@@ -102,7 +102,7 @@ def register(
         key=settings.COOKIE_NAME,
         value=token,
         httponly=True,
-        secure=False,
+        secure=settings.FRONTEND_ORIGINS[0].startswith("https://"),
         samesite="lax",
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
@@ -150,7 +150,7 @@ def forgot_password(
     user = user_service.get_by_email(db, email.lower())
     if user:
         token, _ = auth_service.authenticate(db, user.email, user.hashed_password)
-        reset_url = f"{settings.BACKEND_CORS_ORIGINS[0]}/reset-password?token={token}"
+        reset_url = f"{settings.FRONTEND_ORIGINS[0]}/reset-password?token={token}"
         background.add_task(
             send_email,
             to=user.email,

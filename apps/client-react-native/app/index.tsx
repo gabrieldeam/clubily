@@ -1,5 +1,6 @@
 // apps/client-react-native/app/index.tsx
 import React, { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'expo-router';
 import {
   Animated,
   Dimensions,
@@ -23,7 +24,7 @@ const GAP        = 10;
 const TIMEOUT_MS = 2000;
 
 export default function WelcomeScreen() {
-  // habilita LayoutAnimation no Android
+  const router = useRouter();
   if (
     Platform.OS === 'android' &&
     UIManager.setLayoutAnimationEnabledExperimental
@@ -44,6 +45,27 @@ export default function WelcomeScreen() {
 
   const entryStartedRef = useRef(false);
   const prevViewRef     = useRef(view);
+
+
+  const handleLoginSuccess = () => {
+    const offscreenUp   = -SCREEN_HEIGHT;           
+    const offscreenDown = boxH + GAP;      
+
+    Animated.parallel([
+      Animated.timing(splashY, {
+        toValue: offscreenUp,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(buttonsY, {
+        toValue: offscreenDown,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      router.replace('/home');             
+    });
+  };
 
   // inicia loop de pulse
   useEffect(() => {
@@ -157,10 +179,12 @@ export default function WelcomeScreen() {
 
       {/* CAIXA BRANCA + KeyboardAvoidingView */}
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'position' : 'position'}
-        keyboardVerticalOffset={-20}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'position'}
+        keyboardVerticalOffset={
+          view === 'login' ? -130 : view === 'register' ? -100 : 0
+        }
         style={styles.boxWrapper}
-      >
+       >
         <Animated.View
           style={[
             styles.boxContainer,
@@ -189,9 +213,9 @@ export default function WelcomeScreen() {
               </>
             )}
 
-            {view === 'login' && <LoginForm onRegister={goRegister} />}
+            {view === 'login' && <LoginForm onRegister={goRegister} onSuccess={handleLoginSuccess}/>}
 
-            {view === 'register' && <RegisterForm onBack={goButtons} onLogin={goLogin} />}
+            {view === 'register' && <RegisterForm onLogin={goLogin} />}
           </View>
         </Animated.View>
       </KeyboardAvoidingView>

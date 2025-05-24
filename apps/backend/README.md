@@ -99,7 +99,7 @@ backend/
    EMAIL_FROM="Clubily <suporte@clubily.com>"
 
    # CORS (front local)
-   BACKEND_CORS_ORIGINS=http://localhost:3000
+   FRONTEND_ORIGINS=http://localhost:3000
    ```
 
 3. **Gere** a chave Fernet (32 bytes Base64 url-safe):
@@ -154,6 +154,7 @@ pip install -r requirements.txt
 
 ```bash
 uvicorn app.main:app --reload
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 ---

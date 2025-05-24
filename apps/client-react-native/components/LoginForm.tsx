@@ -2,24 +2,23 @@
 import React, { useState } from 'react';
 import {
   View,
-  TextInput,
   Alert,
   Text,
   StyleSheet,
   TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import { Button } from './Button';
+import FloatingLabelInput from './FloatingLabelInput';
 import { loginUser } from '../services/userService';
 import { useAuth } from '../context/AuthContext';
 import { useRouter } from 'expo-router';
 
 interface LoginFormProps {
   onRegister?: () => void;
+  onSuccess?: () => void;
 }
 
-export default function LoginForm({ onRegister }: LoginFormProps) {
+export default function LoginForm({ onRegister, onSuccess }: LoginFormProps) {
   const { refreshUser } = useAuth();
   const router = useRouter();
   const [identifier, setIdentifier] = useState('');
@@ -31,7 +30,9 @@ export default function LoginForm({ onRegister }: LoginFormProps) {
     try {
       await loginUser({ identifier, password });
       await refreshUser();
-      router.replace('/home');
+      if (onSuccess) {
+        onSuccess();              
+      }
     } catch (err: any) {
       Alert.alert('Falha ao entrar', err?.response?.data?.msg || err.message);
     } finally {
@@ -40,25 +41,21 @@ export default function LoginForm({ onRegister }: LoginFormProps) {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'position'}
-      keyboardVerticalOffset={-100}
+    <View
       style={styles.container}
     >
       <Text style={styles.title}>Entrar para o Clubily</Text>
 
-      <TextInput
-        placeholder="Email ou Telefone"
+      <FloatingLabelInput
+        label="Email ou Telefone"
         value={identifier}
         onChangeText={setIdentifier}
-        style={styles.input}
       />
-      <TextInput
-        placeholder="Senha"
+      <FloatingLabelInput
+        label="Senha"
         secureTextEntry
         value={password}
         onChangeText={setPassword}
-        style={styles.input}
       />
 
       <Button onPress={handleLogin} disabled={loading} style={styles.loginButton}>
@@ -75,14 +72,14 @@ export default function LoginForm({ onRegister }: LoginFormProps) {
       </View>
 
       <View style={styles.policiesRow}>
-        <TouchableOpacity onPress={() => router.push('/policies/terms')}>
+        <TouchableOpacity onPress={() => router.push('./policies/terms')}>
           <Text style={styles.policyLink}>Termos de uso</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.push('/policies/privacy')}>
+        <TouchableOpacity onPress={() => router.push('./policies/privacy')}>
           <Text style={styles.policyLink}>Política de privacidade</Text>
         </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -96,14 +93,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 24,
     textAlign: 'center',
-    marginTop: 100,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 4,
-    padding: 8,
-    marginBottom: 12,
+    marginTop: 80,
   },
   loginButton: {
     marginTop: 8,
@@ -123,7 +113,7 @@ const styles = StyleSheet.create({
   policiesRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 150,
+    marginTop: 80,
     marginBottom: 20,
   },
   policyLink: {

@@ -1,0 +1,147 @@
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+// SVG icons (adicione os arquivos nas paths abaixo)
+import Icon from '../assets/icons/icon.svg';
+import AddressIcon from '../assets/icons/address.svg';
+import SearchIcon from '../assets/icons/search.svg';
+
+interface HeaderProps {
+  /** Exibe ou não a saudação com nome de usuário */
+  showUser?: boolean;
+  /** Nome do usuário para exibir quando showUser=true */
+  userName?: string;
+  /** Callback ao trocar endereço */
+  onAddressPress?: () => void;
+  /** Callback ao submeter pesquisa */
+  onSearch?: (query: string) => void;
+}
+
+export default function Header({
+  showUser = false,
+  userName = '',
+  onAddressPress,
+  onSearch,
+}: HeaderProps) {
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const handleSearchPress = () => setIsSearching(true);
+  const handleCancelSearch = () => {
+    setIsSearching(false);
+    setSearchQuery('');
+  };
+  const submitSearch = () => {
+    onSearch?.(searchQuery);
+  };
+
+  return (
+    <SafeAreaView edges={['top']} style={styles.header}>
+      {isSearching ? (
+        <View style={styles.searchContainer}>
+          <TextInput
+            style={styles.searchInput}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Buscar..."
+            placeholderTextColor="#666"
+            autoFocus
+            onSubmitEditing={submitSearch}
+          />
+          <TouchableOpacity onPress={handleCancelSearch} style={styles.cancelButton}>
+            <Text style={styles.cancelText}>Cancelar</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <>
+          <View style={styles.headerLeft}>
+            <Icon width={40} height={40} />
+            {showUser && (
+              <View style={styles.userTextContainer}>
+                <Text style={styles.greeting}>Olá,</Text>
+                <Text style={styles.userName}>{userName}</Text>
+              </View>
+            )}
+          </View>
+          <View style={styles.headerRight}>
+            <TouchableOpacity onPress={onAddressPress} style={[styles.iconButton, styles.addressIconButton]}>
+              <AddressIcon width={24} height={24} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleSearchPress} style={styles.iconButton}>
+              <SearchIcon width={24} height={24} />
+            </TouchableOpacity>
+          </View>
+        </>
+      )}
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  header: {
+    backgroundColor: '#FFA600',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  searchInput: {
+    flex: 1,
+    backgroundColor: '#FFF',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 40,
+  },
+  cancelButton: {
+    marginLeft: 12,
+  },
+  cancelText: {
+    color: '#FFF',
+    fontSize: 16,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  userTextContainer: {
+    marginLeft: 12,
+  },
+  greeting: {
+    fontSize: 16,
+    color: '#FFF',
+  },
+  userName: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#FFF',
+  },
+  headerRight: {
+    flexDirection: 'row',
+  },
+  iconButton: {
+    marginLeft: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addressIconButton: {
+    backgroundColor: '#FF4C00',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+});

@@ -80,7 +80,7 @@ def register_company(
 
     # 6) Dispara envio de e-mail de verificação em background
     token = jwt.encode({"sub": str(company.id)}, settings.SECRET_KEY, algorithm="HS256")
-    verify_url = f"{settings.BACKEND_CORS_ORIGINS[0]}/companies/verify-email?token={token}"
+    verify_url = f"{settings.FRONTEND_ORIGINS[0]}/companies/verify-email?token={token}"
     background.add_task(
         send_email,
         to=company.email,
@@ -153,7 +153,7 @@ def forgot_password_company(email: str, background: BackgroundTasks, db: Session
     comp = db.query(Company).filter(Company.email == email.lower()).first()
     if comp:
         token = jwt.encode({"sub": str(comp.id)}, settings.SECRET_KEY, algorithm="HS256")
-        reset_url = f"{settings.BACKEND_CORS_ORIGINS[0]}/companies/reset-password?token={token}"
+        reset_url = f"{settings.FRONTEND_ORIGINS[0]}/companies/reset-password?token={token}"
         background.add_task(
             send_email,
             to=comp.email,
@@ -454,7 +454,7 @@ def update_company(
             company.email = new_email
             company.email_verified_at = None
             token = jwt.encode({"sub": str(company.id)}, settings.SECRET_KEY, algorithm="HS256")
-            verify_url = f"{settings.BACKEND_CORS_ORIGINS[0]}/companies/verify-email?token={token}"
+            verify_url = f"{settings.FRONTEND_ORIGINS[0]}/companies/verify-email?token={token}"
             background.add_task(
                 send_email,
                 to=new_email,

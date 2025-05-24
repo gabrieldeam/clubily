@@ -1,7 +1,7 @@
 # backend/app/core/config.py
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import PostgresDsn, EmailStr
+from pydantic import PostgresDsn, EmailStr, validator
 
 class Settings(BaseSettings):
     # Indica onde está o .env
@@ -42,15 +42,8 @@ class Settings(BaseSettings):
     EMAIL_FROM: EmailStr
 
     # CORS
-    BACKEND_CORS_ORIGINS: list[str] = ["http://localhost:3000"]
-    BACKEND_CORS_ORIGINS: list[str] = [
-       "http://localhost:3000",
-       "http://localhost:3001", 
-       "http://localhost:3002",
-       # se no futuro tiver outros:
-       # "https://clubily.com",
-       # "https://clubi.ly",
-   ]
+    FRONTEND_ORIGINS: list[str]
+    COOKIE_DOMAIN: str
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
