@@ -87,7 +87,7 @@ export default function FloatingLabelInput({
           styles.label,
           {
             // move de 18 -> -6
-            top: anim.interpolate({ inputRange: [0, 1], outputRange: [18, -8] }),
+            top: anim.interpolate({ inputRange: [0, 1], outputRange: [18, -4] }),
             fontSize: anim.interpolate({ inputRange: [0, 1], outputRange: [16, 12] }),
             color: focused ? '#000' : '#777',
           },
@@ -123,7 +123,7 @@ export default function FloatingLabelInput({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 20,
+    marginBottom: 15,
     position: 'relative',
   },
   input: {
@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
     borderColor: '#000',
     borderRadius: 8,
     backgroundColor: 'transparent',
-    minHeight: 60,
+    minHeight: 40,
   },
   label: {
     position: 'absolute',
@@ -144,6 +144,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
     paddingHorizontal: 4,
     zIndex: 1,
+    marginTop: -5,
   },
   toggle: {
     position: 'absolute',

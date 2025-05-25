@@ -1,11 +1,13 @@
+// apps/client-react-native/app/(private)/profile.tsx
+
 import React from 'react';
 import {
   View,
   StyleSheet,
 } from 'react-native';
-import Header from '../components/Header';
-import { Button } from '../components/Button';
-import { useAuth } from '../context/AuthContext';
+import Header from '../../components/Header';
+import { Button } from '../../components/Button';
+import { useAuth } from '../../context/AuthContext';
 import { useRouter } from 'expo-router';
 
 export default function ProfileScreen() {
@@ -23,7 +25,6 @@ export default function ProfileScreen() {
       {/* HEADER com SafeArea e busca */}
       
     <Header
-      onAddressPress={() => {/* navega ou abre modal */}}
       onSearch={query => {/* executa pesquisa */}}
     />
 

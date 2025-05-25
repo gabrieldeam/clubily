@@ -1,36 +1,32 @@
+// src/components/FloatingMenu/index.tsx  (ou onde estiver)
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 
-// SVG icons (adicione os arquivos nas paths abaixo)
 import HomeIcon from '../assets/icons/home.svg';
 import ProfileIcon from '../assets/icons/profile.svg';
 
 export default function FloatingMenu() {
   const router = useRouter();
-  const pathname = usePathname();
+  const pathname = usePathname();          // retorna '/home', '/profile'…
 
-  const isHome = pathname === '/home' || pathname === '/';
+  const isHome    = pathname === '/home' || pathname === '/';
   const isProfile = pathname === '/profile';
 
   return (
     <View style={styles.container}>
+      {/* HOME -------------------------------------------------- */}
       <TouchableOpacity
-        style={[
-          styles.button,
-          isHome && styles.activeButton,
-        ]}
-        onPress={() => router.push('/home')}
+        style={[styles.button, isHome && styles.activeButton]}
+        onPress={() => router.push('/home')}  
       >
         <HomeIcon width={27} height={27} />
       </TouchableOpacity>
 
+      {/* PROFILE ---------------------------------------------- */}
       <TouchableOpacity
-        style={[
-          styles.button,
-          isProfile && styles.activeButton,
-        ]}
-        onPress={() => router.push('/home')}
+        style={[styles.button, isProfile && styles.activeButton]}
+        onPress={() => router.push('/profile')} 
       >
         <ProfileIcon width={27} height={27} />
       </TouchableOpacity>
@@ -48,7 +44,6 @@ const styles = StyleSheet.create({
     borderColor: '#1D1D1D',
     borderWidth: 1,
     borderRadius: 50,
-    paddingHorizontal: 0,
     paddingVertical: 8,
   },
   button: {

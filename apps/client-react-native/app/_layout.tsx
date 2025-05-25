@@ -5,22 +5,24 @@ import { AuthProvider, useAuth } from '../context/AuthContext';
 import { AddressProvider } from '../context/AddressContext';
 
 function Inner() {
-  const router = useRouter();
-  const pathname = usePathname();      
-  const { user, loading } = useAuth(); 
+  const router    = useRouter();
+  const pathname  = usePathname();          // ex: '/profile'
+  const { user, loading } = useAuth();
 
   useEffect(() => {
-    if (loading) return;       
+    if (loading) return;
 
-    if (user && pathname !== '/home') {
-      router.replace('/home');
-      return;
-    }
+    const publicPaths  = ['/', '/policies/terms', '/policies/privacy'];
+    const privatePaths = ['/home', '/profile', '/companies/[id]'];
 
-    if (!user && pathname !== '/') {
-      router.replace('/');
+    if (user) {
+      // logado mas em rota pública? → manda pra /home
+      if (publicPaths.includes(pathname)) router.replace('/home');
+    } else {
+      // não logado e em rota privada? → manda pra /
+      if (privatePaths.includes(pathname)) router.replace('/');
     }
-  }, [user, loading, pathname, router]);
+  }, [loading, user, pathname]);
 
   return <Slot />;
 }
@@ -28,9 +30,9 @@ function Inner() {
 export default function Layout() {
   return (
     <AuthProvider>
-        <AddressProvider>
-            <Inner />
-        </AddressProvider>
+      <AddressProvider>
+        <Inner />
+      </AddressProvider>
     </AuthProvider>
   );
 }

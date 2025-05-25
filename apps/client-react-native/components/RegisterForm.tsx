@@ -155,7 +155,6 @@ export default function RegisterForm({ onLogin }: RegisterFormProps) {
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    paddingBottom: 20,
   },
   title: {
     fontSize: 24,
@@ -167,8 +166,6 @@ const styles = StyleSheet.create({
   contactRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 5,
-    marginBottom: 5,
   },
   emailCol: {
     flex: 1.2,
@@ -180,7 +177,6 @@ const styles = StyleSheet.create({
   passwordRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 5,
   },
   passwordCol: {
     flex: 1,
@@ -193,7 +189,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
-    marginTop: 12,
   },
   termsText: {
     marginLeft: 8,

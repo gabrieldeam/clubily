@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import AddressModal from './AddressModal';
 // SVG icons (adicione os arquivos nas paths abaixo)
 import Icon from '../assets/icons/icon.svg';
 import AddressIcon from '../assets/icons/address.svg';
@@ -18,8 +19,6 @@ interface HeaderProps {
   showUser?: boolean;
   /** Nome do usuário para exibir quando showUser=true */
   userName?: string;
-  /** Callback ao trocar endereço */
-  onAddressPress?: () => void;
   /** Callback ao submeter pesquisa */
   onSearch?: (query: string) => void;
 }
@@ -27,11 +26,13 @@ interface HeaderProps {
 export default function Header({
   showUser = false,
   userName = '',
-  onAddressPress,
   onSearch,
 }: HeaderProps) {
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showAddrModal, setShowAddrModal] = useState(false);
+
+  const firstName = userName.split(' ')[0] || userName;
 
   const handleSearchPress = () => setIsSearching(true);
   const handleCancelSearch = () => {
@@ -43,44 +44,52 @@ export default function Header({
   };
 
   return (
-    <SafeAreaView edges={['top']} style={styles.header}>
-      {isSearching ? (
-        <View style={styles.searchContainer}>
-          <TextInput
-            style={styles.searchInput}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholder="Buscar..."
-            placeholderTextColor="#666"
-            autoFocus
-            onSubmitEditing={submitSearch}
-          />
-          <TouchableOpacity onPress={handleCancelSearch} style={styles.cancelButton}>
-            <Text style={styles.cancelText}>Cancelar</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <>
-          <View style={styles.headerLeft}>
-            <Icon width={40} height={40} />
-            {showUser && (
-              <View style={styles.userTextContainer}>
-                <Text style={styles.greeting}>Olá,</Text>
-                <Text style={styles.userName}>{userName}</Text>
-              </View>
-            )}
-          </View>
-          <View style={styles.headerRight}>
-            <TouchableOpacity onPress={onAddressPress} style={[styles.iconButton, styles.addressIconButton]}>
-              <AddressIcon width={24} height={24} />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleSearchPress} style={styles.iconButton}>
-              <SearchIcon width={24} height={24} />
+    <>
+      <SafeAreaView edges={['top']} style={styles.header}>
+        {isSearching ? (
+          <View style={styles.searchContainer}>
+            <TextInput
+              style={styles.searchInput}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Buscar..."
+              placeholderTextColor="#666"
+              autoFocus
+              onSubmitEditing={submitSearch}
+            />
+            <TouchableOpacity onPress={handleCancelSearch} style={styles.cancelButton}>
+              <Text style={styles.cancelText}>Cancelar</Text>
             </TouchableOpacity>
           </View>
-        </>
-      )}
-    </SafeAreaView>
+        ) : (
+          <>
+            <View style={styles.headerLeft}>
+              <Icon width={40} height={40} />
+              {showUser && (
+                <View style={styles.userTextContainer}>
+                  <Text style={styles.greeting}>Olá,</Text>
+                  <Text style={styles.userName}>{firstName}</Text>
+                </View>
+              )}
+            </View>
+            <View style={styles.headerRight}>
+              <TouchableOpacity
+                onPress={() => setShowAddrModal(true)}
+                style={[styles.iconButton, styles.addressIconButton]}
+              >
+                <AddressIcon width={24} height={24} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleSearchPress} style={styles.iconButton}>
+                <SearchIcon width={24} height={24} />
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
+      </SafeAreaView>
+
+      {/* Modal de seleção de endereço */}
+      <AddressModal visible={showAddrModal} onClose={() => setShowAddrModal(false)} />
+    </>
   );
 }
 
@@ -92,8 +101,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    borderRadius: 20,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -123,6 +131,7 @@ const styles = StyleSheet.create({
   },
   greeting: {
     fontSize: 16,
+    marginBottom: -3,
     color: '#FFF',
   },
   userName: {
