@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, Text, ActivityIndicator, TouchableOpacity, Image, ScrollView } from 'react-native';
+import { Platform, View, StyleSheet, Text, ActivityIndicator, TouchableOpacity, Image, ScrollView } from 'react-native';
 import MapView, { PROVIDER_GOOGLE } from 'react-native-maps';
 import Header from '../../components/Header';
 import AddressModal from '../../components/AddressModal';
@@ -51,17 +51,31 @@ export default function HomeScreen() {
       .finally(() => setLoadingComps(false));
   }, [selectedAddress, filterField]);
 
-  // geocode
-  useEffect(() => {
-    if (!selectedAddress) { setCoords(null); return; }
-    const q = `${selectedAddress.street}, ${selectedAddress.city}, ${selectedAddress.state}, ${selectedAddress.postal_code}`;
-    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`)
-      .then(r => r.json())
-      .then((data: any[]) => data[0]
-        ? setCoords({ latitude: +data[0].lat, longitude: +data[0].lon })
-        : setCoords(null))
-      .catch(() => setCoords(null));
-  }, [selectedAddress]);
+const geocodeAddress = async (address: string) => {
+  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(address)}`;
+  const res = await fetch(url, {
+    headers: {
+      'User-Agent': 'clubily-app/1.0 (contato@clubily.com.br)',
+      'Referer'   : 'https://clubily.com.br',
+    },
+  });
+  const data = await res.json();
+  return data[0]
+    ? { latitude: +data[0].lat, longitude: +data[0].lon }
+    : null;
+};
+
+// 3. substitua seu useEffect atual por:
+useEffect(() => {
+  if (!selectedAddress) {
+    setCoords(null);
+    return;
+  }
+  const q = `${selectedAddress.street}, ${selectedAddress.city}, ${selectedAddress.state}, ${selectedAddress.postal_code}`;
+  geocodeAddress(q)
+    .then(c => setCoords(c))
+    .catch(() => setCoords(null));
+}, [selectedAddress]);
 
   if (!selectedAddress) {
     return (
@@ -117,7 +131,7 @@ export default function HomeScreen() {
           {coords ? (
             <View style={styles.mapWrapper}>
               <MapView
-                provider={PROVIDER_GOOGLE}
+                provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
                 style={styles.map}
                 region={{ latitude: coords.latitude, longitude: coords.longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 }}
               
