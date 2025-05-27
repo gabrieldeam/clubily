@@ -13,6 +13,8 @@ import { SvgUri } from 'react-native-svg';
 import type { CategoryRead } from '../../types/category';
 import type { CompanyRead, CompanyFilter } from '../../types/company';
 
+import Map from '../../assets/images/map.svg';
+
 export default function HomeScreen() {
   const { user } = useAuth();
   const { selectedAddress, filterField } = useAddress();
@@ -145,7 +147,20 @@ useEffect(() => {
               </TouchableOpacity>
             </View>
           ) : (
-            <View style={styles.emptyContainer}><Text style={styles.emptyText}>Não foi possível localizar endereço.</Text></View>
+            <View style={styles.mapWrapper}>
+              <Map
+                width="100%"
+                height="100%"
+                preserveAspectRatio="none"
+                style={styles.mapImage}
+              />
+              <TouchableOpacity
+                style={styles.exploreButton}
+                onPress={() => router.push({ pathname: '/maps' })}
+              >
+                <Text style={styles.exploreText}>Explorar mapa</Text>
+              </TouchableOpacity>
+            </View>
           )}
 
           {/* Lista de empresas logo abaixo do mapa */}
@@ -190,6 +205,7 @@ const styles = StyleSheet.create({
   catName: { marginTop: 8, textAlign: 'center', color: '#000' },
   mapWrapper: { position: 'relative', width: '100%', height: 120, borderRadius: 10, overflow: 'hidden', marginBottom: 10 },
   map: { width: '100%', height: '100%' },
+  mapImage: { width: '100%', height: '100%' },
   exploreButton: { position: 'absolute', bottom: 8, right: 8, backgroundColor: '#F0F0F0', borderColor: '#D9D9D9', borderWidth: 1, borderRadius: 50, paddingHorizontal: 12, paddingVertical: 6 },
   exploreText: { color: '#000' },
   addressText: { fontSize: 16, color: '#000' },

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Image, ScrollView } from 'react-native';
+import { Platform, View, Text, StyleSheet, ActivityIndicator, Image, ScrollView } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE, Callout } from 'react-native-maps';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { getCompanyInfo } from '../../../services/companyService';
@@ -41,7 +41,7 @@ export default function CompanyScreen() {
   const LATITUDE_DELTA = 0.01;
   const LONGITUDE_DELTA = 0.01;
   // quanto “abaixo” em relação ao total do delta (30%)
-  const VERTICAL_OFFSET_FACTOR = -0.3;
+  const VERTICAL_OFFSET_FACTOR = -0.1;
 
   return (
     <View style={styles.container}>
@@ -53,6 +53,7 @@ export default function CompanyScreen() {
 
       {company && (
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} showsHorizontalScrollIndicator={false}>
+
 
           {/* ROW: logo/info/descrição & primeira categoria */}
           <View style={styles.whiteBox}>
@@ -88,11 +89,12 @@ export default function CompanyScreen() {
               </View>
               
               {/* Mapa justo abaixo */}
-              {coords && (
-                <View style={styles.mapWrapper}>                  
+              {coords ? (
+                <>
                 <Text style={styles.sectionTitle}>Endereço</Text>
+                <View style={styles.mapWrapper}>
                   <MapView
-                    provider={PROVIDER_GOOGLE}
+                    provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
                     style={styles.map}
                     region={{
                       latitude: coords.latitude - LATITUDE_DELTA * VERTICAL_OFFSET_FACTOR,
@@ -123,10 +125,20 @@ export default function CompanyScreen() {
                       </Callout>
                     </Marker>
                   </MapView>
-                </View>
-              )}
-
-            </View>
+                </View>                
+              </>
+            ) : (              
+            <>
+              <Text style={styles.sectionTitle}>Endereço</Text>
+              <View style={styles.addressCard}>
+                <Text style={styles.addressText}>{company.street}</Text>
+                <Text style={styles.addressText}>
+                  {company.city} – {company.state}, {company.postal_code}
+                </Text>
+              </View>           
+            </>
+            )}
+          </View>
           
 
           {/* Contato */}
@@ -224,12 +236,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  mapWrapper: {
-    backgroundColor: '#FFF',
-    borderRadius: 10,
-    marginTop: 12,
-    overflow: 'visible',
-  },
+  mapWrapper: { position: 'relative', width: '100%', height: 150, borderRadius: 10, overflow: 'hidden', marginBottom: 10 },
   infoColumn: {
     flexDirection: 'row',     
     alignItems: 'center',  
@@ -240,6 +247,18 @@ const styles = StyleSheet.create({
     marginLeft: 12,           
     flexShrink: 1,          
   },
+  addressCard: {
+  backgroundColor: '#F0F0F0',
+  borderRadius: 12,
+  padding: 16,
+  alignItems: 'center',
+},
+addressText: {
+  color: '#000',
+  textAlign: 'center',
+  fontSize: 14,
+  marginVertical: 2,
+},
 calloutBox: {
     width: 240,          // largura real do balão
     backgroundColor: '#fff',
@@ -271,9 +290,10 @@ calloutBox: {
     backgroundColor: '#FFF',
     borderRadius: 20,
     padding: 16,
-    marginBottom: 12,
+    marginBottom: 10,
+    width: '100%', 
   },
-  map: { width: '100%', height: 150, borderRadius: 10, overflow: 'hidden', },
+  map: { width: '100%', height: '100%' },
    markerContainer: {
     width: 50,
     height: 50,
