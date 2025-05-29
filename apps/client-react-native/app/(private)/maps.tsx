@@ -27,7 +27,7 @@ export default function MapsScreen() {
   const router = useRouter()
   const { user, logout } = useAuth()
   const { selectedAddress, filterField } = useAddress()
-
+  const [showOutsideWarning, setShowOutsideWarning] = useState(false);
   const [categories, setCategories] = useState<CategoryRead[]>([])
   const [loadingCats, setLoadingCats] = useState(false)
   const [companies, setCompanies] = useState<CompanyWithCoords[]>([])
@@ -59,9 +59,51 @@ export default function MapsScreen() {
     return filters
   }
 
+  const [cityBounds, setCityBounds] = useState<{
+    south: number;
+    north: number;
+    west: number;
+    east: number;
+  } | null>(null);
+
+  const handleRegionChangeComplete = (newRegion: typeof region) => {
+  setRegion(newRegion);
+
+  if (cityBounds) {
+    const inside =
+      newRegion.latitude  >= cityBounds.south  &&
+      newRegion.latitude  <= cityBounds.north  &&
+      newRegion.longitude >= cityBounds.west   &&
+      newRegion.longitude <= cityBounds.east;
+
+    setShowOutsideWarning(!inside);
+  }
+};
+
   const toggleCategory = (id: string) => {
     setSelectedCategoryId(prev => (prev === id ? null : id));
   };
+
+  useEffect(() => {
+  if (!selectedAddress) return;
+
+  (async () => {
+    try {
+      const resp = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&city=${encodeURIComponent(
+          selectedAddress.city
+        )}&limit=1&addressdetails=1`
+      );
+      const data = await resp.json();
+      if (data[0]?.boundingbox) {
+        const [south, north, west, east] = data[0].boundingbox.map((v: string) => parseFloat(v));
+        setCityBounds({ south, north, west, east });
+      }
+    } catch (err) {
+      console.warn('Não foi possível obter bounding box da cidade', err);
+    }
+  })();
+}, [selectedAddress]);
 
   // Busca categorias e empresas (com ou sem categoria)
   useEffect(() => {
@@ -134,7 +176,16 @@ export default function MapsScreen() {
     })()
   }, [selectedAddress, filterField, selectedCategoryId])
 
-  // … restante do geocoding de endereço e loader …
+  useEffect(() => {
+  if (!cityBounds) return;
+  const inside = 
+    region.latitude  >= cityBounds.south &&
+    region.latitude  <= cityBounds.north &&
+    region.longitude >= cityBounds.west  &&
+    region.longitude <= cityBounds.east;
+  setShowOutsideWarning(!inside);
+}, [region, cityBounds]);
+
 
   if (loading) {
     return (
@@ -149,10 +200,18 @@ export default function MapsScreen() {
     <View style={styles.container}>
       <Header onSearch={query => { /* TODO: implementar filtro via texto */ }} />
 
+      {showOutsideWarning && selectedAddress && (
+        <View style={styles.outsideModal}>
+          <Text style={styles.outsideText}>
+            Você está navegando fora da área filtrada ({selectedAddress.city}).
+          </Text>
+        </View>
+      )}
+
       <MapView
         style={styles.map}
         region={region}
-        onRegionChangeComplete={setRegion}
+        onRegionChangeComplete={handleRegionChangeComplete}
         provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
       >
         {companies.map(c =>
@@ -245,4 +304,21 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   catImageWrapper: { width: 80, height: 80, padding: 15, backgroundColor: '#F0F0F0', borderColor: '#D9D9D9', borderWidth: 1, borderRadius: 40, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' },
   catName: { marginTop: 8, textAlign: 'center', color: '#000' },
+  outsideModal: {
+  position: 'absolute',
+  top: 10,
+  left: '5%',
+  right: '5%',
+  backgroundColor: 'rgba(0,0,0,0.7)',
+  paddingVertical: 6,
+  paddingHorizontal: 12,
+  borderRadius: 8,
+  zIndex: 10,     
+  elevation: 10,   
+  alignItems: 'center',
+},
+outsideText: {
+  color: '#FFF',
+  fontSize: 14,
+},
 });
