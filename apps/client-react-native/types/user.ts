@@ -1,16 +1,15 @@
 // types/user.ts
+
+import type {
+   CompanyRead
+} from './company';
+
 export type Role = 'admin' | 'user';
 
 export interface Address {
   id: string;
   street: string;
   city: string;
-  // …
-}
-
-export interface Company {
-  id: string;
-  name: string;
   // …
 }
 
@@ -27,7 +26,7 @@ export interface UserRead {
   email_verified_at?: string;
   phone_verified_at?: string;
   addresses?: Address[];
-  companies?: Company[];
+  companies?: CompanyRead[];
 }
 
 export interface LeadCreate {

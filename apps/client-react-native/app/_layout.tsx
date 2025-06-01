@@ -12,8 +12,8 @@ function Inner() {
   useEffect(() => {
     if (loading) return;
 
-    const publicPaths  = ['/', '/policies/terms', '/policies/privacy'];
-    const privatePaths = ['/home', '/profile', '/companies/[id]', '/companies', '/maps', '/categories]'];
+    const publicPaths  = ['/'];
+    const privatePaths = ['/home', '/profile', '/companies/[id]', '/companies', '/categories', '/search', '/all-companies'];
 
     if (user) {
       // logado mas em rota pública? → manda pra /home

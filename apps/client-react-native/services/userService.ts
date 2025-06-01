@@ -2,11 +2,9 @@
 import api from './api';
 import type {
   UserRead,
-  LeadCreate,
   UserCreate,
   UserUpdate,
   Token as TokenResponse,
-  PreRegisteredResponse,
   MsgResponse,
   LoginCredentials,
 } from '../types/user';
@@ -25,18 +23,9 @@ export const getCurrentUser = () =>
 export const updateCurrentUser = (payload: UserUpdate) =>
   api.patch<UserRead>('/users/me', payload);
 
-// 2. Pré-cadastro
-export const preRegisterUser = (payload: LeadCreate) =>
-  api.post<MsgResponse>('/auth/pre-register', payload);
-
-export const isPreRegisteredUser = (
-  company_id: string,
-  email?: string,
-  phone?: string
-) =>
-  api.get<PreRegisteredResponse>('/auth/pre-registered', {
-    params: { company_id, email, phone },
-  });
+// 1.1. Solicitar exclusão de conta
+export const requestUserDeletion = () =>
+  api.post<MsgResponse>('/users/me/delete-request');
 
 // 3. Registro & verificação
 export const registerUser = (payload: UserCreate) =>

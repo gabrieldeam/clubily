@@ -116,3 +116,50 @@ def read_my_companies(
         )
 
     return companies
+
+@router.post(
+    "/me/delete-request",
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Envia solicitação de exclusão de conta do usuário"
+)
+def request_user_deletion(
+    background: BackgroundTasks,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    O usuário autenticado solicita a exclusão de sua conta.
+    Envia um e-mail para o endereço de suporte (settings.EMAIL_FROM)
+    contendo as informações básicas do usuário.
+    """
+    # 1) Monta o corpo do e-mail
+    subject = "Solicitação de Exclusão de Conta – Usuário"
+    # colete todas as empresas associadas (IDs e nomes) para incluir no e-mail
+    empresas = [
+        f"{c.id} – {c.name}"
+        for c in current_user.companies
+    ]
+    empresas_str = "<br>".join(empresas) if empresas else "Nenhuma empresa associada"
+
+    html = f"""
+    <p>O usuário abaixo solicitou a exclusão de sua conta:</p>
+    <ul>
+        <li><b>ID:</b> {current_user.id}</li>
+        <li><b>Nome:</b> {current_user.name or '(não informado)'}</li>
+        <li><b>E-mail:</b> {current_user.email or '(não informado)'}</li>
+        <li><b>Telefone:</b> {current_user.phone or '(não informado)'}</li>
+        <li><b>Empresas associadas:</b><br>{empresas_str}</li>
+        <li><b>Data de cadastro:</b> {current_user.created_at.strftime('%Y-%m-%d %H:%M:%S')}</li>
+    </ul>
+    <p>Por favor, prossiga com o processo de exclusão conforme as políticas internas.</p>
+    """
+
+    # 2) Envia o e-mail em background para o suporte/admin
+    background.add_task(
+        send_email,
+        to=settings.EMAIL_FROM,
+        subject=subject,
+        html=html,
+    )
+
+    return {"msg": "Solicitação de exclusão de conta enviada. Em breve entraremos em contato."}

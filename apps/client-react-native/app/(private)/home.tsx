@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Platform,
   View,
   StyleSheet,
   Text,
@@ -9,7 +8,7 @@ import {
   Image,
   ScrollView
 } from 'react-native';
-import MapView, { PROVIDER_GOOGLE } from 'react-native-maps';
+import MapNull from '../../assets/icons/mapNull.svg';
 import Header from '../../components/Header';
 import AddressModal from '../../components/AddressModal';
 import { useRouter } from 'expo-router';
@@ -22,8 +21,6 @@ import { SvgUri } from 'react-native-svg';
 import type { CategoryRead } from '../../types/category';
 import type { CompanyRead, CompanyFilter } from '../../types/company';
 
-import Map from '../../assets/images/map.svg';
-
 export default function HomeScreen() {
   const { user } = useAuth();
   const { selectedAddress, filterField } = useAddress();
@@ -34,7 +31,6 @@ export default function HomeScreen() {
   const [companies, setCompanies] = useState<CompanyRead[]>([]);
   const [loadingCats, setLoadingCats] = useState(false);
   const [loadingComps, setLoadingComps] = useState(false);
-  const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
 
   const buildFilters = (): CompanyFilter => {
     const filters: any = {};
@@ -62,32 +58,8 @@ export default function HomeScreen() {
       .finally(() => setLoadingComps(false));
   }, [selectedAddress, filterField]);
 
-  const geocodeAddress = async (address: string) => {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(address)}`;
-    const res = await fetch(url, {
-      headers: {
-        'User-Agent': 'clubily-app/1.0 (contato@clubily.com.br)',
-        'Referer'   : 'https://clubily.com.br',
-      },
-    });
-    const data = await res.json();
-    return data[0]
-      ? { latitude: +data[0].lat, longitude: +data[0].lon }
-      : null;
-  };
 
-  // 3. substitua seu useEffect atual por:
-  useEffect(() => {
-    if (!selectedAddress) {
-      setCoords(null);
-      return;
-    }
-    const q = `${selectedAddress.street}, ${selectedAddress.city}, ${selectedAddress.state}, ${selectedAddress.postal_code}`;
-    geocodeAddress(q)
-      .then(c => setCoords(c))
-      .catch(() => setCoords(null));
-  }, [selectedAddress]);
-
+  // Se não houver endereço selecionado, exibe o fluxo antigo
   if (!selectedAddress) {
     return (
       <View style={styles.container}>
@@ -104,192 +76,196 @@ export default function HomeScreen() {
     );
   }
 
+  // Se estiver carregando categorias, mantém o spinner
+  if (loadingCats) {
+    return (
+      <View style={styles.container}>
+        <Header showUser userName={user?.name} onSearch={() => {}} />
+        <ActivityIndicator color="#FFA600" style={{ margin: 20 }} />
+      </View>
+    );
+  }
+
+  // Se não houver categorias (parceiros), mostramos apenas o whiteBox2
+  if (!loadingCats && categories.length === 0) {
+    return (
+      <View style={styles.container}>
+        <Header showUser userName={user?.name} onSearch={() => {}} />
+        <AddressModal visible={showModal} onClose={() => setShowModal(false)} />
+
+        <View style={styles.whiteBox2}>
+          <MapNull width={120} height={120} />
+          <Text style={styles.emptyText}>
+            Não temos parceiros na sua localização.
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  // Se chegou até aqui, é porque há categorias para exibir:
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
+    <View style={styles.container}>
       <Header showUser userName={user?.name} onSearch={() => {}} />
       <AddressModal visible={showModal} onClose={() => setShowModal(false)} />
 
-      {/* Parceiros loading or none */}
-      {loadingCats && <ActivityIndicator color="#FFA600" style={{ margin: 20 }} />}
-      {!loadingCats && categories.length === 0 && (
-        <View style={styles.whiteBox}>
-          <Text style={styles.title}>Parceiros</Text>
-          <Text style={styles.emptyText}>Não temos parceiros na sua localização.</Text>
-        </View>
-      )}
-
-      {/* Categorias com rolagem horizontal e clique */}
-      {categories.length > 0 && (
-        <View style={styles.whiteBox}>
-          <Text style={styles.title}>Categorias</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.categoriesScroll}
-          >
-            {categories.map(cat => (
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: 20, flexGrow: 1 }}
+        nestedScrollEnabled
+      >
+        {/* Categorias com rolagem horizontal */}
+        {categories.length > 0 && (
+          <View style={styles.whiteBox}>
+            <Text style={styles.title}>Categorias</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {categories.map(cat => (
+                <TouchableOpacity
+                  key={cat.id}
+                  style={styles.catWrapper}
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    router.push({
+                      pathname: '/categories/[id]',
+                      params: { id: cat.id },
+                    });
+                  }}
+                >
+                  <View style={styles.catImageWrapper}>
+                    <SvgUri
+                      uri={`${imagePublicBaseUrl}${cat.image_url}`}
+                      width="100%"
+                      height="100%"
+                    />
+                  </View>
+                  <Text style={styles.catName}>{cat.name}</Text>
+                </TouchableOpacity>
+              ))}
               <TouchableOpacity
-                key={cat.id}
+                key="all"
                 style={styles.catWrapper}
                 activeOpacity={0.8}
                 onPress={() => {
-                  // Navega para /categories/[id]
-                  router.push({
-                    pathname: '/categories/[id]',
-                    params: { id: cat.id },
-                  });
-                  // Ou, se preferir a sintaxe de string única:
-                  // router.push(`/categories/${cat.id}`);
+                  router.push('/categories');
                 }}
               >
                 <View style={styles.catImageWrapper}>
-                  <SvgUri
-                    uri={`${imagePublicBaseUrl}${cat.image_url}`}
-                    width="100%"
-                    height="100%"
-                  />
+                  <Text style={styles.plusSign}>+</Text>
                 </View>
-                <Text style={styles.catName}>{cat.name}</Text>
+                <Text style={styles.catName}>todas</Text>
               </TouchableOpacity>
-            ))}
-            <TouchableOpacity
-              key="all"
-              style={styles.catWrapper}
-              activeOpacity={0.8}
-              onPress={() => {
-                // Navega para /categories
-                router.push('/categories');
-              }}
-            >
-              <View style={styles.catImageWrapper}>
-                <Text style={styles.plusSign}>+</Text>
+            </ScrollView>
+          </View>
+        )}
+
+        {/* Descubra agora + até 5 empresas */}
+        {categories.length > 0 && (
+          <View style={styles.whiteBox}>
+            <Text style={styles.title}>Descubra agora</Text>
+
+            {loadingComps ? (
+              <ActivityIndicator color="#FFA600" />
+            ) : (
+              <View style={{ paddingVertical: 10 }}>
+                {companies.slice(0, 5).map((comp, index) => (
+                  <View
+                    key={comp.id}
+                    style={[
+                      styles.companyCard,
+                      { marginBottom: index === 4 ? 0 : 10 },
+                    ]}
+                  >
+                    {comp.logo_url &&
+                      (() => {
+                        const logoUri = `${imagePublicBaseUrl}${comp.logo_url}`;
+                        const isSvg = logoUri.toLowerCase().endsWith('.svg');
+                        return isSvg ? (
+                          <SvgUri uri={logoUri} width={80} height={80} />
+                        ) : (
+                          <Image
+                            source={{ uri: logoUri }}
+                            style={styles.companyLogo}
+                            onError={(e) =>
+                              console.warn(
+                                'Erro ao carregar logo PNG/JPG:',
+                                e.nativeEvent.error
+                              )
+                            }
+                          />
+                        );
+                      })()}
+
+                    <View style={styles.companyInfo}>
+                      <Text style={styles.companyName}>{comp.name}</Text>
+                      <Text style={styles.companyDesc}>
+                        {comp.description}
+                      </Text>
+                    </View>
+
+                    <TouchableOpacity
+                      style={styles.companyBtn}
+                      onPress={() =>
+                        router.push({
+                          pathname: '/companies/[id]',
+                          params: { id: comp.id },
+                        })
+                      }
+                    >
+                      <Text style={styles.companyBtnText}>Ver empresa</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
               </View>
-              <Text style={styles.catName}>todas</Text>
-            </TouchableOpacity>
-          </ScrollView>
-        </View>
-      )}
-
-      {/* Descubra agora + Empresas abaixo */}
-      {categories.length > 0 && (
-        <View style={styles.whiteBox}>
-          <Text style={styles.title}>Descubra agora</Text>
-          {coords ? (
-            <View style={styles.mapWrapper}>
-              <MapView
-                provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
-                style={styles.map}
-                region={{
-                  latitude: coords.latitude,
-                  longitude: coords.longitude,
-                  latitudeDelta: 0.01,
-                  longitudeDelta: 0.01,
-                }}
-                scrollEnabled={false}
-                zoomEnabled={false}
-                rotateEnabled={false}
-                pitchEnabled={false}
-              />
-              <TouchableOpacity
-                style={styles.exploreButton}
-                onPress={() => router.push({ pathname: '/maps' })}
-              >
-                <Text style={styles.exploreText}>Explorar mapa</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View style={styles.mapWrapper}>
-              <Map
-                width="100%"
-                height="100%"
-                preserveAspectRatio="none"
-                style={styles.mapImage}
-              />
-              <TouchableOpacity
-                style={styles.exploreButton}
-                onPress={() => router.push({ pathname: '/maps' })}
-              >
-                <Text style={styles.exploreText}>Explorar mapa</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {/* Lista de empresas logo abaixo do mapa */}
-          {loadingComps ? (
-            <ActivityIndicator color="#FFA600" />
-          ) : (
-            companies.map(comp => (
-              <View key={comp.id} style={styles.companyCard}>
-                {comp.logo_url &&
-                  (() => {
-                    const logoUri = `${imagePublicBaseUrl}${comp.logo_url}`;
-                    const isSvg = logoUri.toLowerCase().endsWith('.svg');
-                    return isSvg ? (
-                      <SvgUri
-                        uri={logoUri}
-                        width={80}
-                        height={80}
-                      />
-                    ) : (
-                      <Image
-                        source={{ uri: logoUri }}
-                        style={styles.companyLogo}
-                        onError={e =>
-                          console.warn('Erro ao carregar logo PNG/JPG:', e.nativeEvent.error)
-                        }
-                        onLoad={() => console.log('Logo PNG/JPG carregada:', logoUri)}
-                      />
-                    );
-                  })()}
-
-                <View style={styles.companyInfo}>
-                  <Text style={styles.companyName}>{comp.name}</Text>
-                  <Text style={styles.companyDesc}>{comp.description}</Text>
-                </View>
-                <TouchableOpacity
-                  style={styles.companyBtn}
-                  onPress={() =>
-                    router.push({
-                      pathname: '/companies/[id]',
-                      params: { id: comp.id },
-                    })
-                  }
-                >
-                  <Text style={styles.companyBtnText}>Ver empresa</Text>
-                </TouchableOpacity>
-              </View>
-            ))
-          )}
-        </View>
-      )}
-
-      {/* Localização */}
-      {/* {categories.length > 0 && (
-        <View style={styles.whiteBox}>
-          <Text style={styles.title}>Localização</Text>
-          <Text style={styles.addressText}>
-            {selectedAddress.street}, {selectedAddress.city} - {selectedAddress.state},{' '}
-            {selectedAddress.postal_code}
-          </Text>
-        </View>
-      )} */}
-    </ScrollView>
+            )}
+          </View>
+        )}
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
-  whiteBox: { marginTop: 10, backgroundColor: '#FFF', borderRadius: 20, padding: 16, width: '100%' },
-  title: { fontSize: 18, fontWeight: '600', marginBottom: 12, color: '#000' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-  
-  // Novo estilo para o ScrollView de categorias
-  categoriesScroll: {
-    paddingLeft: 0,
-    paddingRight: 0,
+  container: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  whiteBox: {
+    marginTop: 10,
+    backgroundColor: '#FFF',
+    borderRadius: 20,
+    padding: 16,
+    width: '100%',
+  },
+  whiteBox2: {
+    flex: 1, 
+    marginTop: 10,
+    backgroundColor: '#FFF',
+    borderRadius: 20,
+    padding: 16,
+    width: '100%',
+    marginBottom: 120,
+    justifyContent: 'center',
+    alignItems: 'center',  
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 12,
+    color: '#000',
+  },
+  emptyText: {
+    marginTop: 16,
+    fontSize: 20,
+    color: '#666',
+    textAlign: 'center',
+    width: '80%',
+  },
+  linkText: {
+    color: '#FFA600',
+    marginTop: 8,
   },
   catWrapper: {
-    width: 100,
+    width: 90,
     alignItems: 'center',
   },
   catImageWrapper: {
@@ -308,23 +284,51 @@ const styles = StyleSheet.create({
     fontSize: 40,
     color: '#000',
     textAlign: 'center',
+    marginTop: -5,
   },
-  catName: { marginTop: 8, textAlign: 'center', color: '#000' },
-
-  mapWrapper: { position: 'relative', width: '100%', height: 120, borderRadius: 10, overflow: 'hidden', marginBottom: 10 },
-  map: { width: '100%', height: '100%' },
-  mapImage: { width: '100%', height: '100%' },
-  exploreButton: { position: 'absolute', bottom: 8, right: 8, backgroundColor: '#F0F0F0', borderColor: '#D9D9D9', borderWidth: 1, borderRadius: 50, paddingHorizontal: 12, paddingVertical: 6 },
-  exploreText: { color: '#000' },
+  catName: {
+    marginTop: 8,
+    textAlign: 'center',
+    color: '#000',
+  },
+  companyCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F0F0',
+    borderRadius: 10,
+    padding: 12,
+  },
+  companyLogo: {
+    width: 70,
+    height: 70,
+    borderRadius: 50,
+    marginRight: 12,
+    backgroundColor: '#FFA600',
+  },
+  companyInfo: {
+    flex: 1,
+  },
+  companyName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+  },
+  companyDesc: {
+    fontSize: 14,
+    color: '#333',
+    marginTop: 4,
+  },
+  companyBtn: {
+    backgroundColor: '#F0F0F0',
+    borderColor: '#D9D9D9',
+    borderWidth: 1,
+    borderRadius: 50,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
   addressText: { fontSize: 16, color: '#000' },
-  emptyContainer: { paddingVertical: 40, justifyContent: 'center', alignItems: 'center' },
-  emptyText: { color: '#666' },
-  linkText: { color: '#FFA600', marginTop: 8 },
-  companyCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F0F0F0', borderRadius: 10, padding: 12 },
-  companyLogo: { width: 70, height: 70, borderRadius: 50, marginRight: 12, backgroundColor: '#FFA600' },
-  companyInfo: { flex: 1 },
-  companyName: { fontSize: 16, fontWeight: '600', color: '#000' },
-  companyDesc: { fontSize: 14, color: '#333', marginTop: 4 },
-  companyBtn: { backgroundColor: '#F0F0F0', borderColor: '#D9D9D9', borderWidth: 1, borderRadius: 50, paddingHorizontal: 12, paddingVertical: 6 },
-  companyBtnText: { color: '#000', fontWeight: '500' },
+  companyBtnText: {
+    color: '#000',
+    fontWeight: '500',
+  },
 });

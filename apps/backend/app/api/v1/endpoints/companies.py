@@ -507,3 +507,63 @@ def logout_company(
         path="/",
     )
     return
+
+
+@router.post(
+    "/me/delete-request",
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Envia solicitação de exclusão de conta da empresa"
+)
+def request_company_deletion(
+    background: BackgroundTasks,
+    db: Session = Depends(get_db),
+    current_company: Company = Depends(get_current_company),
+):
+    """
+    A empresa autenticada solicita a exclusão de sua conta.
+    Envia um e-mail para o endereço de suporte (settings.EMAIL_FROM)
+    contendo as informações básicas da empresa.
+    """
+    # 1) Monta o corpo do e-mail
+    subject = "Solicitação de Exclusão de Conta – Empresa"
+    # colete todos os usuários associados (IDs e nomes) para incluir no e-mail
+    usuarios = [
+        f"{u.id} – {u.name or '(sem nome)'}"
+        for u in current_company.users
+    ]
+    usuarios_str = "<br>".join(usuarios) if usuarios else "Nenhum usuário associado"
+
+    # colete todas as categorias associadas (IDs e nomes) para incluir no e-mail
+    categorias = [
+        f"{c.id} – {c.name}"
+        for c in current_company.categories
+    ]
+    categorias_str = "<br>".join(categorias) if categorias else "Nenhuma categoria associada"
+
+    html = f"""
+    <p>A empresa abaixo solicitou a exclusão de sua conta:</p>
+    <ul>
+        <li><b>ID:</b> {current_company.id}</li>
+        <li><b>Nome:</b> {current_company.name}</li>
+        <li><b>E-mail:</b> {current_company.email}</li>
+        <li><b>Telefone:</b> {current_company.phone}</li>
+        <li><b>CNPJ:</b> {current_company.cnpj}</li>
+        <li><b>Endereço:</b> {current_company.street}, {current_company.city} – {current_company.state}, CEP {current_company.postal_code}</li>
+        <li><b>Descrição:</b> {current_company.description or '(não informada)'}</li>
+        <li><b>Status de Ativação:</b> {"Ativa" if current_company.is_active else "Inativa"}</li>
+        <li><b>Usuários associados:</b><br>{usuarios_str}</li>
+        <li><b>Categorias associadas:</b><br>{categorias_str}</li>
+        <li><b>Data de criação:</b> {current_company.created_at.strftime('%Y-%m-%d %H:%M:%S')}</li>
+    </ul>
+    <p>Por favor, prossiga com o processo de exclusão conforme as políticas internas.</p>
+    """
+
+    # 2) Envia o e-mail em background para o suporte/admin
+    background.add_task(
+        send_email,
+        to=settings.EMAIL_FROM,
+        subject=subject,
+        html=html,
+    )
+
+    return {"msg": "Solicitação de exclusão de conta empresarial enviada. Em breve entraremos em contato."}

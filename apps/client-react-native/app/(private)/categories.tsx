@@ -10,11 +10,12 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import Header from '../components/Header';
-import { listCategories } from '../services/categoryService';
-import type { CategoryRead } from '../types/category';
-import { imagePublicBaseUrl } from '../services/api';
+import Header from '../../components/Header';
+import { listUsedCategories } from '../../services/categoryService';
+import type { CategoryRead } from '../../types/category';
+import { imagePublicBaseUrl } from '../../services/api';
 import { SvgUri } from 'react-native-svg';
+import { useAddress } from '../../context/AddressContext'; 
 
 export default function CategoriesScreen() {
   const router = useRouter();
@@ -22,17 +23,36 @@ export default function CategoriesScreen() {
   const [categories, setCategories] = useState<CategoryRead[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { selectedAddress, filterField } = useAddress();
+
+  const buildFilters = (): Record<string, string> => {
+    if (
+      selectedAddress &&
+      filterField in selectedAddress &&
+      typeof selectedAddress[filterField] === 'string'
+    ) {
+      // exemplo: se filterField === 'city', então usamos selectedAddress.city
+      return { [filterField]: (selectedAddress as any)[filterField] };
+    }
+    return {};
+  };
 
   /* ─────────── carregamento ─────────── */
   useEffect(() => {
     setLoading(true);
     setError(null);
-
-    listCategories()
-      .then(res => setCategories(res.data))
-      .catch(() => setError('Erro ao carregar categorias.'))
-      .finally(() => setLoading(false));
-  }, []);
+    const filtros = buildFilters();
+    listUsedCategories(filtros)
+      .then(res => {
+        setCategories(res.data);
+      })
+      .catch(() => {
+        setError('Erro ao carregar categorias.');
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [selectedAddress, filterField]);
 
   if (loading) {
     return (

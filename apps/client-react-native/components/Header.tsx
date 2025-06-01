@@ -1,3 +1,4 @@
+// components/Header.tsx
 import React, { useState } from 'react';
 import {
   View,
@@ -5,8 +6,10 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
+  Platform, // Import Platform to check OS
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 
 import AddressModal from './AddressModal';
 // SVG icons (adicione os arquivos nas paths abaixo)
@@ -19,7 +22,7 @@ interface HeaderProps {
   showUser?: boolean;
   /** Nome do usuário para exibir quando showUser=true */
   userName?: string;
-  /** Callback ao submeter pesquisa */
+  /** Callback ao submeter pesquisa (mantido para compatibilidade, mas a navegação é interna agora) */
   onSearch?: (query: string) => void;
 }
 
@@ -31,6 +34,7 @@ export default function Header({
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddrModal, setShowAddrModal] = useState(false);
+  const router = useRouter();
 
   const firstName = userName.split(' ')[0] || userName;
 
@@ -38,9 +42,21 @@ export default function Header({
   const handleCancelSearch = () => {
     setIsSearching(false);
     setSearchQuery('');
+    // Optionally, if you want to navigate back when canceling search, you could add:
+    // if (router.canGoBack()) {
+    //   router.back();
+    // }
   };
+
   const submitSearch = () => {
-    onSearch?.(searchQuery);
+    if (searchQuery.trim()) {
+      router.push({
+        pathname: '/search',
+        params: { query: searchQuery.trim() },
+      });
+      setIsSearching(false); // Esconde o input de busca após a submissão
+      setSearchQuery(''); // Limpa a query de busca
+    }
   };
 
   return (
@@ -56,6 +72,10 @@ export default function Header({
               placeholderTextColor="#666"
               autoFocus
               onSubmitEditing={submitSearch}
+              // Adicionado para ter o botão de 'Pesquisar' no teclado iOS
+              returnKeyType="search"
+              // No iOS, permite que o botão de retorno seja automaticamente desabilitado quando o texto estiver vazio
+              enablesReturnKeyAutomatically={true}
             />
             <TouchableOpacity onPress={handleCancelSearch} style={styles.cancelButton}>
               <Text style={styles.cancelText}>Cancelar</Text>
@@ -114,6 +134,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 12,
     height: 40,
+    color: '#000',
   },
   cancelButton: {
     marginLeft: 12,

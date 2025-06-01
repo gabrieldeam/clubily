@@ -171,9 +171,7 @@ export default function CompanyScreen() {
                       ) : (
                         <Image
                           source={{ uri: imageUri }}
-                          style={styles.categoryIcon}
-                          onError={e => console.warn('Falha ao carregar imagem de categoria (PNG/JPG):', e.nativeEvent.error)}
-                          onLoad={() => console.log('Imagem PNG/JPG carregada com sucesso:', imageUri)}
+                          style={styles.categoryIcon}                          
                         />
                       )}
 
