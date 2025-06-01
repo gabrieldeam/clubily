@@ -1,26 +1,40 @@
 import React, { useEffect, useState } from 'react';
-import { Platform, View, Text, StyleSheet, ActivityIndicator, Image, ScrollView } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE, Callout } from 'react-native-maps';
-import { useLocalSearchParams, Stack } from 'expo-router';
+import {
+  Platform,
+  View,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  Image,
+  ScrollView,
+  TouchableOpacity,
+  Linking
+} from 'react-native';
+import { useLocalSearchParams, Stack, Link } from 'expo-router';
 import { getCompanyInfo } from '../../../services/companyService';
 import { imagePublicBaseUrl } from '../../../services/api';
 import type { CompanyRead } from '../../../types/company';
 import Header from '../../../components/Header';
+import MapSvg from '../../../assets/images/mapUser.svg';
+import { SvgUri } from 'react-native-svg';
 
 export default function CompanyScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [company, setCompany] = useState<CompanyRead | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);  
+  const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
 
   useEffect(() => {
     if (!id) return;
     setLoading(true);
+
     getCompanyInfo(id)
       .then(res => {
         const data = res.data;
         setCompany(data);
+
+        // Monta a string de busca para Nominatim (OpenStreetMap)
         const q = `${data.street}, ${data.city}, ${data.state}, ${data.postal_code}`;
         fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`)
           .then(r => r.json())
@@ -29,19 +43,63 @@ export default function CompanyScreen() {
               setCoords({ latitude: +arr[0].lat, longitude: +arr[0].lon });
             }
           })
-          .catch(() => {});
+          .catch(() => {
+            // caso dê erro, simplesmente não define coords
+          });
       })
       .catch(() => setError('Erro ao carregar informações da empresa'))
       .finally(() => setLoading(false));
   }, [id]);
 
-  const firstCat = company?.categories?.[0];
+  // Quando o usuário pressionar “Ver no Mapa”
+  const handleOpenMap = () => {
+    if (!company) return;
 
-  // defina constantes logo acima do seu JSX, por exemplo:
-  const LATITUDE_DELTA = 0.01;
-  const LONGITUDE_DELTA = 0.01;
-  // quanto “abaixo” em relação ao total do delta (30%)
-  const VERTICAL_OFFSET_FACTOR = -0.1;
+    // Se temos coordenadas, usamos lat/lng
+    if (coords) {
+      const lat = coords.latitude;
+      const lng = coords.longitude;
+      const label = company.name || 'Local';
+
+      let url = '';
+      if (Platform.OS === 'ios') {
+        // Apple Maps (iOS)
+        // maps:0,0?q=lat,lng(label)
+        url = `maps:0,0?q=${lat},${lng}(${encodeURIComponent(label)})`;
+      } else {
+        // Google Maps (Android)
+        // geo:lat,lng?q=lat,lng(label)
+        url = `geo:${lat},${lng}?q=${lat},${lng}(${encodeURIComponent(label)})`;
+      }
+
+      Linking.openURL(url).catch(() => {
+        // Se falhar ao abrir pelo esquema nativo, usaremos fallback via web
+        const fallback = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+        Linking.openURL(fallback);
+      });
+    } else {
+      // Se não temos coords, usamos apenas a string de endereço
+      const address = `${company.street}, ${company.city}, ${company.state}, ${company.postal_code}`;
+      const addressEncoded = encodeURIComponent(address);
+
+      let url = '';
+      if (Platform.OS === 'ios') {
+        // Apple Maps por texto (iOS)
+        url = `maps:0,0?q=${addressEncoded}`;
+      } else {
+        // Google Maps por texto (Android)
+        url = `geo:0,0?q=${addressEncoded}`;
+      }
+
+      Linking.openURL(url).catch(() => {
+        // Fallback para navegador
+        const fallback = `https://www.google.com/maps/search/?api=1&query=${addressEncoded}`;
+        Linking.openURL(fallback);
+      });
+    }
+  };
+
+  const firstCat = company?.categories?.[0];
 
   return (
     <View style={styles.container}>
@@ -52,166 +110,170 @@ export default function CompanyScreen() {
       {error && <Text style={styles.errorText}>{error}</Text>}
 
       {company && (
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} showsHorizontalScrollIndicator={false}>
-
-
-          {/* ROW: logo/info/descrição & primeira categoria */}
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          showsHorizontalScrollIndicator={false}
+        >
+          {/* ======== Bloco: LOGO + INFORMAÇÕES + CATEGORIA ======== */}
           <View style={styles.whiteBox}>
+            <View style={styles.infoMapSection}>
+              <View style={styles.infoColumn}>
+                {company.logo_url && (() => {
+                  const logoUri = `${imagePublicBaseUrl}${company.logo_url}`;
+                  const isSvg = logoUri.toLowerCase().endsWith('.svg');
 
-              {/* ROW: logo/info/descrição & primeira categoria */}
-              <View style={styles.infoMapSection}>
-                <View style={styles.infoColumn}>
-                  {company.logo_url && (
+                  return isSvg ? (
+                    <SvgUri
+                      uri={logoUri}
+                      width={80}
+                      height={80}
+                    />
+                  ) : (
                     <Image
-                      source={{ uri: `${imagePublicBaseUrl}${company.logo_url}` }}
+                      source={{ uri: logoUri }}
                       style={styles.logo}
+                      onError={e => console.warn('Erro ao carregar logo PNG/JPG:', e.nativeEvent.error)}
                     />
+                  );
+                })()}
+                <View style={styles.textContainer}>
+                  <Text style={styles.name}>{company.name}</Text>
+                  {company.description && (
+                    <Text style={styles.description}>{company.description}</Text>
                   )}
-                  <View style={styles.textContainer}>
-                    <Text style={styles.name}>{company.name}</Text>
-                    {company.description && (
-                      <Text style={styles.description}>{company.description}</Text>
-                    )}
-                  </View>
                 </View>
-                {firstCat && (
-                  <View style={styles.categoryIconWrapper}>
-                    <Image
-                      source={{
-                        uri: firstCat.image_url
-                          ? `${imagePublicBaseUrl}${firstCat.image_url}`
-                          : `${imagePublicBaseUrl}/path/to/placeholder.svg`
-                      }}
-                      style={styles.categoryIcon}
-                    />
-                  </View>
-                )}
               </View>
-              
-              {/* Mapa justo abaixo */}
-              {coords ? (
-                <>
-                <Text style={styles.sectionTitle}>Endereço</Text>
-                <View style={styles.mapWrapper}>
-                  <MapView
-                    provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
-                    style={styles.map}
-                    region={{
-                      latitude: coords.latitude - LATITUDE_DELTA * VERTICAL_OFFSET_FACTOR,
-                      longitude: coords.longitude,
-                      latitudeDelta: LATITUDE_DELTA,
-                      longitudeDelta: LONGITUDE_DELTA,
+
+              {/* Renderiza a primeira categoria + badge se houver mais de uma */}
+              {firstCat && (() => {
+                const imageUri = firstCat.image_url
+                  ? `${imagePublicBaseUrl}${firstCat.image_url}`
+                  : `${imagePublicBaseUrl}/path/to/placeholder.svg`;
+                const isSvg = imageUri.toLowerCase().endsWith('.svg');
+                const totalCats = company.categories.length;
+
+                return (
+                  <Link
+                    href={{
+                      pathname: '/categories/[id]',
+                      params: { id: firstCat.id }
                     }}
-                    scrollEnabled={false}
-                    zoomEnabled={false}
-                    rotateEnabled={false}
-                    pitchEnabled={false}
+                    asChild
                   >
-                    <Marker coordinate={coords}>
-                      <View style={styles.markerContainer}>
-                        <Image
-                          source={{ uri: `${imagePublicBaseUrl}${company.logo_url}` }}
-                          style={styles.markerImage}
+                    <TouchableOpacity style={styles.categoryIconWrapper}>
+                      {isSvg ? (
+                        <SvgUri
+                          uri={imageUri}
+                          width={40}
+                          height={40}
                         />
-                      </View>
-                      <Callout tooltip>
-                        {/* largura aplicada nesta View */}
-                        <View style={styles.calloutBox}>
-                          <Text style={styles.calloutText}>{company.street}</Text>
-                          <Text style={styles.calloutText}>
-                            {company.city} - {company.state}, {company.postal_code}
-                          </Text>
+                      ) : (
+                        <Image
+                          source={{ uri: imageUri }}
+                          style={styles.categoryIcon}
+                          onError={e => console.warn('Falha ao carregar imagem de categoria (PNG/JPG):', e.nativeEvent.error)}
+                          onLoad={() => console.log('Imagem PNG/JPG carregada com sucesso:', imageUri)}
+                        />
+                      )}
+
+                      {/* Badge de quantidade de categorias */}
+                      {totalCats > 1 && (
+                        <View style={styles.categoryCountBadge}>
+                          <Text style={styles.categoryCountText}>{totalCats}</Text>
                         </View>
-                      </Callout>
-                    </Marker>
-                  </MapView>
-                </View>                
-              </>
-            ) : (              
-            <>
-              <Text style={styles.sectionTitle}>Endereço</Text>
-              <View style={styles.addressCard}>
+                      )}
+                    </TouchableOpacity>
+                  </Link>
+                );
+              })()}
+            </View>
+            <Text style={styles.sectionTitle}>Endereço</Text>
+
+            <View style={styles.addressCard}>
+              <MapSvg
+                width={100}
+                height={100}
+                style={styles.mapImage}
+              />
+              <View style={styles.addressInfo}>
                 <Text style={styles.addressText}>{company.street}</Text>
                 <Text style={styles.addressText}>
                   {company.city} – {company.state}, {company.postal_code}
                 </Text>
-              </View>           
-            </>
-            )}
+                <TouchableOpacity style={styles.mapButton} onPress={handleOpenMap}>
+                  <Text style={styles.mapButtonText}>Ver no Mapa</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
-          
 
-          {/* Contato */}
+          {/* ======== Bloco: CONTATO ======== */}
           <View style={styles.whiteBox}>
             <Text style={styles.sectionTitle}>Contato</Text>
-
             <View style={styles.contactRow}>
               <Text style={styles.contactLabel}>Email</Text>
               <Text style={styles.contactValue}>{company.email}</Text>
             </View>
-
             <View style={styles.contactRow}>
               <Text style={styles.contactLabel}>Telefone</Text>
               <Text style={styles.contactValue}>{company.phone}</Text>
             </View>
-
             <View style={styles.contactRow}>
               <Text style={styles.contactLabel}>CNPJ</Text>
               <Text style={styles.contactValue}>{company.cnpj}</Text>
             </View>
           </View>
 
-          {/* Endereço */}
-          {/* <View style={styles.whiteBox}>
-            <Text style={styles.sectionTitle}>Endereço</Text>
-            <Text>{company.street}</Text>
-            <Text>{company.city} - {company.state}, {company.postal_code}</Text>
-          </View> */}
-
-          {/* Status */}
+          {/* ======== Bloco: STATUS ======== */}
           <View style={styles.whiteBox}>
             <Text style={styles.sectionTitle}>Status</Text>
-
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Ativa</Text>
               <Text style={styles.infoValue}>{company.is_active ? 'Sim' : 'Não'}</Text>
             </View>
-
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Email verificado</Text>
               <Text style={styles.infoValue}>{company.email_verified ? 'Sim' : 'Não'}</Text>
             </View>
-
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Telefone verificado</Text>
               <Text style={styles.infoValue}>{company.phone_verified ? 'Sim' : 'Não'}</Text>
             </View>
           </View>
 
-
-          {/* Categorias */}
+          {/* ======== Bloco: CATEGORIAS ======== */}
           {company.categories.length > 0 && (
             <View style={styles.whiteBox}>
               <Text style={styles.sectionTitle}>Categorias</Text>
-              <View style={styles.categories}>
+              <View style={styles.categoriesContainer}>
                 {company.categories.map(cat => (
-                  <Text key={cat.id} style={styles.categoryItem}>• {cat.name}</Text>
+                  <Link
+                    key={cat.id}
+                    href={{
+                      pathname: '/categories/[id]',
+                      params: { id: cat.id }
+                    }}
+                    asChild
+                  >
+                    <TouchableOpacity style={styles.categoryBadge}>
+                      <Text style={styles.categoryBadgeText}>{cat.name}</Text>
+                    </TouchableOpacity>
+                  </Link>
                 ))}
               </View>
             </View>
           )}
 
-          {/* Informações Adicionais */}
+          {/* ======== Bloco: INFORMAÇÕES ADICIONAIS ======== */}
           <View style={styles.whiteBox}>
             <Text style={styles.sectionTitle}>Informações Adicionais</Text>
-
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Cadastro em</Text>
               <Text style={styles.infoValue}>
                 {new Date(company.created_at).toLocaleDateString()}
               </Text>
             </View>
-
             {'serves_address' in company && (
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>Atende endereço selecionado</Text>
@@ -221,7 +283,6 @@ export default function CompanyScreen() {
               </View>
             )}
           </View>
-
         </ScrollView>
       )}
     </View>
@@ -229,54 +290,53 @@ export default function CompanyScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
-  scrollContent: { paddingTop: 10, paddingBottom: 130, },
+  container: {
+    flex: 1,
+    backgroundColor: '#000'
+  },
+  scrollContent: {
+    paddingTop: 10,
+    paddingBottom: 110
+  },
+  whiteBox: {
+    backgroundColor: '#FFF',
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 10,
+    width: '100%'
+  },
   infoMapSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'space-between'
   },
-  mapWrapper: { position: 'relative', width: '100%', height: 150, borderRadius: 10, overflow: 'hidden', marginBottom: 10 },
   infoColumn: {
-    flexDirection: 'row',     
-    alignItems: 'center',  
+    flexDirection: 'row',
+    alignItems: 'center',
     flex: 1,
-    marginRight: 12,
+    marginRight: 12
+  },
+  logo: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginBottom: 8,
+    backgroundColor: '#FFA600'
   },
   textContainer: {
-    marginLeft: 12,           
-    flexShrink: 1,          
+    marginLeft: 12,
+    flexShrink: 1
   },
-  addressCard: {
-  backgroundColor: '#F0F0F0',
-  borderRadius: 12,
-  padding: 16,
-  alignItems: 'center',
-},
-addressText: {
-  color: '#000',
-  textAlign: 'center',
-  fontSize: 14,
-  marginVertical: 2,
-},
-calloutBox: {
-    width: 240,          // largura real do balão
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 12,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowOffset: { width: 0, height: 2 },
-    alignItems: 'center',
+  name: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#000'
   },
-  calloutText: {
+  description: {
     fontSize: 14,
-    color: '#000',
+    color: '#333',
+    marginTop: 4
   },
-  logo: { width: 80, height: 80, borderRadius: 40, marginBottom: 8, backgroundColor: '#FFA600' },
-  name: { fontSize: 20, fontWeight: '600', color: '#000' },
-  description: { fontSize: 14, color: '#333', marginTop: 4 },
   categoryIconWrapper: {
     width: 60,
     height: 60,
@@ -284,56 +344,133 @@ calloutBox: {
     backgroundColor: '#F0F0F0',
     justifyContent: 'center',
     alignItems: 'center',
+    position: 'relative',
   },
-  categoryIcon: { width: 40, height: 40, resizeMode: 'contain' },
-  whiteBox: {
-    backgroundColor: '#FFF',
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 10,
-    width: '100%', 
+  categoryIcon: {
+    width: 40,
+    height: 40,
+    resizeMode: 'contain'
   },
-  map: { width: '100%', height: '100%' },
-   markerContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    overflow: 'hidden',
-    backgroundColor: '#FFA600',      // opcional, para uma borda branca
+  categoryCountBadge: {
+    position: 'absolute',
+    bottom: -4,       
+    right: -4,       
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#FFA600',
+    borderWidth: 1,
+    borderColor: '#FFF',     
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'center'
   },
-  markerImage: {
-    width: '100%',
-    height: '100%',
+  categoryCountText: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: '600'
+  },
+
+  /* ====== NOVOS ESTILOS PARA A SEÇÃO “ENDEREÇO” ====== */
+  addressCard: {
+    flexDirection: 'row',          
+    alignItems: 'center', 
+    backgroundColor: '#F9F9F9',
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 3, 
+  },
+  mapImage: {
+    width: 100,    
+    height: '100%',            
+    borderRadius: 10,            
     resizeMode: 'cover',
+    marginRight: 16,      
+    overflow: 'hidden',  
+  },
+  addressInfo: {
+    flex: 1,                 
+  },
+  addressText: {
+    color: '#000',
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  mapButton: {
+    backgroundColor: '#FFA600',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  mapButtonText: {
+    color: '#FFF',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+
+  /* ====== ESTILOS EXISTENTES ====== */
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 8,
+    color: '#000'
   },
   contactRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    marginBottom: 4
   },
   contactLabel: {
-    color: '#000',          // preto
-    fontWeight: '500',
+    color: '#000',
+    fontWeight: '500'
   },
   contactValue: {
-    color: '#878787',       // cinza
+    color: '#878787'
   },
-    infoRow: {
+  infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    marginBottom: 4
   },
   infoLabel: {
-    color: '#000',        // preto
-    fontWeight: '500',
+    color: '#000',
+    fontWeight: '500'
   },
   infoValue: {
-    color: '#878787',     // cinza
+    color: '#878787'
   },
-  sectionTitle: { fontSize: 18, fontWeight: '600', marginBottom: 8, color: '#000' },
-  categories: { flexDirection: 'row', flexWrap: 'wrap' },
-  categoryItem: { marginRight: 8, marginBottom: 4, color: '#000' },
-  errorText: { color: 'red', textAlign: 'center', marginTop: 20 },
+  categories: {
+    flexDirection: 'row',
+    flexWrap: 'wrap'
+  },
+  categoryItem: {
+    marginRight: 8,
+    marginBottom: 4,
+    color: '#000'
+  },
+  errorText: {
+    color: 'red',
+    textAlign: 'center',
+    marginTop: 20
+  },
+  categoriesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',       
+    marginTop: 4,           
+  },
+  categoryBadge: {
+    backgroundColor: '#F9F9F9',
+    padding: 5,
+    marginRight: 8,      
+    borderRadius: 4,    
+  },
+  categoryBadgeText: {
+    color: '#000',
+    fontSize: 14,
+  },
 });

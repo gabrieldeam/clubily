@@ -147,3 +147,22 @@ def read_used_categories(
         q = q.filter(Company.postal_code == postal_code)
     q = q.distinct()
     return q.all()
+
+@router.get(
+    "/{category_id}",
+    response_model=CategoryRead,
+    status_code=status.HTTP_200_OK,
+    summary="Retorna uma categoria pelo seu ID"
+)
+def read_category_by_id(
+    category_id: str,
+    db: Session = Depends(get_db),
+):
+    """
+    Busca uma categoria pelo seu ID.
+    Se não existir, retorna 404.
+    """
+    cat = db.get(Category, category_id)
+    if not cat:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Categoria não encontrada")
+    return cat

@@ -18,3 +18,10 @@ export const listUsedCategories = (filters: CategoryFilter = {}) =>
   api.get<CategoryRead[]>('/categories/used', {
     params: filters,
   });
+  
+/**
+ * Retorna uma categoria pelo seu ID.
+ * GET /categories/{category_id}
+ */
+export const getCategoryById = (categoryId: string) =>
+  api.get<CategoryRead>(`/categories/${categoryId}`);
