@@ -164,7 +164,7 @@ useEffect(() => {
       <section className={styles.gridItemMap}>
             <h4>Descubra agora</h4>
 
-            <div className={styles.mapSection}>
+            {/* <div className={styles.mapSection}>
               {coords ? (
                 <MapContainer
                   center={coords}
@@ -187,7 +187,7 @@ useEffect(() => {
               >
                 Explorar mapa
               </button>
-            </div>
+            </div> */}
 
             {loadingCompanies && <p>Carregando empresas…</p>}
 

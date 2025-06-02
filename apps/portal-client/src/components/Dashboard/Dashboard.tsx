@@ -15,12 +15,6 @@ import {
 import type { CategoryRead } from '@/types/category';
 import type { CompanyRead } from '@/types/company';
 import Header from '@/components/Header/Header';
-import {
-  MapContainer,
-  TileLayer,
-} from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
 import styles from './Dashboard.module.css';
 import {
   ChevronLeft,
@@ -28,14 +22,6 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
-
-// corrige ícone padrão Leaflet no Next.js
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: '/leaflet/marker-icon-2x.png',
-  iconUrl: '/leaflet/marker-icon.png',
-  shadowUrl: '/leaflet/marker-shadow.png',
-});
 
 export default function Dashboard() {
   const router = useRouter();  
@@ -60,12 +46,8 @@ export default function Dashboard() {
   /* ------------- estados ------------- */
   const [cats, setCats] = useState<CategoryRead[]>([]);
   const [loadingCats, setLoadingCats] = useState(true);
-
   const [companies, setCompanies] = useState<CompanyRead[]>([]);
   const [loadingCompanies, setLoadingCompanies] = useState(true);
-
-  /* mapa */
-  const [coords, setCoords] = useState<[number, number] | null>(null);
 
   /* scroll categorias */
   const listRef = useRef<HTMLDivElement>(null);
@@ -143,17 +125,7 @@ export default function Dashboard() {
     return () => { mounted = false; };
   }, [selectedAddress, filterField]);
 
-  /* --------- geocode para mapa --------- */
-  useEffect(() => {
-    if (!selectedAddress) return;
-    const q = `${selectedAddress.street}, ${selectedAddress.city}, ${selectedAddress.state}, ${selectedAddress.postal_code}`;
-    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`)
-      .then(r => r.json())
-      .then((d:any[]) => d[0]
-        ? setCoords([+d[0].lat, +d[0].lon])
-        : setCoords(null))
-      .catch(() => setCoords(null));
-  }, [selectedAddress]);
+
 
   /* -------------------------------------------------- */
   const noData =
@@ -263,32 +235,7 @@ export default function Dashboard() {
 
           {/* --------- EMPRESAS + MAPA --------- */}
           <section className={styles.gridItem}>
-            <h4>Descubra agora</h4>
-
-            <div className={styles.mapSection}>
-              {coords ? (
-                <MapContainer
-                  center={coords}
-                  zoom={15}
-                  zoomControl={false}
-                  attributionControl={false}
-                  className={styles.mapContainer}
-                >
-                  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                </MapContainer>
-              ) : (
-                <p className={styles.mapMessage}>
-                  Não foi possível localizar este endereço.
-                </p>
-              )}
-
-              <button
-                className={styles.exploreMap}
-                onClick={() => router.push('/maps')}
-              >
-                Explorar mapa
-              </button>
-            </div>
+            <h4>Descubra agora</h4>           
 
             {loadingCompanies && <p>Carregando empresas…</p>}
 

@@ -204,7 +204,7 @@ export default function ProfilePage() {
           <ul className={styles.list}>
             {companies.map(c => (
               <li key={c.id}>
-                <Link href={`/companies/${c.id}`} className={styles.item}>
+                <Link href={`/companies/${c.id}`} className={styles.itemcompanies}>
                   <div className={styles.companyInfo}>
                     {c.logo_url && (
                       <Image
