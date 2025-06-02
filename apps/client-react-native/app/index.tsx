@@ -13,10 +13,10 @@ import {
   LayoutChangeEvent,
 } from 'react-native';
 import { Button } from '../components/Button';
-import BgImage     from '../assets/images/bgImage.svg';
-import Logo        from '../assets/images/logo.svg';
-import SplashImage from '../assets/images/splashImag.svg';
-import LoginForm   from '../components/LoginForm';
+import BgImage      from '../assets/images/bgImage.svg';
+import Logo         from '../assets/images/logo.svg';
+import SplashImage  from '../assets/images/splashImag.svg';
+import LoginForm    from '../components/LoginForm';
 import RegisterForm from '../components/RegisterForm';
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -26,15 +26,23 @@ const TIMEOUT_MS = 2000;
 export default function WelcomeScreen() {
   const router = useRouter();
 
-  // habilita LayoutAnimation no Android
-  if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  // Habilita LayoutAnimation no Android
+  if (
+    Platform.OS === 'android' &&
+    UIManager.setLayoutAnimationEnabledExperimental
+  ) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
   }
 
+  // Qual “view” está ativa: botões iniciais / login / register
   const [view, setView] = useState<'buttons' | 'login' | 'register'>('buttons');
-  const [boxH, setBoxH] = useState(0);               // altura atual da caixa
+
+  // Altura atual da caixa branca (onde fica formulário ou botões)
+  const [boxH, setBoxH] = useState(0);
+  // Posição vertical inicial da splash image (dentro do splash amarelo)
   const [imgTop, setImgTop] = useState(SCREEN_HEIGHT * 0.3);
 
+  // Valores animados:
   const splashY     = useRef(new Animated.Value(0)).current;
   const buttonsY    = useRef(new Animated.Value(0)).current;
   const logoOpacity = useRef(new Animated.Value(0)).current;
@@ -44,44 +52,76 @@ export default function WelcomeScreen() {
   const prevBoxHRef     = useRef(0);
 
   /* ------------------------------------------------- *
-   *               LOGIN  SUCCEEDED                    *
+   *              SUCESSO NO LOGIN                     *
    * ------------------------------------------------- */
-  const handleLoginSuccess = () => {
+  function handleLoginSuccess() {
     const offscreenUp   = -SCREEN_HEIGHT;
     const offscreenDown = boxH + GAP;
 
     Animated.parallel([
-      Animated.timing(splashY,  { toValue: offscreenUp,   duration: 600, useNativeDriver: true }),
-      Animated.timing(buttonsY, { toValue: offscreenDown, duration: 600, useNativeDriver: true }),
-    ]).start(() => router.replace('/home'));
-  };
+      Animated.timing(splashY, {
+        toValue: offscreenUp,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(buttonsY, {
+        toValue: offscreenDown,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      router.replace('/home');
+    });
+  }
 
   /* ------------------------------------------------- *
-   *               PULSE ANIMATION                     *
+   *              PULSAR SPLASH IMAGE                   *
    * ------------------------------------------------- */
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1.1, duration: 600, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 1.0, duration: 600, useNativeDriver: true }),
+        Animated.timing(pulseAnim, {
+          toValue: 1.1,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1.0,
+          duration: 600,
+          useNativeDriver: true,
+        }),
       ])
     ).start();
   }, []);
 
   /* ------------------------------------------------- *
-   *        FIRST ENTRY  (SPLASH → CAIXA)              *
+   *         ANIMAÇÃO INICIAL (splash → caixa)         *
    * ------------------------------------------------- */
   useEffect(() => {
     if (boxH > 0 && !entryStartedRef.current) {
-      buttonsY.setValue(boxH);            // caixa começa fora da tela
+      // configura a caixa para começar fora da tela
+      buttonsY.setValue(boxH);
       entryStartedRef.current = true;
 
       const timer = setTimeout(() => {
-        setImgTop(SCREEN_HEIGHT * 0.45);  // move a imagem laranja
+        // apos TIMEOUT_MS, move a splash e traz a caixa
+        setImgTop(SCREEN_HEIGHT * 0.45);
         Animated.parallel([
-          Animated.timing(splashY,  { toValue: -(boxH + GAP), duration: 600, useNativeDriver: true }),
-          Animated.timing(buttonsY, { toValue: 0,            duration: 600, useNativeDriver: true }),
-          Animated.timing(logoOpacity, { toValue: 1,         duration: 600, useNativeDriver: true }),
+          Animated.timing(splashY, {
+            toValue: -(boxH + GAP),
+            duration: 600,
+            useNativeDriver: true,
+          }),
+          Animated.timing(buttonsY, {
+            toValue: 0,
+            duration: 600,
+            useNativeDriver: true,
+          }),
+          Animated.timing(logoOpacity, {
+            toValue: 1,
+            duration: 600,
+            useNativeDriver: true,
+          }),
         ]).start();
       }, TIMEOUT_MS);
 
@@ -90,7 +130,7 @@ export default function WelcomeScreen() {
   }, [boxH]);
 
   /* ------------------------------------------------- *
-   *     REPOSICIONA  SPLASH  SE ALTURA MUDAR          *
+   *       REPOSICIONA O SPLASH QUANDO MUDAR ALTURA     *
    * ------------------------------------------------- */
   const onBoxLayout = (e: LayoutChangeEvent) => {
     const h = e.nativeEvent.layout.height;
@@ -100,8 +140,11 @@ export default function WelcomeScreen() {
     prevBoxHRef.current = h;
 
     if (entryStartedRef.current) {
+      // Se estamos em “login”, adicionar um offset extra
+      const extraGapLogin = view === 'login' ? 20 : 0;
+
       Animated.timing(splashY, {
-        toValue: -(h + GAP),
+        toValue: -(h + GAP + extraGapLogin),
         duration: 300,
         useNativeDriver: true,
       }).start();
@@ -109,7 +152,7 @@ export default function WelcomeScreen() {
   };
 
   /* ------------------------------------------------- *
-   *        TROCA ENTRE BOTÕES / LOGIN / REGISTER      *
+   *          TROCAR ENTRE BOTÕES / LOGIN / REGISTER    *
    * ------------------------------------------------- */
   const goLogin = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -124,20 +167,30 @@ export default function WelcomeScreen() {
     setView('buttons');
   };
 
-  /* =================================================
-     RENDER
-     ================================================= */
   return (
     <View style={styles.root}>
-      {/* ---------- SPLASH AMARELO ---------- */}
-      <Animated.View style={[styles.splash, { transform: [{ translateY: splashY }] }]}>
-        <BgImage width={SCREEN_WIDTH} height={SCREEN_HEIGHT} preserveAspectRatio="xMidYMid slice" />
+      {/* ================= SPLASH AMARELO ================= */}
+      <Animated.View
+        style={[
+          styles.splash,
+          { transform: [{ translateY: splashY }] },
+        ]}
+      >
+        <BgImage
+          width={SCREEN_WIDTH}
+          height={SCREEN_HEIGHT}
+          preserveAspectRatio="xMidYMid slice"
+        />
 
+        {/* Só pulsa a imagem quando estiver nos botões iniciais */}
         {view === 'buttons' && (
           <Animated.View
             style={[
               styles.splashImg,
-              { top: imgTop, transform: [{ scale: pulseAnim }] },
+              {
+                top: imgTop,
+                transform: [{ scale: pulseAnim }],
+              },
             ]}
           >
             <SplashImage width={400} height={400} />
@@ -149,15 +202,22 @@ export default function WelcomeScreen() {
         </Animated.View>
       </Animated.View>
 
-      {/* ---------- CAIXA BRANCA ---------- */}
+      {/* ============= CAIXA BRANCA (LOGIN / REGISTER) ============= */}
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'position'}
-        keyboardVerticalOffset={view === 'login' ? -130 : view === 'register' ? -100 : 0}
+        keyboardVerticalOffset={
+          view === 'login' ? -130 : view === 'register' ? -100 : 0
+        }
         style={styles.boxWrapper}
       >
-        <Animated.View style={[styles.boxContainer, { transform: [{ translateY: buttonsY }] }]}>
+        <Animated.View
+          style={[
+            styles.boxContainer,
+            { transform: [{ translateY: buttonsY }] },
+          ]}
+        >
           <View style={styles.box} onLayout={onBoxLayout}>
-            {/* BOTÕES INICIAIS -------------------------------------- */}
+            {/* --------- BOTÕES INICIAIS --------- */}
             {view === 'buttons' && (
               <>
                 <Button
@@ -179,16 +239,16 @@ export default function WelcomeScreen() {
               </>
             )}
 
-            {/* LOGIN ------------------------------------------------ */}
+            {/* --------- FORMULÁRIO DE LOGIN --------- */}
             {view === 'login' && (
               <LoginForm
                 onRegister={goRegister}
                 onSuccess={handleLoginSuccess}
-                onLayoutContainer={onBoxLayout}   // <= avisa quando muda
+                onLayoutContainer={onBoxLayout}
               />
             )}
 
-            {/* REGISTRO ------------------------------------------- */}
+            {/* --------- FORMULÁRIO DE CADASTRO --------- */}
             {view === 'register' && (
               <RegisterForm
                 onLogin={goLogin}
@@ -201,10 +261,11 @@ export default function WelcomeScreen() {
   );
 }
 
-/* ---------- STYLES ---------- */
+/* =================== STYLES =================== */
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#000' },
 
+  /*  SPLASH AMARELO  */
   splash: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: '#FFA600',
@@ -222,7 +283,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
 
-  /*  Caixa branca  */
+  /*  CAIXA BRANCA  */
   boxWrapper: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'flex-end',

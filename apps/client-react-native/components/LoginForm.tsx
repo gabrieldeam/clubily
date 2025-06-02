@@ -154,7 +154,7 @@ export default function LoginForm({ onRegister, onSuccess, onLayoutContainer }: 
      />
 
         <TouchableOpacity onPress={() => setMode('login')}>
-          <Text style={[styles.linkText, { marginTop: 10 }]}>
+          <Text style={[styles.linkText]}>
             Voltar ao login
           </Text>
         </TouchableOpacity>
@@ -186,6 +186,7 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
     paddingBottom: 20,
+    marginTop: -20,
   },
   title: {
     fontSize: 24,

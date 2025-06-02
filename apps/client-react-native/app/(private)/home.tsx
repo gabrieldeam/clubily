@@ -166,7 +166,7 @@ export default function HomeScreen() {
             {loadingComps ? (
               <ActivityIndicator color="#FFA600" />
             ) : (
-              <View style={{ paddingVertical: 10 }}>
+              <View>
                 {companies.slice(0, 5).map((comp, index) => (
                   <View
                     key={comp.id}

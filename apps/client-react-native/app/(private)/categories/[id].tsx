@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
     marginBottom: 120,
   },
   scrollContent: {
-    paddingBottom: 10, // garante espaçamento no fim da lista
+    paddingBottom: 10,
   },
 
   companyCard: {
@@ -265,9 +265,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0F0F0',
     borderRadius: 10,
     padding: 12,
-    marginBottom: 10, // gap de 10 entre cada card
+    marginBottom: 10, 
   },
-  // Wrapper redondo para SVG
   companyLogoWrapper: {
     width: 70,
     height: 70,
@@ -278,7 +277,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center'
   },
-  // Se for PNG/JPG, usar esse estilo
   companyLogo: {
     width: 70,
     height: 70,

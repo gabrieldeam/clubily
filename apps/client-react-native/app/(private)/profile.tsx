@@ -7,11 +7,11 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Linking,
-  FlatList,
   Image,
   ScrollView,
   Alert,
 } from 'react-native';
+import { SvgUri } from 'react-native-svg';
 import Header from '../../components/Header';
 import { useAuth } from '../../context/AuthContext';
 import { useRouter } from 'expo-router';
@@ -30,15 +30,10 @@ export default function ProfileScreen() {
 
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
 
-  // State for companies
   const [myCompanies, setMyCompanies] = useState<CompanyRead[]>([]);
   const [loadingCompanies, setLoadingCompanies] = useState<boolean>(false);
   const [companiesError, setCompaniesError] = useState<string | null>(null);
 
-  // Novo estado para controlar passo de exclusão da conta
-  // 0 = estado inicial (mostrar “Deletar conta”)
-  // 1 = aguardando confirmação (“Confirmar exclusão da conta”)
-  // 2 = exclusão concluída com sucesso (mostrar mensagem final)
   const [deleteStep, setDeleteStep] = useState<0 | 1 | 2>(0);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
@@ -70,7 +65,8 @@ export default function ProfileScreen() {
   const handlePrivacyPolicy = () => router.push('/policies/privacy');
   const handleTermsOfUse = () => router.push('/policies/terms');
   const handleChatSupport = () => Linking.openURL('https://clubi.ly/help/chat');
-  const handleEmailSupport = () => Linking.openURL('mailto:support@clubi.ly?subject=Suporte%20ao%20Usuário');
+  const handleEmailSupport = () =>
+    Linking.openURL('mailto:support@clubi.ly?subject=Suporte%20ao%20Usuário');
   const handleOpenEditModal = () => setIsEditModalVisible(true);
   const handleCloseEditModal = () => setIsEditModalVisible(false);
   const handleUserSuccessfullyUpdated = async () => {
@@ -78,59 +74,24 @@ export default function ProfileScreen() {
     setIsEditModalVisible(false);
   };
 
-  const renderCompanyCard = ({ item }: { item: CompanyRead }) => (
-    <View style={styles.companyCard}>
-      <View style={styles.companyLogoWrapper}>
-        {item.logo_url ? (
-          <Image
-            source={{ uri: `${imagePublicBaseUrl}${item.logo_url}` }}
-            style={styles.companyLogoImage}
-            resizeMode="cover"
-          />
-        ) : (
-          <Text style={styles.companyLogoFallbackText}>
-            {item.name?.substring(0, 1).toUpperCase() || 'C'}
-          </Text>
-        )}
-      </View>
-      <Text style={styles.companyNameCard} numberOfLines={2}>
-        {item.name}
-      </Text>
-      <TouchableOpacity
-        style={styles.viewCompanyButton}
-        onPress={() => {
-          console.log('Ver empresa:', item.id);
-        }}
-      >
-        <Text style={styles.viewCompanyButtonText}>Ver empresa</Text>
-      </TouchableOpacity>
-    </View>
-  );
-
   const handleSeeAllCompanies = () => {
     router.push('/all-companies');
   };
 
-  // Função chamada ao clicar no botão “Deletar conta” ou “Confirmar exclusão da conta”
   const handleDeleteAccountPress = async () => {
     if (deleteStep === 0) {
-      // Passo 1: apenas altera estado para mostrar confirmação
       setDeleteStep(1);
     } else if (deleteStep === 1) {
-      // Passo 2: chama endpoint de solicitação de exclusão
       setDeleteLoading(true);
       try {
-        const res = await requestUserDeletion();
-        // Se bem-sucedido:
+        await requestUserDeletion();
         setDeleteStep(2);
       } catch (err: any) {
         console.error('Erro ao solicitar exclusão:', err);
-        // Se falhar, alerta indicando usar o botão de email em Ajuda
         Alert.alert(
           'Erro',
           'Não foi possível solicitar exclusão. Por favor, envie um email através do botão “Email” na seção de Ajuda.'
         );
-        // Voltamos para o estado inicial
         setDeleteStep(0);
       } finally {
         setDeleteLoading(false);
@@ -157,6 +118,7 @@ export default function ProfileScreen() {
       >
         {user ? (
           <>
+            {/* Dados básicos do usuário */}
             <View style={styles.whiteBox}>
               <View style={styles.nameRow}>
                 <Text style={styles.nameText}>{user.name}</Text>
@@ -164,9 +126,6 @@ export default function ProfileScreen() {
                   <Edite width={24} height={24} />
                 </TouchableOpacity>
               </View>
-            </View>
-
-            <View style={styles.whiteBox}>
               <View style={styles.fieldRow}>
                 <Text style={styles.fieldLabel}>E-mail</Text>
                 <Text style={styles.fieldValue}>{user.email}</Text>
@@ -179,36 +138,96 @@ export default function ProfileScreen() {
               )}
             </View>
 
-            {/* START: My Companies Section */}
+            {/* Seção de empresas */}
             <View style={styles.whiteBox}>
-              <View style={styles.sectionHeaderContainer}>
-                <Text style={styles.sectionHeader}>Empresas cadastro</Text>
-                {myCompanies.length > 0 && (
-                  <TouchableOpacity onPress={handleSeeAllCompanies} style={styles.seeAllButton}>
-                    <Text style={styles.seeAllButtonText}>Ver todas</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
+              <Text style={styles.sectionHeader}>Empresas inscritas</Text>
+
               {loadingCompanies ? (
-                <ActivityIndicator size="large" color="#000000" style={{ marginVertical: 20 }} />
+                <ActivityIndicator
+                  size="large"
+                  color="#000"
+                  style={{ marginVertical: 20 }}
+                />
               ) : companiesError ? (
                 <Text style={styles.errorText}>{companiesError}</Text>
-              ) : myCompanies.length > 0 ? (
-                <FlatList
-                  data={myCompanies.slice(0, 4)}
-                  renderItem={renderCompanyCard}
-                  keyExtractor={(item) => item.id}
-                  numColumns={2}
-                  columnWrapperStyle={styles.companyRow}
-                  scrollEnabled={false}
-                />
+              ) : myCompanies.length === 0 ? (
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyText}>
+                    Você ainda não está associado a nenhuma empresa.
+                  </Text>
+                </View>
               ) : (
-                <Text style={styles.noDataText}>Você ainda não está associado a nenhuma empresa.</Text>
+                <>
+                  {myCompanies.slice(0, 4).map((comp) => {
+                    const logoUri = `${imagePublicBaseUrl}${comp.logo_url || ''}`;
+                    const isSvg = comp.logo_url?.toLowerCase().endsWith('.svg');
+
+                    return (
+                      <View key={comp.id} style={styles.companyCard}>
+                        {/* Logo */}
+                        {comp.logo_url && (
+                          isSvg ? (
+                            <View style={styles.companyLogoWrapper}>
+                              <SvgUri uri={logoUri} width="100%" height="100%" />
+                            </View>
+                          ) : (
+                            <Image
+                              source={{ uri: logoUri }}
+                              style={styles.companyLogo}
+                              onError={(e) =>
+                                console.warn(
+                                  'Erro ao carregar logo PNG/JPG:',
+                                  e.nativeEvent.error
+                                )
+                              }
+                            />
+                          )
+                        )}
+
+                        {/* Informações da empresa */}
+                        <View style={styles.companyInfo}>
+                          <Text style={styles.companyName}>{comp.name}</Text>
+                          {comp.description && (
+                            <Text
+                              style={styles.companyDesc}
+                              numberOfLines={2}
+                            >
+                              {comp.description}
+                            </Text>
+                          )}
+                        </View>
+
+                        {/* Botão Ver empresa */}
+                        <TouchableOpacity
+                          style={styles.companyBtn}
+                          onPress={() =>
+                            router.push({
+                              pathname: '/companies/[id]',
+                              params: { id: comp.id },
+                            })
+                          }
+                        >
+                          <Text style={styles.companyBtnText}>
+                            Ver empresa
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    );
+                  })}
+
+                  {myCompanies.length > 4 && (
+                    <TouchableOpacity
+                      style={styles.seeMoreButton}
+                      onPress={handleSeeAllCompanies}
+                    >
+                      <Text style={styles.seeMoreText}>Ver mais</Text>
+                    </TouchableOpacity>
+                  )}
+                </>
               )}
             </View>
-            {/* END: My Companies Section */}
 
-            {/* Botão de Deletar Conta / Confirmar Exclusão / Mensagem Final */}
+            {/* Botão de Deletar Conta / Confirmar / Mensagem */}
             <View style={styles.whiteBox}>
               {deleteStep === 0 && (
                 <TouchableOpacity
@@ -227,7 +246,9 @@ export default function ProfileScreen() {
                   style={styles.logoutButtonGeneric}
                   disabled={deleteLoading}
                 >
-                  <Text style={styles.DeletButtonText}>Confirmar exclusão da conta</Text>
+                  <Text style={styles.DeletButtonText}>
+                    Confirmar exclusão da conta
+                  </Text>
                   {deleteLoading ? (
                     <ActivityIndicator size="small" color="#FF0000" />
                   ) : (
@@ -245,37 +266,59 @@ export default function ProfileScreen() {
               )}
             </View>
 
+            {/* Seção de Ajuda */}
             <View style={styles.whiteBox}>
               <View style={styles.helpRow}>
                 <Text style={styles.fieldLabel}>Ajuda</Text>
                 <View style={styles.helpButtonsContainer}>
-                  <TouchableOpacity onPress={handleChatSupport} style={styles.supportCompanyBtn}>
+                  <TouchableOpacity
+                    onPress={handleChatSupport}
+                    style={styles.supportCompanyBtn}
+                  >
                     <Text style={styles.supportCompanyBtnText}>Chat</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={handleEmailSupport} style={styles.supportCompanyBtn}>
+                  <TouchableOpacity
+                    onPress={handleEmailSupport}
+                    style={styles.supportCompanyBtn}
+                  >
                     <Text style={styles.supportCompanyBtnText}>Email</Text>
                   </TouchableOpacity>
                 </View>
               </View>
             </View>
 
+            {/* Botão Sobre Nós / Políticas / Sair */}
             <View style={styles.whiteBox}>
-              <TouchableOpacity onPress={handleAboutUs} style={styles.logoutButtonGeneric}>
+              <TouchableOpacity
+                onPress={handleAboutUs}
+                style={styles.logoutButtonGeneric}
+              >
                 <Text style={styles.logoutButtonText}>Sobre nós</Text>
                 <Arrow width={20} height={20} />
               </TouchableOpacity>
-              <TouchableOpacity onPress={handlePrivacyPolicy} style={styles.logoutButtonGeneric}>
-                <Text style={styles.logoutButtonText}>Política de privacidade</Text>
+              <TouchableOpacity
+                onPress={handlePrivacyPolicy}
+                style={styles.logoutButtonGeneric}
+              >
+                <Text style={styles.logoutButtonText}>
+                  Política de privacidade
+                </Text>
                 <Arrow width={20} height={20} />
               </TouchableOpacity>
-              <TouchableOpacity onPress={handleTermsOfUse} style={styles.logoutButtonGeneric}>
+              <TouchableOpacity
+                onPress={handleTermsOfUse}
+                style={styles.logoutButtonGeneric}
+              >
                 <Text style={styles.logoutButtonText}>Termo de uso</Text>
                 <Arrow width={20} height={20} />
               </TouchableOpacity>
             </View>
 
             <View style={styles.whiteBox}>
-              <TouchableOpacity onPress={handleLogout} style={styles.logoutButtonGeneric}>
+              <TouchableOpacity
+                onPress={handleLogout}
+                style={styles.logoutButtonGeneric}
+              >
                 <Text style={styles.logoutButtonText}>Sair</Text>
                 <Arrow width={20} height={20} />
               </TouchableOpacity>
@@ -349,27 +392,103 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     marginLeft: 8,
   },
-  logoutButtonGeneric: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    width: '100%',
-    paddingVertical: 12,
+  sectionHeader: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#000',
+    marginBottom: 12,
   },
-  logoutButtonText: {
+  errorText: {
+    color: 'red',
+    textAlign: 'center',
+    marginVertical: 10,
+  },
+  emptyContainer: {
+    paddingVertical: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyText: {
+    color: '#666',
+    fontStyle: 'italic',
+  },
+
+  // ======= NOVOS ESTILOS DE EMPRESA ABAIXO =======
+  companyCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F0F0',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 10,
+  },
+  companyLogoWrapper: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: '#F0F0F0',
+    marginRight: 12,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  companyLogo: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    marginRight: 12,
+    backgroundColor: '#FFA600',
+  },
+  companyInfo: {
+    flex: 1,
+  },
+  companyName: {
     fontSize: 16,
+    fontWeight: '600',
     color: '#000',
   },
+  companyDesc: {
+    fontSize: 14,
+    color: '#333',
+    marginTop: 4,
+  },
+  companyBtn: {
+    backgroundColor: '#F0F0F0',
+    borderColor: '#D9D9D9',
+    borderWidth: 1,
+    borderRadius: 50,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  companyBtnText: {
+    color: '#000',
+    fontWeight: '500',
+  },
+  seeMoreButton: {
+    marginTop: 8,
+    alignSelf: 'center',
+  },
+  seeMoreText: {
+    color: '#FF4C00',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+
+  // ======= RESTANTE DOS ESTILOS =======
   DeletButtonText: {
     fontSize: 16,
     color: '#FF0000',
     fontWeight: '600',
   },
-  notLoggedText: {
-    color: '#fff',
+  finalMessageContainer: {
+    paddingVertical: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  finalMessageText: {
     fontSize: 16,
+    color: '#000',
     textAlign: 'center',
-    marginTop: 32,
   },
   helpRow: {
     flexDirection: 'row',
@@ -395,16 +514,16 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     fontSize: 14,
   },
-  sectionHeader: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 16,
-  },
-  sectionHeaderContainer: {
+  logoutButtonGeneric: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    width: '100%',
+    paddingVertical: 12,
+  },
+  logoutButtonText: {
+    fontSize: 16,
+    color: '#000',
   },
   seeAllButton: {
     paddingVertical: 4,
@@ -415,83 +534,10 @@ const styles = StyleSheet.create({
     color: '#FF4C00',
     fontWeight: '600',
   },
-  errorText: {
-    color: 'red',
-    textAlign: 'center',
-    marginVertical: 10,
-  },
-  noDataText: {
-    color: '#666666',
-    textAlign: 'center',
-    marginVertical: 10,
-    fontStyle: 'italic',
-  },
-  companyRow: {
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  companyCard: {
-    width: '48.5%',
-    backgroundColor: '#F0F0F0',
-    borderRadius: 10,
-    padding: 10,
-    alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    borderWidth: 1,
-    borderColor: '#EEE',
-  },
-  companyLogoWrapper: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: '#F0F0F0',
-    overflow: 'hidden',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  companyLogoImage: {
-    width: 70,
-    height: 70,
-    backgroundColor: '#FFA600',
-  },
-  companyLogoFallbackText: {
-    fontSize: 28,
-    color: '#A0A0A0',
-    fontWeight: 'bold',
-  },
-  companyNameCard: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#000',
-    textAlign: 'center',
-    marginBottom: 10,
-    minHeight: 38,
-  },
-  viewCompanyButton: {
-    backgroundColor: '#F0F0F0',
-    borderColor: '#D9D9D9',
-    borderWidth: 1,
-    borderRadius: 50,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    alignSelf: 'stretch',
-    alignItems: 'center',
-  },
-  viewCompanyButtonText: {
-    color: '#000',
-    fontWeight: '500',
-    fontSize: 14,
-  },
-  finalMessageContainer: {
-    paddingVertical: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  finalMessageText: {
+  notLoggedText: {
+    color: '#fff',
     fontSize: 16,
-    color: '#000',
     textAlign: 'center',
+    marginTop: 32,
   },
 });
