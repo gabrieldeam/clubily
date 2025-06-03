@@ -1,124 +1,52 @@
-.detail {
-  background: #fff;
-  padding: 20px;
-  border-radius: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  height: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;  
-  width: 100%;
-  margin-top: 10px;
-}
-
-.inactive {
-  filter: grayscale(100%);
-  opacity: 0.9;
-}
-
-
-.companyCard {
-   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  width: 100%;
-}
-
-.companyLogo {
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  background-color: #FFA600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 36px;
-  color: #fff;
-  font-weight: bold;
-}
-
-.companyInfo {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  width: 100%;
-}
-
-.companyInfo div {
+.pageWrapper {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  background: #000;
+  margin-bottom: 140px;
+}
+
+.whiteBox {
+  background: #fff;
+  border-radius: 20px;
+  padding: 16px;
   width: 100%;
 }
 
-.companyButton, .exploreMap {
-  font-size: 15px;
-  padding: 10px 20px;
-  background-color: #F0F0F0;
-  border: 1px solid #D9D9D9;
-  border-radius: 50px;
-  white-space: nowrap;
-}
+.sectionTitle { font-size: 18px; font-weight: 600; margin-bottom: 8px; color: #000; }
 
-.companyButton:hover {
-  background-color: #dfdfdf;
-}
+/* LOGO + INFOS */
+.infoMapSection { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.infoColumn { display: flex; align-items: center; gap: 12px; flex: 1; }
+.logo { width: 80px; height: 80px; border-radius: 40px; background: #FFA600; object-fit: cover; }
+.textContainer { flex-shrink: 1; }
+.name { font-size: 20px; font-weight: 600; margin: 0; color: #000; }
+.description { font-size: 14px; margin-top: 4px; color: #333; }
 
-.infoGrid {
-    display: flex;
-    flex-direction: column;
-    gap: 10px
-}
-.mapContainer {
-  width: 100%;
-  height: 150px;
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
-}
+/* CATEGORY ICON */
+.categoryIconWrapper { position: relative; width: 60px; height: 60px; border-radius: 30px; background: #F0F0F0; display: flex; align-items: center; justify-content: center; }
+.categoryIcon { width: 40px; height: 40px; object-fit: contain; }
+.categoryCountBadge { position: absolute; bottom: -4px; right: -4px; width: 20px; height: 20px; border-radius: 10px; background: #FFA600; border: 1px solid #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #fff; }
 
+/* ADDRESS CARD */
+.addressCard { display: flex; gap: 16px; align-items: center; background: #F9F9F9; border-radius: 12px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.1); }
+.mapImage { width: 100px; height: 100px; flex-shrink: 0; border-radius: 10px; overflow: hidden; }
+.addressInfo { flex: 1; }
+.addressText { font-size: 14px; color: #000; margin-bottom: 4px; }
+.mapButton { background: #FFA600; color: #fff; border: none; border-radius: 8px; padding: 8px 12px; font-weight: 600; cursor: pointer; }
 
-.logoMarker {
-  width: 50px;
-  height: 50px;
-  background-color: #FFA600;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  border: 2px solid #fff;
-}
+/* CONTACT / STATUS */
+.contactRow, .infoRow { display: flex; justify-content: space-between; margin-bottom: 4px; }
+.contactLabel, .infoLabel { font-weight: 500; color: #000; }
+.contactValue, .infoValue { color: #878787; }
 
-.logoMarker img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
+/* CATEGORIES LIST */
+.categoriesContainer { display: flex; flex-wrap: wrap; gap: 8px; }
+.categoryBadge { background: #F9F9F9; border-radius: 4px; padding: 5px 8px; font-size: 14px; color: #000; text-decoration: none; }
 
-.outsideBanner {
-  position: absolute;
-  top: 100px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #ffeeba;
-  border: 1px solid #f5c26b;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  z-index: 1000;
-}
+/* MAP WRAPPER */
+.leafletWrapper { width: 100%; height: 200px; border-radius: 10px; overflow: hidden; }
 
-
-@media (max-width: 767px) {
-
-.companyLogo {
-  width: 90px;
-  height: 90px;
-}    
- 
-}
+/* MAP MARKER */
+.logoMarker { width: 50px; height: 50px; background: #FFA600; border-radius: 50%; overflow: hidden; border: 2px solid #fff; }
+.logoMarker img { width: 100%; height: 100%; object-fit: cover; }

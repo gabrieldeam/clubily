@@ -138,7 +138,7 @@ export default function Dashboard() {
 
       {/* ---------- MSG sem dados / trocar endereço ---------- */}
       {noData && (
-        <section className={styles.gridItem}>
+        <section className={styles.gridItemNoData}>
           <p>
             Infelizmente não temos empresas parceiras na sua região.
           </p>
@@ -159,8 +159,8 @@ export default function Dashboard() {
           {/* --------- CATEGORIAS --------- */}
           <section className={styles.gridItem}>
             <h4 className={styles.inlineHeader}>
-              Categorias em
-              <div className={styles.filterWrapper}>
+              Categorias
+              {/* <div className={styles.filterWrapper}>
                 <select
                   value={filterField}
                   onChange={e =>
@@ -190,7 +190,7 @@ export default function Dashboard() {
                   </option>
                 </select>
                 <ChevronDown size={16} className={styles.selectIcon} />
-              </div>
+              </div> */}
             </h4>
 
             {loadingCats && <p>Carregando categorias…</p>}

@@ -7,7 +7,10 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { listAddresses, deleteAddress } from '@/services/addressService';
-import { getMyCompanies } from '@/services/userService';
+import {
+  getMyCompanies,
+  requestUserDeletion,   // ← novo endpoint
+} from '@/services/userService';
 import type { AddressRead } from '@/types/address';
 import type { CompanyRead } from '@/types/company';
 import Header from '@/components/Header/Header';
@@ -21,62 +24,57 @@ export default function ProfilePage() {
 
   const [openEdit, setOpenEdit] = useState(false);
 
-  // endereços
+  /* ---------------- endereços ---------------- */
   const [addresses, setAddresses] = useState<AddressRead[]>([]);
   const [loadingAddr, setLoadingAddr] = useState(true);
 
-  // empresas do usuário
+  /* ---------------- empresas ----------------- */
   const [page, setPage] = useState(1);
   const [companies, setCompanies] = useState<CompanyRead[]>([]);
   const [hasMore, setHasMore] = useState(false);
   const [loadingComp, setLoadingComp] = useState(true);
 
+  /* ---------------- delete conta ------------- */
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleteMsg, setDeleteMsg]       = useState<string|null>(null);
+
+  /* ---------------- helpers ------------------ */
   const displayName = useMemo(() => {
     const name = user?.name ?? '';
-    const MAX = 30;
-    return name.length > MAX ? name.slice(0, MAX) + '...' : name;
+    const MAX  = 30;
+    return name.length > MAX ? name.slice(0, MAX) + '…' : name;
   }, [user?.name]);
 
-  // redirect se não autenticado
+  /* ---------------- redirects ---------------- */
   useEffect(() => {
-    if (!loading && !user) {
-      router.replace('/');
-    }
+    if (!loading && !user) router.replace('/');
   }, [loading, user, router]);
 
-  useEffect(() => {
-    getMyCompanies(page, 10).then(res => {
-      setCompanies(res.data);
-    });
-  }, [page]);
-
-  // carrega endereços
+  /* ---------------- addresses ---------------- */
   useEffect(() => {
     listAddresses()
       .then(res => setAddresses(res.data))
       .finally(() => setLoadingAddr(false));
   }, []);
 
-  // carrega empresas do usuário
+  /* ---------------- companies ---------------- */
   useEffect(() => {
-    getMyCompanies()
-      .then(res => setCompanies(res.data))
+    setLoadingComp(true);
+    getMyCompanies(page, 10)
+      .then(res => {
+        setCompanies(res.data);
+        setHasMore(res.data.length === 10);
+      })
       .finally(() => setLoadingComp(false));
-  }, []);
+  }, [page]);
 
-  if (loading) {
-    return <div className={styles.container}>Carregando perfil...</div>;
-  }
-  if (!user) {
-    return null;
-  }
-
+  /* ---------------- handlers ----------------- */
   const handleLogout = async () => {
     await logout();
     router.replace('/');
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDeleteAddress = async (id: string) => {
     if (!confirm('Deseja realmente excluir este endereço?')) return;
     try {
       await deleteAddress(id);
@@ -86,16 +84,41 @@ export default function ProfilePage() {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    if (!deleteConfirm) {
+      setDeleteConfirm(true);            // 1º clique – pede confirmação
+      return;
+    }
+    try {
+      await requestUserDeletion();       // 2º clique – faz requisição
+      setDeleteMsg(
+        'Solicitação enviada! Em breve você receberá um e-mail com instruções.'
+      );
+    } catch {
+      setDeleteMsg(
+        'Não foi possível solicitar a exclusão. Por favor, envie um e-mail através do botão “E-mail” na seção de Ajuda.'
+      );
+    } finally {
+      setDeleteConfirm(false);
+    }
+  };
+
+  /* ---------------- loading guard ------------ */
+  if (loading) return <div className={styles.container}>Carregando perfil…</div>;
+  if (!user)    return null;
+
+  const baseUrl = process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL ?? '';
+
+  /* ---------------- render -------------------- */
   return (
+    <>
+    <Header onSearch={q => router.push(`/search?name=${encodeURIComponent(q)}`)} />
     <div className={styles.container}>
-      <Header onSearch={q => router.push(`/search?name=${encodeURIComponent(q)}`)} />
-
       <main className={styles.gridContainer}>
-
-        {/* 1º card: perfil */}
+        {/* ---------- PERFIL ---------- */}
         <div className={styles.gridItem}>
           <div className={styles.profileHeader}>
-            <p className={styles.userName} style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+            <p className={styles.userName} style={{ whiteSpace:'pre-wrap', wordBreak:'break-word' }}>
               {displayName}
             </p>
             <div className={styles.editIcon} onClick={() => setOpenEdit(true)}>
@@ -104,70 +127,64 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* 2º card: contato */}
+        {/* ---------- CONTATO ---------- */}
         <div className={styles.gridItem}>
-          <div className={styles.item}>
-            <p>Telefone</p>
-            <span>{user.phone}</span>
-          </div>
-          <div className={styles.item}>
-            <p>E-mail</p>
-            <span>{user.email}</span>
-          </div>
+          <div className={styles.item}><p>Telefone</p><span>{user.phone}</span></div>
+          <div className={styles.item}><p>E-mail</p><span>{user.email}</span></div>
         </div>
 
-        {/* 3º card: links */}
+        {/* ---------- LINKS ---------- */}
         <div className={styles.gridItem}>
-          <Link href="/">
-            <div className={styles.itemLink}>
-              <p>Sobre nós</p>
-              <Image src="/seta.svg" alt="Logo" width={22} height={22} />
-            </div>
-          </Link>
-          <Link href="/">
-            <div className={styles.itemLink}>
-              <p>Política de privacidade</p>
-              <Image src="/seta.svg" alt="Logo" width={22} height={22} />
-            </div>
-          </Link>
-          <Link href="/">
-            <div className={styles.itemLink}>
-              <p>Termo de uso</p>
-              <Image src="/seta.svg" alt="Logo" width={22} height={22} />
-            </div>
-          </Link>
+          {['Sobre nós', 'Política de privacidade', 'Termo de uso'].map(t => (
+            <Link key={t} href="/" className={styles.itemLink}>
+              <p>{t}</p><Image src="/seta.svg" alt="" width={22} height={22} />
+            </Link>
+          ))}
         </div>
 
-        {/* 4º card: ajuda + sair */}
+        {/* ---------- AJUDA / SAIR / DELETAR ---------- */}
         <div className={styles.subGrid}>
           <div className={styles.gridItem}>
             <div className={styles.item}>
               <p>Ajuda</p>
               <div className={styles.gridDivHelp}>
                 <button type="button" className={styles.buttomHelp}>Chat</button>
-                <button type="button" className={styles.buttomHelp}>E-mail</button>
+                <a
+                  href="mailto:support@clubi.ly"
+                  className={styles.buttomHelp}
+                  style={{ textDecoration: 'none' }}
+                >
+                  E-mail
+                </a>
               </div>
             </div>
           </div>
+
           <div className={styles.gridDiv}>
             <div className={styles.gridItem}>
-              <div className={styles.itemDelete}>
-                <p>Deletar conta</p>
-                <Image src="/redSeta.svg" alt="Logo" width={22} height={22} />
-              </div>
+              {deleteMsg ? (
+                <p className={styles.deleteMsg}>{deleteMsg}</p>
+              ) : (
+                <button
+                  className={styles.itemDelete}
+                  onClick={handleDeleteAccount}
+                >
+                  {deleteConfirm ? 'Confirmar exclusão da conta' : 'Deletar conta'}
+                  <Image src="/redSeta.svg" alt="" width={22} height={22} />
+                </button>
+              )}
             </div>
+
             <div className={styles.gridItem}>
               <div className={styles.itemLink} onClick={handleLogout}>
-                <p>Sair</p>
-                <Image src="/seta.svg" alt="Logo" width={22} height={22} />
+                <p>Sair</p><Image src="/seta.svg" alt="" width={22} height={22} />
               </div>
             </div>
           </div>
         </div>
-
       </main>
 
-      {/* Endereços */}
+      {/* ---------- ENDEREÇOS ---------- */}
       <div className={styles.gridItem}>
         <h4>Endereços</h4>
         {loadingAddr ? (
@@ -183,7 +200,7 @@ export default function ProfilePage() {
                 </div>
                 <button
                   className={styles.button}
-                  onClick={() => handleDelete(addr.id)}
+                  onClick={() => handleDeleteAddress(addr.id)}
                 >
                   Excluir
                 </button>
@@ -193,9 +210,10 @@ export default function ProfilePage() {
         )}
       </div>
 
-      {/* Minhas Empresas */}
+      {/* ---------- MINHAS EMPRESAS ---------- */}
       <div className={styles.gridSubItem}>
-        <h4>Empresas que tem o seu cadastro</h4>
+        <h4>Empresas que têm seu cadastro</h4>
+
         {loadingComp ? (
           <p>Carregando empresas…</p>
         ) : companies.length === 0 ? (
@@ -208,7 +226,7 @@ export default function ProfilePage() {
                   <div className={styles.companyInfo}>
                     {c.logo_url && (
                       <Image
-                        src={`${process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL}${c.logo_url}`}
+                        src={`${baseUrl}${c.logo_url}`}
                         alt={c.name}
                         width={60}
                         height={60}
@@ -220,9 +238,7 @@ export default function ProfilePage() {
                       {c.description && <p className={styles.desc}>{c.description}</p>}
                     </div>
                   </div>
-                  <span className={styles.tag}>                    
-                    Ver empresa
-                  </span>
+                  <span className={styles.tag}>Ver empresa</span>
                 </Link>
               </li>
             ))}
@@ -230,25 +246,20 @@ export default function ProfilePage() {
         )}
 
         <div className={styles.pagination}>
-          <button disabled={page === 1} onClick={() => setPage(p => p - 1)}>
-            Anterior
-          </button>
+          <button disabled={page === 1}      onClick={()=>setPage(p=>p-1)}>Anterior</button>
           <span>Página {page}</span>
-          <button disabled={!hasMore} onClick={() => setPage(p => p + 1)}>
-            Próxima
-          </button>
+          <button disabled={!hasMore}        onClick={()=>setPage(p=>p+1)}>Próxima</button>
         </div>
       </div>
 
+      {/* ---------- MODAL EDITAR ---------- */}
       <Modal open={openEdit} onClose={() => setOpenEdit(false)}>
         <EditUserForm
           onClose={() => setOpenEdit(false)}
-          onSaved={() => {
-            refreshUser();
-            setOpenEdit(false);
-          }}
+          onSaved={() => { refreshUser(); setOpenEdit(false); }}
         />
       </Modal>
     </div>
+    </>
   );
 }

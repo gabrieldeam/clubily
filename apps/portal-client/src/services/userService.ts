@@ -90,3 +90,12 @@ export const getMyCompanies = (
   api.get<CompanyRead[]>('/users/me/companies', {
     params: { page, page_size }
   });
+
+
+  
+/**
+ * Solicita exclusão de conta para o usuário logado
+ * POST /users/me/delete-request
+ */
+export const requestUserDeletion = () =>
+  api.post<MsgResponse>('/users/me/delete-request');

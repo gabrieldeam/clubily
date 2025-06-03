@@ -75,7 +75,7 @@ export default function ProfileScreen() {
   };
 
   const handleSeeAllCompanies = () => {
-    router.push('/all-companies');
+    router.push('./all-companies')
   };
 
   const handleDeleteAccountPress = async () => {
