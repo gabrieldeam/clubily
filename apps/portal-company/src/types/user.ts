@@ -21,6 +21,8 @@ export interface PreRegisterResponse {
   msg: string;
 }
 
-export interface PreRegisteredResponse {
-  pre_registered: boolean;
+export interface CheckPreRegisteredParams {
+  company_id: string;
+  phone?: string;
+  cpf?: string;
 }

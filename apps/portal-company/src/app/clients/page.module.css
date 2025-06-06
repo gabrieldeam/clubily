@@ -1,6 +1,3 @@
-/* ================================
-   ESTILOS GERAIS (Desktop)
-   ================================ */
 
 .main {
   background: #ffffff;
@@ -130,9 +127,38 @@
   text-align: center;
 }
 
-/* ================================
-   ESTILOS PARA TABLET (até 900px)
-   ================================ */
+.modalContent {
+  background-color: #fff;
+  padding: 1.5rem;
+  border-radius: 8px;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  text-align: center;
+  color: #333;
+}
+
+.userInfo p {
+  margin-bottom: 0.75rem;
+  color: #444;
+}
+
+.userInfo strong {
+  display: inline-block;
+  width: 120px;
+  color: #222;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1.25rem;
+}
 
 @media (max-width: 900px) {
   /* Reduz um pouco o padding e o gap para caber melhor no tablet */
@@ -199,19 +225,6 @@
     background-color: #ffffff;
     border-radius: 10px;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-  }
-
-  .body .row:nth-child(even) {
-    background-color: #ffffff; /* mantém branco também para consistência de “card” */
-  }
-
-  .body .row:nth-child(odd) {
-    background-color: #ffffff;
-  }
-
-  .row:hover {
-    background-color: #ffffff; /* remove efeito hover escuro no mobile */
-    color: inherit;
   }
 
   /* Cada célula vira uma linha com label antes do valor */

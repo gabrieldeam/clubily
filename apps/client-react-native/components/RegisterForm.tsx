@@ -6,6 +6,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   Switch,
+  InputAccessoryView,
+  Platform,
 } from 'react-native';
 import { Button } from './Button';
 import FloatingLabelInput from './FloatingLabelInput';
@@ -28,6 +30,7 @@ export default function RegisterForm({ onLogin }: RegisterFormProps) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [cpf, setCpf] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -52,12 +55,18 @@ export default function RegisterForm({ onLogin }: RegisterFormProps) {
       return;
     }
 
+    if (!cpf || cpf.replace(/\D/g, '').length !== 11) {
+      Alert.alert('CPF inválido', 'Informe um CPF com 11 dígitos.');
+      return;
+    }
+
     setLoading(true);
     try {
       await registerUser({
         name,
         email,
         phone,
+        cpf: cpf.replace(/\D/g, ''), // somente dígitos
         password,
         accepted_terms: true,
       });
@@ -70,13 +79,37 @@ export default function RegisterForm({ onLogin }: RegisterFormProps) {
     }
   };
 
+  // Função para “voltar” ou “cancelar” quando o botão for pressionado
+  const handleBackAccessory = () => {
+    if (onLogin) {
+      onLogin(); // se tiver callback de login, use-o
+    } else {
+      router.back();
+    }
+  };
+
   return (
     <View style={styles.container}>
       {/* TÍTULO */}
       <Text style={styles.title}>Cadastrar-se no Clubily</Text>
 
-      {/* INPUTS */}
-      <FloatingLabelInput label="Nome" value={name} onChangeText={setName} />
+      {/* INPUT: Nome */}
+      <FloatingLabelInput
+        label="Nome"
+        value={name}
+        onChangeText={setName}
+        inputAccessoryViewID={Platform.OS === 'ios' ? 'inputAccessory' : undefined}
+      />
+
+      {/* INPUT: CPF */}
+      <FloatingLabelInput
+        label="CPF"
+        keyboardType="numeric"
+        value={cpf}
+        onChangeText={setCpf}
+        maxLength={14}
+        inputAccessoryViewID={Platform.OS === 'ios' ? 'inputAccessory' : undefined}
+      />
 
       {/* EMAIL + TELEFONE NA MESMA LINHA */}
       <View style={styles.contactRow}>
@@ -86,6 +119,7 @@ export default function RegisterForm({ onLogin }: RegisterFormProps) {
             keyboardType="email-address"
             value={email}
             onChangeText={setEmail}
+            inputAccessoryViewID={Platform.OS === 'ios' ? 'inputAccessory' : undefined}
           />
         </View>
         <View style={styles.phoneCol}>
@@ -94,6 +128,7 @@ export default function RegisterForm({ onLogin }: RegisterFormProps) {
             keyboardType="phone-pad"
             value={phone}
             onChangeText={setPhone}
+            inputAccessoryViewID={Platform.OS === 'ios' ? 'inputAccessory' : undefined}
           />
         </View>
       </View>
@@ -106,6 +141,7 @@ export default function RegisterForm({ onLogin }: RegisterFormProps) {
             secureTextEntry
             value={password}
             onChangeText={setPassword}
+            inputAccessoryViewID={Platform.OS === 'ios' ? 'inputAccessory' : undefined}
           />
         </View>
         <View style={styles.passwordColRight}>
@@ -114,6 +150,7 @@ export default function RegisterForm({ onLogin }: RegisterFormProps) {
             secureTextEntry
             value={confirmPassword}
             onChangeText={setConfirmPassword}
+            inputAccessoryViewID={Platform.OS === 'ios' ? 'inputAccessory' : undefined}
           />
         </View>
       </View>
@@ -148,6 +185,17 @@ export default function RegisterForm({ onLogin }: RegisterFormProps) {
           <Text style={styles.policyLink}>Política de privacidade</Text>
         </TouchableOpacity>
       </View>
+
+      {/* ===== InputAccessoryView (iOS somente) ===== */}
+      {Platform.OS === 'ios' && (
+        <InputAccessoryView nativeID="inputAccessory">
+          <View style={styles.accessoryContainer}>
+            <TouchableOpacity onPress={handleBackAccessory} style={styles.backButton}>
+              <Text style={styles.backButtonText}>Voltar</Text>
+            </TouchableOpacity>
+          </View>
+        </InputAccessoryView>
+      )}
     </View>
   );
 }
@@ -217,6 +265,26 @@ const styles = StyleSheet.create({
   policyLink: {
     color: '#FFA600',
     marginHorizontal: 16,
+    fontWeight: '500',
+  },
+
+  /* Estilos do InputAccessoryView */
+  accessoryContainer: {
+    backgroundColor: '#f2f2f2',
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderTopWidth: 1,
+    borderColor: '#ddd',
+  },
+  backButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  backButtonText: {
+    color: '#007AFF',
+    fontSize: 16,
     fontWeight: '500',
   },
 });

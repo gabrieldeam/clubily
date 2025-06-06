@@ -13,6 +13,8 @@ from app.models.company import Company
 from ....schemas.company import CompanyRead
 from ....models.user import User
 from ....schemas.user import UserRead, UserUpdate
+from ....core.phone_utils import normalize_phone
+from ....core.cpf_utils import normalize_cpf
 
 router = APIRouter()
 
@@ -36,20 +38,37 @@ def update_me(
     """
     Atualiza apenas os campos enviados do usuário logado.
     Se o e-mail mudar, zera a verificação e envia novo e-mail.
+    Se telefone ou CPF mudar, valida unicidade antes de salvar.
     """
-    # 1) Recarrega instância na sessão do DB
+    # 1) Recarrega instância do usuário na sessão
     user = db.get(User, current_user.id)
     if not user:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Usuário não encontrado")
 
+    # 2) Extrai somente os campos que vieram no JSON
     data = payload.model_dump(exclude_unset=True)
 
-    # 2) Se mudou o e-mail, zera verificação e dispara e-mail novo
+    # 3) Se mudou o e-mail, verifica unicidade e dispara e-mail de confirmação
     if "email" in data:
         new_email = data.pop("email").lower()
         if new_email != user.email:
+            # checa se outro usuário (pre_registered=False) já usa esse e-mail
+            exists = (
+                db.query(User)
+                .filter(User.email == new_email, User.id != user.id, User.pre_registered == False)
+                .first()
+            )
+            if exists:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="E-mail já cadastrado por outro usuário.",
+                )
+
+            # atualiza no objeto e zera o campo email_verified_at
             user.email = new_email
             user.email_verified_at = None
+
+            # dispara novo e-mail de confirmação
             token = jwt.encode({"sub": str(user.id)}, settings.SECRET_KEY, algorithm="HS256")
             verify_url = f"{settings.FRONTEND_ORIGINS[0]}/verify?token={token}"
             background.add_task(
@@ -59,21 +78,58 @@ def update_me(
                 html=f"<p>Clique <a href='{verify_url}'>aqui</a> para confirmar seu novo e-mail.</p>",
             )
 
-    # 3) Se veio senha, hash e atualiza
+    # 4) Se veio senha, faz hash e atualiza
     if "password" in data:
         user.hashed_password = hash_password(data.pop("password"))
 
-    # 4) Se vier company_ids, busca e atualiza relacionamentos
+    # 5) Se veio telefone, normaliza, verifica unicidade e atualiza
+    if "phone" in data:
+        raw_phone = data.pop("phone")
+        normalized_phone = normalize_phone(raw_phone)
+        if normalized_phone != user.phone:
+            # checa se outro usuário (pre_registered=False) já usa esse telefone
+            exists = (
+                db.query(User)
+                .filter(User.phone == normalized_phone, User.id != user.id, User.pre_registered == False)
+                .first()
+            )
+            if exists:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Telefone já cadastrado por outro usuário.",
+                )
+            user.phone = normalized_phone
+
+    # 6) Se veio CPF, normaliza, verifica unicidade e atualiza
+    if "cpf" in data:
+        raw_cpf = data.pop("cpf")
+        normalized_cpf = normalize_cpf(raw_cpf)
+        if normalized_cpf != user.cpf:
+            # checa se outro usuário (pre_registered=False) já usa esse CPF
+            exists = (
+                db.query(User)
+                .filter(User.cpf == normalized_cpf, User.id != user.id, User.pre_registered == False)
+                .first()
+            )
+            if exists:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="CPF já cadastrado por outro usuário.",
+                )
+            user.cpf = normalized_cpf
+
+    # 7) Se vier company_ids, substitui relacionamentos
     if "company_ids" in data:
         ids = data.pop("company_ids")
+        # busca as empresas válidas
         comps = db.scalars(select(Company).where(Company.id.in_(ids))).all()
         user.companies = comps
 
-    # 5) Aplica os demais campos (name, phone)
+    # 8) Aplica os demais campos (por enquanto sobram “name”, “role”…)
     for field, value in data.items():
         setattr(user, field, value)
 
-    # 6) Persiste e retorna
+    # 9) Persiste tudo de uma vez
     db.commit()
     db.refresh(user)
     return user

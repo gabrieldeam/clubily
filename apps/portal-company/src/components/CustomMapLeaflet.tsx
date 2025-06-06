@@ -14,29 +14,40 @@ export default function CustomMapLeaflet({ address, iconUrl }: Props) {
   const [position, setPosition] = useState<[number, number] | null>(null);
 
   useEffect(() => {
-    // busca lat/lng no Nominatim
     fetch(
-      `https://nominatim.openstreetmap.org/search?` +
-      `format=json&q=${encodeURIComponent(address)}`
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`
     )
       .then(res => res.json())
       .then((data: any[]) => {
         if (data.length > 0) {
-          setPosition([
-            parseFloat(data[0].lat),
-            parseFloat(data[0].lon),
-          ]);
+          setPosition([parseFloat(data[0].lat), parseFloat(data[0].lon)]);
         }
       });
   }, [address]);
 
   if (!position) return <div>Carregando mapa…</div>;
 
-  // cria ícone customizado
-  const customIcon = new L.Icon({
-    iconUrl,
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
+  // Cria um DivIcon com <img> circular
+  const html = `
+    <div style="
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 2px solid white;
+      box-shadow: 0 0 4px rgba(0,0,0,0.3);
+    ">
+      <img src="${iconUrl}" 
+           style="width: 100%; height: 100%; object-fit: cover;" />
+    </div>
+  `;
+
+  const customIcon = new L.DivIcon({
+    html,
+    className: '',        
+    iconSize: [32, 32],    
+    iconAnchor: [16, 32], 
+    popupAnchor: [0, -32],
   });
 
   return (

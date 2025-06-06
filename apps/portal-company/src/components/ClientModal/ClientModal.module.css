@@ -26,3 +26,35 @@
   color: #666;
   margin: 4px 0;
 }
+
+.container {
+  background-color: #ffffff;
+  padding: 20px;
+  border-radius: 20px;
+  margin: 0 auto;
+}
+
+/* Título compartilhado (tanto no form quanto em existingUser) */
+.title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  text-align: center;
+  color: #333333;
+}
+
+/* Bloco de informações do usuário já cadastrado */
+.userInfo {
+  line-height: 1.5;
+  color: #444444;
+}
+
+.userInfo p {
+  margin-bottom: 0.5rem;
+}
+
+.userInfo strong {
+  display: inline-block;
+  width: 80px;
+  color: #222222;
+}

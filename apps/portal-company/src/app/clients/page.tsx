@@ -54,6 +54,20 @@ export default function ClientsPage() {
     }
   };
 
+  // Função para formatar exibição de CPF quando necessário
+  const formatCpfDisplay = (c: UserRead) => {
+    const shouldMaskCpf =
+      c.pre_registered &&
+      c.phone &&
+      c.cpf.slice(-6) === c.phone.slice(-6);
+    return shouldMaskCpf ? '*****' : c.cpf;
+  };
+
+  // Função para exibir telefone ou máscara
+  const formatPhoneDisplay = (c: UserRead) => {
+    return c.phone ? c.phone : '*****';
+  };
+
   return (
     <div className={styles.container}>
       <Header onSearch={() => {}} />
@@ -91,29 +105,17 @@ export default function ClientsPage() {
                         : undefined
                     }
                   >
-                    <div
-                      className={styles.cellPhone}
-                      data-label="Nome:"
-                    >
+                    <div className={styles.cellPhone} data-label="Nome">
                       {c.pre_registered ? '*****' : c.name}
                     </div>
-                    <div
-                      className={styles.cellPhone}
-                      data-label="Email:"
-                    >
+                    <div className={styles.cellPhone} data-label="Email">
                       {c.pre_registered ? '*****' : c.email}
                     </div>
-                    <div
-                      className={styles.cellPhone}
-                      data-label="Telefone:"
-                    >
-                      {c.phone}
+                    <div className={styles.cellPhone} data-label="Telefone">
+                      {formatPhoneDisplay(c)}
                     </div>
-                    <div
-                      className={styles.cellPhone}
-                      data-label="CPF:"
-                    >
-                      {c.pre_registered ? '*****' : c.cpf}
+                    <div className={styles.cellPhone} data-label="CPF">
+                      {formatCpfDisplay(c)}
                     </div>
                   </div>
                 ))}
@@ -130,7 +132,7 @@ export default function ClientsPage() {
               </button>
               <span>Página {page + 1}</span>
               <button
-                onClick={() => clients.length === LIMIT ? setPage(p => p + 1) : null}
+                onClick={() => (clients.length === LIMIT ? setPage(p => p + 1) : null)}
                 disabled={clients.length < LIMIT}
               >
                 Próxima
@@ -138,12 +140,36 @@ export default function ClientsPage() {
             </div>
           </>
         ) : (
-          <p className={styles.loading}>Nenhum cliente encontrado na página atual.</p>
+          <p className={styles.loading}>
+            Nenhum cliente encontrado na página atual.
+          </p>
         )}
       </main>
 
       <Modal open={openModal} onClose={() => setOpenModal(false)}>
-        <ClientModal onClose={() => setOpenModal(false)} />
+        {selectedClient ? (
+          <div className={styles.modalContent}>
+            <h2 className={styles.title}>Dados do Cliente</h2>
+            <div className={styles.userInfo}>
+              <p>
+                <strong>Nome:</strong>{' '}
+                {selectedClient.pre_registered ? '*****' : selectedClient.name}
+              </p>
+              <p>
+                <strong>E-mail:</strong>{' '}
+                {selectedClient.pre_registered ? '*****' : selectedClient.email}
+              </p>
+              <p>
+                <strong>Telefone:</strong> {formatPhoneDisplay(selectedClient)}
+              </p>
+              <p>
+                <strong>CPF:</strong> {formatCpfDisplay(selectedClient)}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <ClientModal onClose={() => setOpenModal(false)} />
+        )}
       </Modal>
     </div>
   );

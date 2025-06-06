@@ -1,3 +1,4 @@
+// src/app/profile/page.tsx
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
@@ -10,6 +11,7 @@ import Modal from '@/components/Modal/Modal';
 import EditCompanyForm from '@/components/EditCompanyForm/EditCompanyForm';
 import SimpleEditCompanyForm from '@/components/EditCompanyForm/SimpleEditCompanyForm';
 import CustomMapLeaflet from '@/components/CustomMapLeaflet';
+import { requestCompanyDeletion } from '@/services/companyService';
 import styles from './page.module.css';
 
 export default function ProfilePage() {
@@ -19,6 +21,12 @@ export default function ProfilePage() {
   // controle das duas modais
   const [openAutoEdit, setOpenAutoEdit] = useState(false);
   const [openManualEdit, setOpenManualEdit] = useState(false);
+
+  // controle de exclusão
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleteMessage, setDeleteMessage] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const displayName = useMemo(() => {
     const name = user?.name ?? '';
@@ -58,6 +66,40 @@ export default function ProfilePage() {
   };
 
   const fullAddress = `${user.street}, ${user.postal_code}, ${user.city}, ${user.state}`;
+
+  const handleDeleteClick = async () => {
+    // Se ainda não está em modo de confirmação, ativa confirmação
+    if (!confirmingDelete) {
+      setConfirmingDelete(true);
+      setDeleteMessage(null);
+      setDeleteError(null);
+      return;
+    }
+
+    // Se já estava confirmando, chama endpoint
+    setDeleting(true);
+    setDeleteError(null);
+    setDeleteMessage(null);
+
+    try {
+      const res = await requestCompanyDeletion();
+      if (res.status === 202 || res.status === 200) {
+        setDeleteMessage(
+          'Solicitação enviada! Em breve você receberá um e-mail da nossa equipe.'
+        );
+      } else {
+        setDeleteError(
+          'Houve um imprevisto. Por favor, entre em contato pelo botão “E-mail” em Ajuda.'
+        );
+      }
+    } catch {
+      setDeleteError(
+        'Houve um imprevisto. Por favor, entre em contato pelo botão “E-mail” em Ajuda.'
+      );
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
     <div className={styles.container}>
@@ -107,18 +149,17 @@ export default function ProfilePage() {
               className={styles.editIcon}
               onClick={() => setOpenManualEdit(true)}
             >
-              <Image
-                src="/edit.svg"
-                alt="Editar perfil"
-                width={24}
-                height={24}
-              />
+              <Image src="/edit.svg" alt="Editar perfil" width={24} height={24} />
             </div>
           </div>
           <div className={styles.mapContainer}>
             <CustomMapLeaflet
               address={fullAddress}
-              iconUrl="/custom-pin.svg"
+              iconUrl={
+                user.logo_url?.trim()
+                  ? `${process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL}${user.logo_url}`
+                  : "/custom-pin.svg"
+              }
             />
           </div>
         </div>
@@ -135,9 +176,7 @@ export default function ProfilePage() {
               </p>
               <p
                 className={
-                  user.is_active
-                    ? styles.statusActive
-                    : styles.statusDesactive
+                  user.is_active ? styles.statusActive : styles.statusDesactive
                 }
               >
                 {user.is_active ? 'Ativo' : 'Desativado'}
@@ -197,18 +236,37 @@ export default function ProfilePage() {
                 <button type="button" className={styles.buttomHelp}>
                   Chat
                 </button>
-                <button type="button" className={styles.buttomHelp}>
+                <a
+                  href="mailto:support@clubi.ly"
+                  className={styles.buttomHelp}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   E-mail
-                </button>
+                </a>
               </div>
             </div>
           </div>
           <div className={styles.gridDiv}>
             <div className={styles.gridItem}>
-              <div className={styles.itemDelete}>
-                <p>Deletar conta</p>
-                <Image src="/redSeta.svg" alt="Logo" width={22} height={22} />
-              </div>
+              {!deleteMessage && (
+                <div
+                  className={styles.itemDelete}
+                  onClick={handleDeleteClick}
+                  style={{ cursor: deleting ? 'not-allowed' : 'pointer' }}
+                >
+                  <p>
+                    {confirmingDelete
+                      ? 'Confirmar exclusão da conta'
+                      : 'Deletar conta'}
+                  </p>
+                  <Image src="/redSeta.svg" alt="Deletar conta" width={22} height={22} />
+                </div>
+              )}
+              {deleteMessage && (
+                <p className={styles.deleteMessage}>{deleteMessage}</p>
+              )}
+              {deleteError && <p className={styles.deleteError}>{deleteError}</p>}
             </div>
             <div className={styles.gridItem}>
               <div
@@ -225,10 +283,7 @@ export default function ProfilePage() {
       </main>
 
       {/* Modal de edição completa */}
-      <Modal
-        open={openManualEdit}
-        onClose={() => setOpenManualEdit(false)}
-      >
+      <Modal open={openManualEdit} onClose={() => setOpenManualEdit(false)}>
         <EditCompanyForm
           companyId={user.id}
           onClose={() => setOpenManualEdit(false)}

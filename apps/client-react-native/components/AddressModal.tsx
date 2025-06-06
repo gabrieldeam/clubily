@@ -1,3 +1,5 @@
+// src/components/AddressModal.tsx
+
 import React, { useEffect, useState } from 'react';
 import {
   Modal,
@@ -9,13 +11,19 @@ import {
   ScrollView,
   Keyboard,
   TouchableWithoutFeedback,
-  Image,
+  KeyboardAvoidingView,
+  Platform,
+  InputAccessoryView,
 } from 'react-native';
-import { listAddresses, createAddress, deleteAddress } from '../services/addressService';
+import {
+  listAddresses,
+  createAddress,
+  deleteAddress,
+  updateAddress,
+} from '../services/addressService';
 import type { AddressRead, AddressCreate } from '../types/address';
 import { useAddress } from '../context/AddressContext';
 
-// Import dos componentes customizados
 import { Button } from '../components/Button';
 import FloatingLabelInput from '../components/FloatingLabelInput';
 import Delete from '../assets/icons/delete.svg';
@@ -31,7 +39,7 @@ export default function AddressModal({ visible, onClose }: AddressModalProps) {
   const [loading, setLoading] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
 
-  // NOVOS estados para exclusão
+  // Estados para exclusão
   const [addressToDelete, setAddressToDelete] = useState<AddressRead | null>(null);
   const [deletingLoading, setDeletingLoading] = useState(false);
 
@@ -40,6 +48,11 @@ export default function AddressModal({ visible, onClose }: AddressModalProps) {
   const [cepError, setCepError] = useState('');
   const [street, setStreet] = useState('');
   const [streetError, setStreetError] = useState('');
+  const [number, setNumber] = useState('');
+  const [numberError, setNumberError] = useState('');
+  const [neighborhood, setNeighborhood] = useState('');
+  const [neighborhoodError, setNeighborhoodError] = useState('');
+  const [complement, setComplement] = useState('');
   const [city, setCity] = useState('');
   const [cityError, setCityError] = useState('');
   const [stateField, setStateField] = useState('');
@@ -48,22 +61,12 @@ export default function AddressModal({ visible, onClose }: AddressModalProps) {
   const [country, setCountry] = useState('Brasil');
   const [serverError, setServerError] = useState('');
 
-  // Quando o modal abre, carregamos a lista de endereços e resetamos o modo “adding” e “deleting”
+  // Carrega lista de endereços sempre que o modal abre
   useEffect(() => {
     if (!visible) return;
 
     setIsAdding(false);
     setAddressToDelete(null);
-    setCep('');
-    setCepError('');
-    setStreet('');
-    setStreetError('');
-    setCity('');
-    setCityError('');
-    setStateField('');
-    setStateError('');
-    setPostalCode('');
-    setCountry('Brasil');
     setServerError('');
 
     setLoading(true);
@@ -73,13 +76,39 @@ export default function AddressModal({ visible, onClose }: AddressModalProps) {
       .finally(() => setLoading(false));
   }, [visible]);
 
-  // Ao clicar em um endereço da lista (selecionar)
-  const handleSelect = async (addr: AddressRead) => {
-    await setSelectedAddress(addr);
-    onClose();
+  // Função para atualizar a lista local, re-fetch dos endereços
+  const refreshLocalAddresses = async () => {
+    try {
+      const res = await listAddresses();
+      setAddresses(res.data);
+    } catch {
+      setAddresses([]);
+    }
   };
 
-  // Função para buscar via CEP usando a API do ViaCEP
+  // Selecionar endereço
+  const handleSelect = async (addr: AddressRead) => {
+    // Se já é o mesmo selecionado, apenas fecha
+    if (selectedAddress?.id === addr.id) {
+      onClose();
+      return;
+    }
+
+    try {
+      setLoading(true);
+      // Atualiza contexto e servidor
+      await setSelectedAddress(addr);
+      // Recarrega lista
+      await refreshLocalAddresses();
+      onClose();
+    } catch (err) {
+      console.error('Erro ao atualizar seleção de endereço:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Buscar CEP via ViaCEP
   const fetchAddressFromCep = async (rawCep: string) => {
     const numericCep = rawCep.replace(/\D/g, '');
     if (numericCep.length !== 8) {
@@ -95,9 +124,10 @@ export default function AddressModal({ visible, onClose }: AddressModalProps) {
         return;
       }
 
-      // Preencher campos automaticamente e limpar erros
       setStreet(data.logradouro || '');
       setStreetError('');
+      setNeighborhood(data.bairro || '');
+      setNeighborhoodError('');
       setCity(data.localidade || '');
       setCityError('');
       setStateField(data.uf || '');
@@ -111,7 +141,7 @@ export default function AddressModal({ visible, onClose }: AddressModalProps) {
     }
   };
 
-  // Validações antes de enviar ao backend (criação)
+  // Validação de campos
   const validateFields = (): boolean => {
     let valid = true;
     if (!postalCode.trim()) {
@@ -120,6 +150,14 @@ export default function AddressModal({ visible, onClose }: AddressModalProps) {
     }
     if (!street.trim()) {
       setStreetError('Rua é obrigatória');
+      valid = false;
+    }
+    if (!number.trim()) {
+      setNumberError('Número é obrigatório');
+      valid = false;
+    }
+    if (!neighborhood.trim()) {
+      setNeighborhoodError('Bairro é obrigatório');
       valid = false;
     }
     if (!city.trim()) {
@@ -133,11 +171,12 @@ export default function AddressModal({ visible, onClose }: AddressModalProps) {
     return valid;
   };
 
-  // Ao submeter o formulário de criação
+  // Submeter formulário de criação
   const handleSaveNew = async () => {
-    // Limpa erros anteriores
     setCepError('');
     setStreetError('');
+    setNumberError('');
+    setNeighborhoodError('');
     setCityError('');
     setStateError('');
     setServerError('');
@@ -148,28 +187,31 @@ export default function AddressModal({ visible, onClose }: AddressModalProps) {
 
     const payload: AddressCreate = {
       street: street.trim(),
+      number: number.trim(),
+      neighborhood: neighborhood.trim(),
+      complement: complement.trim() || undefined,
       city: city.trim(),
       state: stateField.trim(),
       postal_code: postalCode.trim(),
       country: country.trim() || 'Brasil',
+      is_selected: false,
     };
 
     try {
       setLoading(true);
+      // 1) Cria novo endereço
       const res = await createAddress(payload);
       const newAddress = res.data;
 
-      // Atualiza a lista local adicionando o novo endereço no topo
-      setAddresses(prev => [newAddress, ...prev]);
-
-      // Seleciona automaticamente o novo endereço
+      // 2) Seleciona o novo através do contexto
       await setSelectedAddress(newAddress);
 
-      // Volta para a listagem e fecha o modal
+      // 3) Atualiza lista local
+      await refreshLocalAddresses();
+
       setIsAdding(false);
       onClose();
     } catch (err: any) {
-      // Se vier erro do backend, exibir mensagem genérica ou específica
       if (err.response?.data?.message) {
         setServerError(err.response.data.message);
       } else {
@@ -181,54 +223,56 @@ export default function AddressModal({ visible, onClose }: AddressModalProps) {
     }
   };
 
-  // Ao confirmar exclusão
+  // Confirmar exclusão
   const handleConfirmDelete = async () => {
     if (!addressToDelete) return;
 
     try {
       setDeletingLoading(true);
       await deleteAddress(addressToDelete.id);
+      await refreshLocalAddresses();
 
-      // Remove localmente da lista
-      setAddresses(prev => prev.filter(a => a.id !== addressToDelete.id));
-
-      // Se o endereço excluído for o selecionado, limpa a seleção
       if (selectedAddress?.id === addressToDelete.id) {
-        setSelectedAddress(null);
+        // Se o endereço deletado era o selecionado, limpa contexto
+        await setSelectedAddress(null);
       }
 
-      // Fecha o modal após exclusão
       setAddressToDelete(null);
       onClose();
     } catch (err) {
       console.error('Erro ao excluir endereço:', err);
-      // Você pode exibir uma mensagem de erro aqui, se quiser
     } finally {
       setDeletingLoading(false);
     }
   };
 
-  // Renderiza o ícone de delete ao lado do botão Selecionar / Selecionado
+  // Ícone de delete
   const renderDeleteIcon = (addr: AddressRead) => (
-    <TouchableOpacity
-      onPress={() => setAddressToDelete(addr)}
-      style={styles.deleteIconContainer}
-    >
+    <TouchableOpacity onPress={() => setAddressToDelete(addr)} style={styles.deleteIconContainer}>
       <Delete width={20} height={20} />
     </TouchableOpacity>
   );
 
-  // Renderiza o formulário de criação usando FloatingLabelInput
+  // Renderiza o formulário de criação
   const renderForm = () => (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <View style={styles.formContainer}>
+      <View style={styles.formContent}>
         <Text style={styles.title}>Novo Endereço</Text>
 
-        {/* Primeiro campo: CEP */}
+        {Platform.OS === 'ios' && (
+          <InputAccessoryView nativeID="inputAccessory">
+            <View style={styles.accessoryContainer}>
+              <TouchableOpacity onPress={() => Keyboard.dismiss()} style={styles.doneButton}>
+                <Text style={styles.doneButtonText}>Done</Text>
+              </TouchableOpacity>
+            </View>
+          </InputAccessoryView>
+        )}
+
         <FloatingLabelInput
           label="CEP"
           value={cep}
-          onChangeText={(text) => {
+          onChangeText={text => {
             setCep(text);
             setPostalCode(text);
             setCepError('');
@@ -236,52 +280,92 @@ export default function AddressModal({ visible, onClose }: AddressModalProps) {
           onBlur={() => fetchAddressFromCep(cep)}
           keyboardType="numeric"
           returnKeyType="done"
+          inputAccessoryViewID={Platform.OS === 'ios' ? 'inputAccessory' : undefined}
+          onSubmitEditing={Keyboard.dismiss}
         />
         {cepError ? <Text style={styles.errorText}>{cepError}</Text> : null}
 
-        {/* Logradouro */}
         <FloatingLabelInput
           label="Rua"
           value={street}
-          onChangeText={(text) => {
+          onChangeText={text => {
             setStreet(text);
             setStreetError('');
           }}
+          returnKeyType="done"
+          inputAccessoryViewID={Platform.OS === 'ios' ? 'inputAccessory' : undefined}
+          onSubmitEditing={Keyboard.dismiss}
         />
         {streetError ? <Text style={styles.errorText}>{streetError}</Text> : null}
 
-        {/* Cidade */}
-        <FloatingLabelInput
-          label="Cidade"
-          value={city}
-          onChangeText={(text) => {
-            setCity(text);
-            setCityError('');
-          }}
-        />
-        {cityError ? <Text style={styles.errorText}>{cityError}</Text> : null}
-
-        {/* Estado e País na mesma linha */}
         <View style={styles.row}>
-          <View style={{ flex: 1, marginRight: 15 }}>
+          <View style={styles.col}>
+            <FloatingLabelInput
+              label="Número"
+              value={number}
+              onChangeText={text => {
+                setNumber(text);
+                setNumberError('');
+              }}
+              keyboardType="numeric"
+              returnKeyType="done"
+              inputAccessoryViewID={Platform.OS === 'ios' ? 'inputAccessory' : undefined}
+              onSubmitEditing={Keyboard.dismiss}
+            />
+            {numberError ? <Text style={styles.errorText}>{numberError}</Text> : null}
+          </View>
+
+          <View style={styles.col}>
+            <FloatingLabelInput
+              label="Bairro"
+              value={neighborhood}
+              onChangeText={text => {
+                setNeighborhood(text);
+                setNeighborhoodError('');
+              }}
+              returnKeyType="done"
+              inputAccessoryViewID={Platform.OS === 'ios' ? 'inputAccessory' : undefined}
+              onSubmitEditing={Keyboard.dismiss}
+            />
+            {neighborhoodError ? <Text style={styles.errorText}>{neighborhoodError}</Text> : null}
+          </View>
+        </View>
+
+        <View style={styles.row}>
+          <View style={styles.col}>
+            <FloatingLabelInput
+              label="Cidade"
+              value={city}
+              onChangeText={text => {
+                setCity(text);
+                setCityError('');
+              }}
+              returnKeyType="done"
+              inputAccessoryViewID={Platform.OS === 'ios' ? 'inputAccessory' : undefined}
+              onSubmitEditing={Keyboard.dismiss}
+            />
+            {cityError ? <Text style={styles.errorText}>{cityError}</Text> : null}
+          </View>
+          <View style={styles.col}>
             <FloatingLabelInput
               label="Estado"
               value={stateField}
-              onChangeText={(text) => {
-                setStateField(text);
-                setStateError('');
-              }}
+              editable={false}
+              inputAccessoryViewID={undefined}
+              inputStyle={{ opacity: 0.6 }}
             />
             {stateError ? <Text style={styles.errorText}>{stateError}</Text> : null}
           </View>
-          <View style={{ flex: 1 }}>
-            <FloatingLabelInput
-              label="País"
-              value={country}
-              onChangeText={setCountry}
-            />
-          </View>
         </View>
+
+        <FloatingLabelInput
+          label="Complemento (opcional)"
+          value={complement}
+          onChangeText={setComplement}
+          returnKeyType="done"
+          inputAccessoryViewID={Platform.OS === 'ios' ? 'inputAccessory' : undefined}
+          onSubmitEditing={Keyboard.dismiss}
+        />
 
         {serverError ? <Text style={styles.serverErrorText}>{serverError}</Text> : null}
 
@@ -295,12 +379,16 @@ export default function AddressModal({ visible, onClose }: AddressModalProps) {
 
         <TouchableOpacity
           onPress={() => {
-            // Volta para a listagem sem salvar e limpa o formulário
             setIsAdding(false);
             setCep('');
             setCepError('');
             setStreet('');
             setStreetError('');
+            setNumber('');
+            setNumberError('');
+            setNeighborhood('');
+            setNeighborhoodError('');
+            setComplement('');
             setCity('');
             setCityError('');
             setStateField('');
@@ -317,19 +405,22 @@ export default function AddressModal({ visible, onClose }: AddressModalProps) {
     </TouchableWithoutFeedback>
   );
 
-  // Renderiza a lista de endereços + botão Selecionar e ícone de delete
+  // Lista de endereços
   const renderList = () => (
     <>
       {loading ? (
         <ActivityIndicator color="#FFA600" style={{ marginVertical: 16 }} />
       ) : (
-        <ScrollView>
+        <View style={styles.listContainer}>
           {addresses.map(addr => {
             const isSelected = selectedAddress?.id === addr.id;
             return (
               <View key={addr.id} style={styles.card}>
                 <Text style={styles.addressText}>
-                  {addr.street}, {addr.city} - {addr.state}, {addr.postal_code}
+                  {addr.street}, {addr.number}
+                  {addr.neighborhood ? `, ${addr.neighborhood}` : ''}
+                  {addr.complement ? `, ${addr.complement}` : ''} - {addr.city} / {addr.state},{' '}
+                  {addr.postal_code} - {addr.country}
                 </Text>
                 <View style={styles.buttonsRow}>
                   <TouchableOpacity
@@ -346,12 +437,12 @@ export default function AddressModal({ visible, onClose }: AddressModalProps) {
               </View>
             );
           })}
-        </ScrollView>
+        </View>
       )}
     </>
   );
 
-  // Renderiza a confirmação de exclusão
+  // Confirmação de exclusão
   const renderDeleteConfirmation = () => (
     <View style={styles.confirmContainer}>
       <Text style={styles.confirmText}>Tem certeza?</Text>
@@ -366,10 +457,7 @@ export default function AddressModal({ visible, onClose }: AddressModalProps) {
           >
             Excluir Endereço
           </Button>
-          <TouchableOpacity
-            onPress={() => setAddressToDelete(null)}
-            style={styles.closeBtn}
-          >
+          <TouchableOpacity onPress={() => setAddressToDelete(null)} style={styles.closeBtn}>
             <Text style={styles.closeText}>Cancelar</Text>
           </TouchableOpacity>
         </>
@@ -379,31 +467,42 @@ export default function AddressModal({ visible, onClose }: AddressModalProps) {
 
   return (
     <Modal transparent animationType="slide" visible={visible} onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <View style={styles.container}>
-          {addressToDelete ? (
-            renderDeleteConfirmation()
-          ) : isAdding ? (
-            renderForm()
-          ) : (
-            <>
-              <Text style={styles.title}>Selecione um endereço</Text>
-              {renderList()}
-              <Button
-                style={styles.addButton}
-                bgColor="#FFA600"
-                onPress={() => setIsAdding(true)}
-                disabled={loading}
-              >
-                Adicionar Endereço
-              </Button>
-              <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-                <Text style={styles.closeText}>Fechar</Text>
-              </TouchableOpacity>
-            </>
-          )}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={0}
+      >
+        <View style={styles.overlay}>
+          <View style={styles.container}>
+            <ScrollView
+              contentContainerStyle={styles.containerContent}
+              keyboardShouldPersistTaps="handled"
+            >
+              {addressToDelete
+                ? renderDeleteConfirmation()
+                : isAdding
+                ? renderForm()
+                : (
+                    <>
+                      <Text style={styles.title}>Selecione um endereço</Text>
+                      {renderList()}
+                      <Button
+                        style={styles.addButton}
+                        bgColor="#FFA600"
+                        onPress={() => setIsAdding(true)}
+                        disabled={loading}
+                      >
+                        Adicionar Endereço
+                      </Button>
+                      <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+                        <Text style={styles.closeText}>Fechar</Text>
+                      </TouchableOpacity>
+                    </>
+                  )}
+            </ScrollView>
+          </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -415,18 +514,32 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 20,
   },
+  row: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: 12,
+  },
+  col: {
+    flex: 1,
+  },
   container: {
     backgroundColor: '#FFF',
     borderRadius: 20,
-    maxHeight: '80%',
+    width: '100%',
+    overflow: 'hidden',
+  },
+  containerContent: {
     padding: 16,
-    alignItems: 'center',
+    flexGrow: 1,
   },
   title: {
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 12,
     textAlign: 'center',
+  },
+  listContainer: {
+    paddingBottom: 12,
   },
   card: {
     backgroundColor: '#F9F9F9',
@@ -464,10 +577,6 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     padding: 6,
   },
-  deleteIcon: {
-    width: 20,
-    height: 20,
-  },
   addButton: {
     marginTop: 12,
     marginBottom: 8,
@@ -481,12 +590,8 @@ const styles = StyleSheet.create({
     color: '#FFA600',
     fontSize: 16,
   },
-  formContainer: {
+  formContent: {
     width: '100%',
-  },
-  row: {
-    flexDirection: 'row',
-    marginBottom: 12,
   },
   errorText: {
     color: 'red',
@@ -511,5 +616,21 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 20,
     textAlign: 'center',
+  },
+  accessoryContainer: {
+    backgroundColor: '#f2f2f2',
+    borderTopWidth: 1,
+    borderColor: '#ddd',
+    padding: 8,
+    alignItems: 'flex-end',
+  },
+  doneButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  doneButtonText: {
+    color: '#007AFF',
+    fontSize: 16,
+    fontWeight: '500',
   },
 });

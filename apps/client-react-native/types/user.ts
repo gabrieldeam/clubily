@@ -18,6 +18,8 @@ export interface UserRead {
   name: string;
   email: string;
   phone?: string;
+  /** Agora incluímos CPF */
+  cpf: string;
   is_active: boolean;
   role: Role;
   created_at: string;
@@ -39,6 +41,8 @@ export interface UserCreate {
   name: string;
   email: string;
   password: string;
+  /** CPF é obrigatório no payload de cadastro */
+  cpf: string;
   phone?: string;
   accepted_terms: boolean;
   company_id?: string;
@@ -49,6 +53,8 @@ export interface UserUpdate {
   email?: string;
   password?: string;
   phone?: string;
+  /** Agora permitimos atualizar o CPF, opcional */
+  cpf?: string;
   company_ids?: string[];
 }
 

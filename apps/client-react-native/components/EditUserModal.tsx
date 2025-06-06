@@ -7,35 +7,45 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  ScrollView,
   Keyboard,
   TouchableWithoutFeedback,
+  InputAccessoryView,
+  Platform,
+  KeyboardAvoidingView,
+  Alert, // <- import Alert aqui
 } from 'react-native';
-import { getCurrentUser, updateCurrentUser } from '../services/userService'; // Supondo que seus serviços de usuário estejam aqui
-import type { UserRead, UserUpdate } from '../types/user'; // Supondo que seus tipos de usuário estejam aqui
+import { getCurrentUser, updateCurrentUser } from '../services/userService';
+import type { UserRead, UserUpdate } from '../types/user';
 
-// Import dos componentes customizados
 import { Button } from '../components/Button';
 import FloatingLabelInput from '../components/FloatingLabelInput';
 
 interface EditUserModalProps {
   visible: boolean;
   onClose: () => void;
-  onUserUpdated?: (updatedUser: UserRead) => void; // Callback opcional para quando o usuário for atualizado
+  onUserUpdated?: (updatedUser: UserRead) => void;
 }
 
-export default function EditUserModal({ visible, onClose, onUserUpdated }: EditUserModalProps) {
+export default function EditUserModal({
+  visible,
+  onClose,
+  onUserUpdated,
+}: EditUserModalProps) {
   const [loading, setLoading] = useState(false);
-  const [initialLoading, setInitialLoading] = useState(false); // Loading para busca inicial do usuário
+  const [initialLoading, setInitialLoading] = useState(false);
 
   // Estados do formulário de edição
   const [name, setName] = useState('');
   const [nameError, setNameError] = useState('');
+
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
+
   const [phone, setPhone] = useState('');
-  const [phoneError, setPhoneError] = useState(''); // Opcional, mas pode ser útil
-  const [serverError, setServerError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+
+  const [cpf, setCpf] = useState('');
+  const [cpfError, setCpfError] = useState('');
 
   // Quando o modal abre, carregamos os dados do usuário atual
   useEffect(() => {
@@ -43,23 +53,29 @@ export default function EditUserModal({ visible, onClose, onUserUpdated }: EditU
 
     const fetchUserData = async () => {
       setInitialLoading(true);
-      setServerError('');
       setNameError('');
       setEmailError('');
       setPhoneError('');
+      setCpfError('');
+
       try {
         const res = await getCurrentUser();
         const userData = res.data;
+
         setName(userData.name || '');
         setEmail(userData.email || '');
         setPhone(userData.phone || '');
+        setCpf(userData.cpf || '');
       } catch (err) {
         console.error('Erro ao buscar dados do usuário:', err);
-        setServerError('Falha ao carregar dados do usuário.');
-        // Limpar campos em caso de erro para não mostrar dados antigos
+        Alert.alert(
+          'Erro',
+          'Falha ao carregar dados do usuário. Tente novamente mais tarde.'
+        );
         setName('');
         setEmail('');
         setPhone('');
+        setCpf('');
       } finally {
         setInitialLoading(false);
       }
@@ -71,22 +87,40 @@ export default function EditUserModal({ visible, onClose, onUserUpdated }: EditU
   // Validações antes de enviar ao backend
   const validateFields = (): boolean => {
     let valid = true;
+
     if (!name.trim()) {
       setNameError('Nome é obrigatório');
       valid = false;
     }
+
     if (!email.trim()) {
       setEmailError('Email é obrigatório');
       valid = false;
-    } else if (!/\S+@\S+\.\S+/.test(email)) { // Validação simples de email
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
       setEmailError('Email inválido');
       valid = false;
     }
-    // Adicionar validação de telefone se necessário
-    // Ex: if (phone.trim() && !/^\d{10,11}$/.test(phone.replace(/\D/g, ''))) {
-    //   setPhoneError('Telefone inválido');
-    //   valid = false;
-    // }
+
+    // Validação de telefone (obrigatório, aceita E.164)
+    const onlyDigitsPhone = phone.replace(/\D/g, '');
+    if (!onlyDigitsPhone) {
+      setPhoneError('Telefone é obrigatório');
+      valid = false;
+    } else if (onlyDigitsPhone.length < 10) {
+      setPhoneError('Telefone inválido');
+      valid = false;
+    }
+
+    // Validação de CPF (11 dígitos)
+    const onlyDigitsCpf = cpf.replace(/\D/g, '');
+    if (!onlyDigitsCpf) {
+      setCpfError('CPF é obrigatório');
+      valid = false;
+    } else if (onlyDigitsCpf.length !== 11) {
+      setCpfError('CPF deve ter 11 dígitos');
+      valid = false;
+    }
+
     return valid;
   };
 
@@ -96,7 +130,7 @@ export default function EditUserModal({ visible, onClose, onUserUpdated }: EditU
     setNameError('');
     setEmailError('');
     setPhoneError('');
-    setServerError('');
+    setCpfError('');
 
     if (!validateFields()) {
       return;
@@ -105,7 +139,8 @@ export default function EditUserModal({ visible, onClose, onUserUpdated }: EditU
     const payload: UserUpdate = {
       name: name.trim(),
       email: email.trim(),
-      phone: phone.trim() || undefined, // Envia undefined se vazio para não limpar no backend se não for intenção
+      phone: phone.trim(),
+      cpf: cpf.replace(/\D/g, ''),
     };
 
     try {
@@ -116,24 +151,40 @@ export default function EditUserModal({ visible, onClose, onUserUpdated }: EditU
       if (onUserUpdated) {
         onUserUpdated(updatedUser);
       }
-      onClose(); // Fecha o modal após o sucesso
+      onClose();
     } catch (err: any) {
-      if (err.response?.data?.message) {
-        setServerError(err.response.data.message);
-      } else if (err.response?.data?.errors) {
-        // Se o backend retornar erros específicos por campo
+      // 1) Se o backend retornou "detail" (mensagem simples)
+      if (err.response?.data?.detail) {
+        Alert.alert('Erro', err.response.data.detail);
+      }
+      // 2) Se o backend retornou erros específicos de campo em "errors"
+      else if (err.response?.data?.errors) {
         const errors = err.response.data.errors;
         if (errors.name) setNameError(errors.name.join(', '));
         if (errors.email) setEmailError(errors.email.join(', '));
         if (errors.phone) setPhoneError(errors.phone.join(', '));
-        if (!errors.name && !errors.email && !errors.phone) {
-            setServerError('Erro ao atualizar usuário. Verifique os campos.');
+        if (errors.cpf) setCpfError(errors.cpf.join(', '));
+
+        // Se não tiver nenhum erro de campo, mando um alerta genérico
+        if (
+          !errors.name &&
+          !errors.email &&
+          !errors.phone &&
+          !errors.cpf
+        ) {
+          Alert.alert(
+            'Erro',
+            'Ocorreu um problema ao atualizar. Verifique os campos e tente novamente.'
+          );
         }
       }
+      // 3) Qualquer outro tipo de erro (rede, timeout, etc.)
       else {
-        setServerError('Erro ao atualizar usuário.');
+        Alert.alert(
+          'Erro',
+          'Não foi possível atualizar. Verifique sua conexão e tente novamente.'
+        );
       }
-      console.error('Erro ao atualizar usuário:', err);
     } finally {
       setLoading(false);
     }
@@ -146,7 +197,11 @@ export default function EditUserModal({ visible, onClose, onUserUpdated }: EditU
         <Text style={styles.title}>Editar Perfil</Text>
 
         {initialLoading ? (
-          <ActivityIndicator color="#FFA600" style={{ marginVertical: 32 }} size="large" />
+          <ActivityIndicator
+            color="#FFA600"
+            style={{ marginVertical: 32 }}
+            size="large"
+          />
         ) : (
           <>
             {/* Nome */}
@@ -157,6 +212,11 @@ export default function EditUserModal({ visible, onClose, onUserUpdated }: EditU
                 setName(text);
                 setNameError('');
               }}
+              inputAccessoryViewID={
+                Platform.OS === 'ios' ? 'inputAccessory' : undefined
+              }
+              returnKeyType="done"
+              onSubmitEditing={Keyboard.dismiss}
             />
             {nameError ? <Text style={styles.errorText}>{nameError}</Text> : null}
 
@@ -170,22 +230,48 @@ export default function EditUserModal({ visible, onClose, onUserUpdated }: EditU
               }}
               keyboardType="email-address"
               autoCapitalize="none"
+              inputAccessoryViewID={
+                Platform.OS === 'ios' ? 'inputAccessory' : undefined
+              }
+              returnKeyType="done"
+              onSubmitEditing={Keyboard.dismiss}
             />
             {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
 
             {/* Telefone */}
             <FloatingLabelInput
-              label="Telefone (Opcional)"
+              label="Telefone"
               value={phone}
               onChangeText={(text) => {
                 setPhone(text);
                 setPhoneError('');
               }}
               keyboardType="phone-pad"
+              inputAccessoryViewID={
+                Platform.OS === 'ios' ? 'inputAccessory' : undefined
+              }
+              returnKeyType="done"
+              onSubmitEditing={Keyboard.dismiss}
             />
             {phoneError ? <Text style={styles.errorText}>{phoneError}</Text> : null}
 
-            {serverError ? <Text style={styles.serverErrorText}>{serverError}</Text> : null}
+            {/* CPF */}
+            <FloatingLabelInput
+              label="CPF"
+              value={cpf}
+              onChangeText={(text) => {
+                setCpf(text);
+                setCpfError('');
+              }}
+              keyboardType="numeric"
+              maxLength={14}
+              inputAccessoryViewID={
+                Platform.OS === 'ios' ? 'inputAccessory' : undefined
+              }
+              returnKeyType="done"
+              onSubmitEditing={Keyboard.dismiss}
+            />
+            {cpfError ? <Text style={styles.errorText}>{cpfError}</Text> : null}
 
             {loading ? (
               <ActivityIndicator color="#FFA600" style={{ marginVertical: 12 }} />
@@ -197,7 +283,7 @@ export default function EditUserModal({ visible, onClose, onUserUpdated }: EditU
 
             <TouchableOpacity
               onPress={() => {
-                onClose(); // Apenas fecha, os dados serão recarregados na próxima abertura
+                onClose();
               }}
               style={[styles.closeBtn, { marginTop: 8 }]}
               disabled={loading}
@@ -212,16 +298,34 @@ export default function EditUserModal({ visible, onClose, onUserUpdated }: EditU
 
   return (
     <Modal transparent animationType="slide" visible={visible} onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <View style={styles.container}>
-          {renderForm()}
+      {/* KeyboardAvoidingView para subir o conteúdo em 50 quando o teclado abrir */}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={0}
+      >
+        <View style={styles.overlay}>
+          <View style={styles.container}>{renderForm()}</View>
+
+          {/* InputAccessoryView (iOS) */}
+          {Platform.OS === 'ios' && (
+            <InputAccessoryView nativeID="inputAccessory">
+              <View style={styles.accessoryContainer}>
+                <TouchableOpacity
+                  onPress={() => Keyboard.dismiss()}
+                  style={styles.doneButton}
+                >
+                  <Text style={styles.doneButtonText}>Done</Text>
+                </TouchableOpacity>
+              </View>
+            </InputAccessoryView>
+          )}
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
-// Você pode reutilizar os estilos da AddressModal ou ajustá-los conforme necessário
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
@@ -233,16 +337,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
     borderRadius: 20,
     padding: 16,
-    maxHeight: '90%', // Aumentar um pouco se necessário para o formulário
+    maxHeight: '90%',
   },
   title: {
     fontSize: 18,
     fontWeight: '600',
-    marginBottom: 16, // Aumentar um pouco o espaçamento
+    marginBottom: 16,
     textAlign: 'center',
   },
   formContainer: {
-    // Espaçamento herdado do container
+    // Herdado do container
   },
   errorText: {
     color: 'red',
@@ -250,12 +354,6 @@ const styles = StyleSheet.create({
     marginTop: -8,
     marginBottom: 8,
     marginLeft: 4,
-  },
-  serverErrorText: {
-    color: 'red',
-    fontSize: 14,
-    marginVertical: 8,
-    textAlign: 'center',
   },
   closeBtn: {
     marginTop: 8,
@@ -265,5 +363,22 @@ const styles = StyleSheet.create({
     color: '#FFA600',
     fontSize: 16,
   },
-  // Adicione ou ajuste estilos conforme necessário
+
+  /* Estilos do InputAccessoryView */
+  accessoryContainer: {
+    backgroundColor: '#f2f2f2',
+    borderTopWidth: 1,
+    borderColor: '#ddd',
+    padding: 8,
+    alignItems: 'flex-end',
+  },
+  doneButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  doneButtonText: {
+    color: '#007AFF',
+    fontSize: 16,
+    fontWeight: '500',
+  },
 });

@@ -90,3 +90,7 @@ export const updateCompany = (companyId: string, payload: CompanyUpdate) =>
  */
 export const logoutCompany = () =>
   api.post<void>('/companies/logout');
+
+// 8. Solicitação de exclusão de conta empresarial
+export const requestCompanyDeletion = () =>
+  api.post<{ msg: string }>('/companies/me/delete-request');

@@ -53,8 +53,9 @@ def pre_register(
 
 @router.get(
     "/pre-registered",
+    response_model=UserRead,
     status_code=status.HTTP_200_OK,
-    summary="Verifica se já existe pré-cadastro de telefone/CPF para uma empresa"
+    summary="Retorna o usuário vinculado (lead ou completo), se existir"
 )
 def is_pre_registered(
     *,
@@ -64,14 +65,14 @@ def is_pre_registered(
     db: Session = Depends(get_db),
 ):
     """
-    Retorna {"pre_registered": true/false} indicando
-    se já existe um lead (pre_registered=True) com esse
-    telefone OU CPF para a empresa informada.
+    Busca um usuário (lead ou completo) que já esteja vinculado àquela empresa,
+    pelo telefone OU CPF informado. Se encontrar, devolve os dados via UserRead;
+    caso contrário, devolve 404.
     """
     if not phone and not cpf:
         raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            detail="É necessário fornecer phone ou cpf para verificar pré‐cadastro"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="É necessário fornecer phone ou cpf para verificar associação"
         )
 
     # 1) Normaliza
@@ -82,7 +83,7 @@ def is_pre_registered(
             normalized_phone = normalize_phone(phone)
         except ValueError:
             raise HTTPException(
-                status.HTTP_400_BAD_REQUEST,
+                status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Telefone inválido"
             )
     if cpf:
@@ -90,27 +91,30 @@ def is_pre_registered(
             normalized_cpf = normalize_cpf(cpf)
         except ValueError:
             raise HTTPException(
-                status.HTTP_400_BAD_REQUEST,
+                status_code=status.HTTP_400_BAD_REQUEST,
                 detail="CPF inválido"
             )
 
-    # 2) Monta a query
+    # 2) Busca o User vinculado àquela empresa que tenha o telefone OU o CPF
     from sqlalchemy import or_
-    q = (
+    user = (
         db.query(User)
           .join(User.companies)
           .filter(
               Company.id == company_id,
-              User.pre_registered == True,
               or_(
                   *( [User.phone == normalized_phone] if normalized_phone else [] ),
-                  *( [User.cpf == normalized_cpf] if normalized_cpf else [] )
+                  *( [User.cpf   == normalized_cpf]   if normalized_cpf   else [] )
               )
           )
+          .first()
     )
 
-    exists = db.query(q.exists()).scalar()
-    return {"pre_registered": exists}
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado")
+
+    return user
+
 
 
 @router.post("/register", response_model=Token, status_code=201)

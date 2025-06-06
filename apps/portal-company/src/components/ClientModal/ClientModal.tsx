@@ -4,7 +4,7 @@
 import { FormEvent, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { preRegister, checkPreRegistered } from '@/services/userService';
-import type { LeadCreate } from '@/types/user';
+import type { LeadCreate, UserRead } from '@/types/user';
 import FloatingLabelInput from '@/components/FloatingLabelInput/FloatingLabelInput';
 import Notification from '@/components/Notification/Notification';
 import Button from '@/components/Button/Button';
@@ -19,8 +19,12 @@ export default function ClientModal({ onClose }: ClientModalProps) {
   const companyId = user?.id ?? '';
 
   const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
+  const [cpf, setCpf] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Se já encontrarmos um usuário existente, armazenamos aqui
+  const [existingUser, setExistingUser] = useState<UserRead | null>(null);
+
   const [notification, setNotification] = useState<{
     type: 'success' | 'error' | 'info';
     message: string;
@@ -34,25 +38,15 @@ export default function ClientModal({ onClose }: ClientModalProps) {
       return;
     }
 
-    // Remove tudo que não for dígito do telefone
+    // Remove tudo que não for dígito de phone e cpf
     const rawPhone = phone.replace(/\D/g, '');
-    // Converte e-mail para lowercase e trim
-    const rawEmail = email.trim().toLowerCase();
+    const rawCpf = cpf.replace(/\D/g, '');
 
-    // Validação: pelo menos um dos dois (telefone ou e-mail) deve estar preenchido
-    if (!rawPhone && !rawEmail) {
+    // Validação: pelo menos um dos dois deve estar preenchido
+    if (!rawPhone && !rawCpf) {
       setNotification({
         type: 'error',
-        message: 'Informe pelo menos Telefone ou E-mail do cliente.',
-      });
-      return;
-    }
-
-    // Se e-mail estiver presente, checa formato básico
-    if (rawEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail)) {
-      setNotification({
-        type: 'error',
-        message: 'E-mail inválido.',
+        message: 'Informe pelo menos Telefone ou CPF do cliente.',
       });
       return;
     }
@@ -60,44 +54,117 @@ export default function ClientModal({ onClose }: ClientModalProps) {
     setLoading(true);
     setNotification(null);
 
-    // Monta o payload como LeadCreate (email e phone são opcionais)
+    // Monta o payload como LeadCreate (campo email foi removido)
     const payload = {
       company_id: companyId,
       phone: rawPhone || undefined,
-      email: rawEmail || undefined,
+      cpf: rawCpf || undefined,
     } as LeadCreate;
 
     try {
-      // Checa se já existe pré-registro para esse telefone ou e-mail
-      const check = await checkPreRegistered(payload);
-      if (check.data.pre_registered) {
+      // 1) Tenta buscar usuário existente
+      const response = await checkPreRegistered(payload);
+      // Se chegamos aqui, o servidor retornou 200 com um UserRead
+      const userFound: UserRead = response.data;
+      setExistingUser(userFound);
+      setNotification({
+        type: 'info',
+        message: 'Cliente já pré-registrado. Veja os dados abaixo.',
+      });
+    } catch (err: any) {
+      // Se for 404, significa que NÃO encontrou; aí chamamos preRegister
+      if (err.response?.status === 404) {
+        try {
+          await preRegister(payload);
+          setNotification({
+            type: 'success',
+            message: 'Cliente pré-registrado com sucesso!',
+          });
+          setPhone('');
+          setCpf('');
+        } catch (err2: any) {
+          console.error(err2);
+          setNotification({
+            type: 'error',
+            message:
+              err2.response?.data?.detail ||
+              'Erro ao pré-registrar o cliente. Tente novamente.',
+          });
+        }
+      } else if (err.response?.status === 400) {
         setNotification({
           type: 'error',
-          message: 'Este cliente já está pré-registrado.',
+          message: err.response.data.detail ?? 'Requisição inválida.',
         });
       } else {
-        // Faz o preRegister passando o payload
-        await preRegister(payload);
+        console.error(err);
         setNotification({
-          type: 'success',
-          message: 'Cliente pré-registrado com sucesso!',
+          type: 'error',
+          message: 'Erro inesperado. Tente novamente mais tarde.',
         });
-        setPhone('');
-        setEmail('');
       }
-    } catch (err: any) {
-      console.error(err);
-      setNotification({
-        type: 'error',
-        message:
-          err.response?.data?.detail ||
-          'Erro ao pré-registrar o cliente. Tente novamente.',
-      });
     } finally {
       setLoading(false);
     }
   };
 
+  // Renderiza informações do usuário já cadastrado (com mascaramento, se for pre_registered)
+  if (existingUser) {
+    const isPre = existingUser.pre_registered === true;
+
+    // Mascara name e email sempre que isPre === true
+    const displayName = isPre ? '*****' : existingUser.name;
+    const displayEmail = isPre ? '*****' : existingUser.email;
+
+    // Para o CPF, se isPre e últimos 6 dígitos do CPF === telefone, mascara; senão, exibe normal
+    let displayCpf = existingUser.cpf;
+    if (isPre && existingUser.phone) {
+      const last6Cpf = existingUser.cpf.slice(-6);
+      const last6Phone = existingUser.phone.slice(-6);
+      if (last6Cpf === last6Phone) {
+        displayCpf = '*****';
+      }
+    }
+
+    return (
+      <div className={styles.container}>
+        <h2 className={styles.title}>Cliente Pré-registrado</h2>
+
+        {notification && (
+          <Notification
+            type={notification.type}
+            message={notification.message}
+            onClose={() => setNotification(null)}
+          />
+        )}
+
+        <div className={styles.userInfo}>
+          <p>
+            <strong>Nome</strong> {displayName}
+          </p>
+          <p>
+            <strong>E-mail</strong> {displayEmail}
+          </p>
+          <p>
+            <strong>CPF</strong> {displayCpf}
+          </p>
+          {existingUser.phone && (
+            <p>
+              <strong>Telefone</strong> {existingUser.phone}
+            </p>
+          )}
+        </div>
+
+        <div className={styles.actions}>
+          <Button type="button" onClick={onClose}>
+            Fechar
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Caso contrário, renderiza o formulário normalmente
   return (
     <form className={styles.form} onSubmit={handleSubmit}>
       <h2 className={styles.title}>Pré-cadastrar Cliente</h2>
@@ -123,14 +190,14 @@ export default function ClientModal({ onClose }: ClientModalProps) {
       {/* Separador “— e/ou —” */}
       <div className={styles.separator}>e/ou</div>
 
-      {/* Campo E-mail */}
+      {/* Campo CPF */}
       <FloatingLabelInput
-        id="client-email"
-        name="email"
-        label="E-mail do cliente"
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
+        id="client-cpf"
+        name="cpf"
+        label="CPF do cliente"
+        type="text"
+        value={cpf}
+        onChange={(e) => setCpf(e.target.value)}
       />
 
       <div className={styles.actions}>

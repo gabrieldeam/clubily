@@ -6,50 +6,76 @@ from ..core.security import hash_password
 from ..schemas.user import UserCreate
 from sqlalchemy import or_
 
-def get_by_email_or_phone_or_cpf(db: Session, email: str, phone: str, cpf: str) -> User | None:
-    """
-    Tenta encontrar um lead (pre_registered=True) via e-mail OU telefone OU cpf.
-    """
-    query = db.query(User).filter(
-        User.pre_registered == True,
-        or_(
-            User.email == email.lower() if email else False,
-            User.phone == phone if phone else False,
-            User.cpf == cpf if cpf else False,
-        )
-    )
-    return query.first()
-
 def create(db: Session, obj_in: UserCreate) -> User:
     """
-    Cria um usuário completo. Se existir lead (pre_registered=True) via email/phone/cpf,
-    reaproveita esse registro; senão, cria do zero.
+    Cria um usuário completo. Se existir um ou mais leads (pre_registered=True)
+    via e-mail, telefone ou CPF, faz o merge desses leads em um único registro,
+    reaproveitando-o. Senão, cria um novo usuário do zero.
+
+    - Se encontrar múltiplos leads correspondentes, escolhe o primeiro como "primário",
+      transfere para ele todas as empresas dos demais e exclui os duplicados.
+    - Depois faz update dos campos obrigatórios (nome, senha, e-mail, telefone, CPF, accepted_terms)
+      e marca pre_registered=False.
+    - Retorna o registro final (novo ou lead transformado).
     """
-    # 1) Normalizar campos de busca
+    # 1) Normalizar identificadores para busca
     email_lower = obj_in.email.lower()
-    phone_norm = obj_in.phone
-    cpf_norm = obj_in.cpf
+    phone_norm  = obj_in.phone
+    cpf_norm    = obj_in.cpf
 
-    # 2) Tenta reaproveitar lead pré‐cadastrado
-    user = get_by_email_or_phone_or_cpf(db, email_lower, phone_norm or "", cpf_norm or "")
-    if not user:
-        # cria "do zero"
+    # 2) Buscar todos os leads (pre_registered=True) que casem em e-mail OU telefone OU CPF
+    leads_query = (
+        db.query(User)
+          .filter(User.pre_registered == True)
+          .filter(
+              or_(
+                  User.email == email_lower,
+                  User.phone == phone_norm if phone_norm else False,
+                  User.cpf   == cpf_norm   if cpf_norm   else False,
+              )
+          )
+    )
+    leads: list[User] = leads_query.all()
+
+    if leads:
+        # 3) Se houver pelo menos um lead, faça merge
+        primary = leads[0]  # vamos reaproveitar este
+        # 3.1) Para cada lead extra, transfira empresas e depois exclua
+        for duplicate in leads[1:]:
+            # transfere empresas que ainda não existam em `primary.companies`
+            primary_company_ids = {c.id for c in primary.companies}
+            for comp in duplicate.companies:
+                if comp.id not in primary_company_ids:
+                    primary.companies.append(comp)
+
+            # exclui o usuário duplicado da sessão/banco
+            db.delete(duplicate)
+
+        db.commit()
+        db.refresh(primary)
+        user = primary
+    else:
+        # 4) Não encontrou lead algum: crie um novo registro mínimo
         user = User(
-            email=email_lower,
-            phone=phone_norm,
-            cpf=cpf_norm,
+            email=obj_in.email.lower(),
+            phone=obj_in.phone,
+            cpf=obj_in.cpf,
         )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
 
-    # 3) Atualiza todos os campos do usuário
-    user.name = obj_in.name
+    # 5) Agora `user` é ou o lead unificado ou o novo registro em branco.
+    #    Atualize todos os campos que vieram no payload:
+    user.name            = obj_in.name
     user.hashed_password = hash_password(obj_in.password)
-    user.email = email_lower
-    user.phone = phone_norm
-    user.cpf = cpf_norm
-    user.accepted_terms = obj_in.accepted_terms
-    user.pre_registered = False
+    user.email           = email_lower
+    user.phone           = phone_norm
+    user.cpf             = cpf_norm
+    user.accepted_terms  = obj_in.accepted_terms
+    user.pre_registered  = False  # agora é usuário completo
 
-    # 4) (Opcional) vincula múltiplas empresas
+    # 6) Vincular empresas (se vierem no payload)
     if obj_in.company_ids:
         from app.models.company import Company
         current_ids = {c.id for c in user.companies}
@@ -59,7 +85,7 @@ def create(db: Session, obj_in: UserCreate) -> User:
                 if comp:
                     user.companies.append(comp)
 
-    # 5) Persiste
+    # 7) Persistir as alterações (o `user` já estava no DB)
     db.add(user)
     db.commit()
     db.refresh(user)
