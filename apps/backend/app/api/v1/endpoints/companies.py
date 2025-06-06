@@ -14,6 +14,7 @@ from ....services.company_service import create, authenticate
 from ....core.config import settings
 from ....core.email_utils import send_email
 from jose import jwt
+from app.core.security import create_access_token 
 from app.models.user import User
 from app.models.company import Company
 from ....schemas.user import UserRead
@@ -23,30 +24,25 @@ from app.models.association import user_companies
 
 router = APIRouter(tags=["companies"])
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
 @router.post(
     "/register",
-    response_model=CompanyRead,
+    response_model=Token,  # agora devolve Token (access_token)
     status_code=status.HTTP_201_CREATED,
 )
 def register_company(
     payload: CompanyCreate,
     background: BackgroundTasks,
+    response: Response,           # para setar o cookie
     db: Session = Depends(get_db),
 ):
     """
-    Registra uma nova empresa.
+    Registra uma nova empresa e, logo após, gera e devolve um JWT no cookie e no JSON.
     Verifica:
     - aceitação dos termos (accepted_terms deve ser True)
     - unicidade de email, telefone e CNPJ
     Envia um e-mail de confirmação após criar.
     """
+
     # 1) Checa aceitação dos termos
     if not payload.accepted_terms:
         raise HTTPException(
@@ -78,8 +74,18 @@ def register_company(
     # 5) Cria a empresa
     company = create(db, payload)
 
-    # 6) Dispara envio de e-mail de verificação em background
-    token = jwt.encode({"sub": str(company.id)}, settings.SECRET_KEY, algorithm="HS256")
+    # 6) Gera o JWT de sessão e seta no cookie
+    token = create_access_token(str(company.id))
+    response.set_cookie(
+        key=settings.COOKIE_NAME,
+        value=token,
+        httponly=True,
+        secure=settings.FRONTEND_ORIGINS[0].startswith("https://"),
+        samesite="lax",
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+    )
+
+    # 7) Dispara envio de e-mail de verificação em background
     verify_url = f"{settings.FRONTEND_ORIGINS[0]}/companies/verify-email?token={token}"
     background.add_task(
         send_email,
@@ -88,7 +94,8 @@ def register_company(
         html=f"<p>Clique <a href='{verify_url}'>aqui</a> para confirmar sua conta.</p>",
     )
 
-    return company
+    # 8) Retorna o token no JSON
+    return {"access_token": token}
 
 @router.get("/verify-email", status_code=200)
 def verify_email_company(token: str, db: Session = Depends(get_db)):
@@ -297,9 +304,7 @@ async def upload_company_logo(
 
     return {"logo_url": public_url}
 
-
-
-@router.get("/search", response_model=List[CompanyRead])
+@router.get("/searchAdmin", response_model=List[CompanyRead])
 def search_companies(
     city: Optional[str] = Query(None),
     state: Optional[str] = Query(None),
@@ -319,11 +324,34 @@ def search_companies(
         q = q.filter(Company.postal_code == postal_code)
     return q.all()
 
+@router.get("/search", response_model=List[CompanyRead])
+def search_companies(
+    city: Optional[str] = Query(None),
+    state: Optional[str] = Query(None),
+    postal_code: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+):
+    """
+    Filtra empresas ativas pela combinação de city, state e/ou postal_code.
+    Se nenhum parâmetro for passado, retorna todas as empresas ativas.
+    """
+    q = db.query(Company).filter(Company.is_active == True)  # <-- só empresas ativas
+
+    if city:
+        q = q.filter(Company.city.ilike(f"%{city}%"))
+    if state:
+        q = q.filter(Company.state.ilike(f"%{state}%"))
+    if postal_code:
+        q = q.filter(Company.postal_code == postal_code)
+
+    return q.all()
+
+
 @router.get(
     "/search-by-category",
     response_model=List[CompanyRead],
     status_code=status.HTTP_200_OK,
-    summary="Busca empresas por localização e categoria"
+    summary="Busca empresas ativas por localização e categoria"
 )
 def search_companies_by_category(
     category_id: str = Query(..., description="ID da categoria para filtrar"),
@@ -333,10 +361,13 @@ def search_companies_by_category(
     db: Session = Depends(get_db),
 ):
     """
-    Retorna empresas que pertencem à `category_id` e opcionalmente filtradas
-    por cidade, estado e/ou CEP.
+    Retorna empresas ativas que pertencem à `category_id` e opcionalmente
+    filtradas por cidade, estado e/ou CEP.
     """
-    q = db.query(Company)
+    # 1) Começa filtrando apenas empresas ativas
+    q = db.query(Company).filter(Company.is_active == True)
+
+    # 2) Aplica filtros de localização (se fornecidos)
     if city:
         q = q.filter(Company.city.ilike(f"%{city}%"))
     if state:
@@ -344,16 +375,17 @@ def search_companies_by_category(
     if postal_code:
         q = q.filter(Company.postal_code == postal_code)
 
-    # junta com categorias e filtra pela escolhida
-    q = q.join(Company.categories).filter(Category.id == category_id)
-    q = q.distinct()
+    # 3) Junta com categorias e filtra pela escolhida
+    q = q.join(Company.categories).filter(Category.id == category_id).distinct()
+
     return q.all()
+
 
 @router.get(
     "/search-by-name",
     response_model=List[CompanyReadWithService],
     status_code=status.HTTP_200_OK,
-    summary="Busca empresas por nome e indica se servem o endereço dado"
+    summary="Busca empresas ativas por nome e indica se servem o endereço dado"
 )
 def search_companies_by_name(
     name: str = Query(..., description="Termo de busca no nome da empresa"),
@@ -363,13 +395,16 @@ def search_companies_by_name(
     db: Session = Depends(get_db),
 ):
     """
-    Procura empresas cujo nome contenha 'name' (case-insensitive),
+    Procura empresas ativas cujo nome contenha 'name' (case-insensitive),
     e para cada uma indica se ela atende o endereço (city, street, postal_code) fornecido.
     """
-    # 1) busca pelo nome
+    # 1) busca apenas empresas ativas com nome LIKE
     companies = (
         db.query(Company)
-        .filter(Company.name.ilike(f"%{name}%"))
+        .filter(
+            Company.is_active == True,         # só ativas
+            Company.name.ilike(f"%{name}%")    # nome que contenha `name`
+        )
         .all()
     )
 
@@ -386,11 +421,13 @@ def search_companies_by_name(
 
         # 3) serializa o Company para dict via CompanyRead
         comp_dict = CompanyRead.model_validate(comp).model_dump()
+
         # 4) injeta o novo campo
         comp_dict["serves_address"] = served
         results.append(comp_dict)
 
     return results
+
 
 @router.get(
     "/{company_id}/status",
@@ -447,7 +484,7 @@ def update_company(
 
     data = payload.model_dump(exclude_unset=True)
 
-    # trata mudança de e-mail
+    # Se alterou e-mail, trata verificação igual antes...
     if "email" in data:
         new_email = data.pop("email").lower()
         if new_email != company.email:
@@ -462,23 +499,22 @@ def update_company(
                 html=f"<p>Você alterou seu e-mail. Clique <a href='{verify_url}'>aqui</a> para confirmar.</p>",
             )
 
-    # trata categorias
+    # Se vier category_ids, já estava correto...
     if "category_ids" in data:
         ids = data.pop("category_ids")
-
-        # busca categorias e elimina duplicatas por causa de joined eager loads
         cats_result = db.scalars(
             select(Category).where(Category.id.in_(ids))
         )
         cats = cats_result.unique().all()
-
         company.categories = cats
 
-    # trata logo_url
-    if "logo_url" in data:
-        company.logo_url = data.pop("logo_url")
+    # Antes de fazer setattr para todos os campos, pego online_url para converter
+    if "online_url" in data:
+        # Converte o HttpUrl (ou Url) para string pura
+        raw_url = data.pop("online_url")
+        company.online_url = str(raw_url)
 
-    # aplica demais campos
+    # Agora aplica os demais campos diretamente
     for field, value in data.items():
         setattr(company, field, value)
 
@@ -502,7 +538,7 @@ def logout_company(
     response.delete_cookie(
         key=settings.COOKIE_NAME,
         httponly=True,
-        secure=False,      # em prod, coloque True se usar HTTPS
+        secure=False,
         samesite="lax",
         path="/",
     )

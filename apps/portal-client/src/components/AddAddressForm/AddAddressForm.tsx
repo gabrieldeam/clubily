@@ -17,9 +17,13 @@ export default function AddAddressForm({ onSuccess }: AddAddressFormProps) {
   const [form, setForm] = useState<AddressCreate>({
     postal_code: '',
     street: '',
+    number: '',
+    neighborhood: '',
+    complement: '',
     city: '',
     state: '',
     country: 'Brasil',
+    is_selected: false,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,10 +35,29 @@ export default function AddAddressForm({ onSuccess }: AddAddressFormProps) {
     'RS','RO','RR','SC','SP','SE','TO'
   ];
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
+  function handleChange(
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) {
     const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
+
+  // Se for um input de checkbox, fazemos cast para HTMLInputElement para acessar `checked`.
+  if (
+    e.target instanceof HTMLInputElement &&
+    e.target.type === 'checkbox'
+  ) {
+   const checkboxTarget = e.target as HTMLInputElement;
+    setForm(prev => ({
+      ...prev,
+      [name]: checkboxTarget.checked,
+    }));
+  } else {
+    // Caso contrário, pegamos `value` normalmente (select ou input text)
+    setForm(prev => ({
+      ...prev,
+      [name]: value,
+    }));
   }
+}
 
   async function handleCepBlur() {
     const raw = form.postal_code.replace(/\D/g, '');
@@ -50,6 +73,7 @@ export default function AddAddressForm({ onSuccess }: AddAddressFormProps) {
       setForm(prev => ({
         ...prev,
         street: data.logradouro || '',
+        neighborhood: data.bairro || '',
         city: data.localidade || '',
         state: data.uf || '',
       }));
@@ -75,8 +99,6 @@ export default function AddAddressForm({ onSuccess }: AddAddressFormProps) {
 
   return (
     <form className={styles.form} onSubmit={handleSubmit}>
-      <h2>Adicionar endereço</h2>
-
       {cepError && (
         <Notification
           type="error"
@@ -92,7 +114,7 @@ export default function AddAddressForm({ onSuccess }: AddAddressFormProps) {
         />
       )}
 
-      {/* 1) CEP primeiro */}
+      {/* 1) CEP */}
       <FloatingLabelInput
         id="postal_code"
         name="postal_code"
@@ -113,43 +135,85 @@ export default function AddAddressForm({ onSuccess }: AddAddressFormProps) {
         required
       />
 
-      {/* 3) Cidade */}
       <div className={styles.flex}>
+        {/* 3) Número */}
         <FloatingLabelInput
-            id="city"
-            name="city"
-            label="Cidade"
-            value={form.city}
-            onChange={handleChange}
-            required
+          id="number"
+          name="number"
+          label="Número"
+          value={form.number}
+          onChange={handleChange}
+          required
         />
 
-        {/* 4) Estado – select */}
+        {/* 4) Bairro */}
+        <FloatingLabelInput
+          id="neighborhood"
+          name="neighborhood"
+          label="Bairro"
+          value={form.neighborhood}
+          onChange={handleChange}
+          required
+        />
+      </div>      
+
+      {/* 6) Cidade e Estado */}
+      <div className={styles.flex}>
+        <FloatingLabelInput
+          id="city"
+          name="city"
+          label="Cidade"
+          value={form.city}
+          onChange={handleChange}
+          required
+        />
+
         <label className={styles.field}>
-            <select
+          <select
             name="state"
             value={form.state}
             onChange={handleChange}
             required
-            >
+          >
             <option value="">Estado</option>
             {states.map(sigla => (
-                <option key={sigla} value={sigla}>
+              <option key={sigla} value={sigla}>
                 {sigla}
-                </option>
+              </option>
             ))}
-            </select>
+          </select>
         </label>
       </div>
 
-      {/* 5) País */}
-      <FloatingLabelInput
+      {/* 7) País */}
+      {/* <FloatingLabelInput
         id="country"
         name="country"
         label="País"
         value={form.country}
         onChange={handleChange}
+        required
+      /> */}
+
+      {/* 5) Complemento (opcional) */}
+      <FloatingLabelInput
+        id="complement"
+        name="complement"
+        label="Complemento (opcional)"
+        value={form.complement}
+        onChange={handleChange}
       />
+
+      {/* 8) Checkbox para “Endereço principal” (is_selected) */}
+      <label className={styles.checkboxLabel}>
+        <input
+          type="checkbox"
+          name="is_selected"
+          checked={!!form.is_selected}
+          onChange={handleChange}
+        />
+        Definir como endereço principal
+      </label>
 
       <Button type="submit" disabled={isSubmitting}>
         {isSubmitting ? 'Salvando...' : 'Salvar'}

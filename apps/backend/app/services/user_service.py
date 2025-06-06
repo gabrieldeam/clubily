@@ -4,43 +4,54 @@ from sqlalchemy.orm import Session
 from ..models.user import User
 from ..core.security import hash_password
 from ..schemas.user import UserCreate
+from sqlalchemy import or_
 
-def get_by_email_or_phone(db: Session, email: str, phone: str) -> User | None:
-    return (
-        db.query(User)
-        .filter(
-            # busca lead pré-cadastrado (pre_registered=True) OU usuário já completo
-            ((User.email == email.lower()) | (User.phone == phone))
-            & (User.pre_registered == True)
+def get_by_email_or_phone_or_cpf(db: Session, email: str, phone: str, cpf: str) -> User | None:
+    """
+    Tenta encontrar um lead (pre_registered=True) via e-mail OU telefone OU cpf.
+    """
+    query = db.query(User).filter(
+        User.pre_registered == True,
+        or_(
+            User.email == email.lower() if email else False,
+            User.phone == phone if phone else False,
+            User.cpf == cpf if cpf else False,
         )
-        .first()
     )
+    return query.first()
 
 def create(db: Session, obj_in: UserCreate) -> User:
     """
-    Cria um usuário completo, mas antes tenta reaproveitar
-    um lead pré-cadastrado pelo telefone ou e-mail.
+    Cria um usuário completo. Se existir lead (pre_registered=True) via email/phone/cpf,
+    reaproveita esse registro; senão, cria do zero.
     """
-    # 1) Tenta encontrar lead pré-cadastrado
-    user = get_by_email_or_phone(db, obj_in.email, obj_in.phone or "")
+    # 1) Normalizar campos de busca
+    email_lower = obj_in.email.lower()
+    phone_norm = obj_in.phone
+    cpf_norm = obj_in.cpf
+
+    # 2) Tenta reaproveitar lead pré‐cadastrado
+    user = get_by_email_or_phone_or_cpf(db, email_lower, phone_norm or "", cpf_norm or "")
     if not user:
-        # se não existir nenhum lead, cria o usuário do zero
+        # cria "do zero"
         user = User(
-            email=obj_in.email.lower(),
-            phone=obj_in.phone,
+            email=email_lower,
+            phone=phone_norm,
+            cpf=cpf_norm,
         )
-    # 2) Atualiza todos os campos do usuário
+
+    # 3) Atualiza todos os campos do usuário
     user.name = obj_in.name
     user.hashed_password = hash_password(obj_in.password)
-    user.email = obj_in.email.lower()
-    user.phone = obj_in.phone
+    user.email = email_lower
+    user.phone = phone_norm
+    user.cpf = cpf_norm
     user.accepted_terms = obj_in.accepted_terms
     user.pre_registered = False
 
-    # 3) (Opcional) vincula múltiplas empresas
+    # 4) (Opcional) vincula múltiplas empresas
     if obj_in.company_ids:
         from app.models.company import Company
-        # lista de IDs já vinculados
         current_ids = {c.id for c in user.companies}
         for cid in obj_in.company_ids:
             if cid not in current_ids:
@@ -48,7 +59,7 @@ def create(db: Session, obj_in: UserCreate) -> User:
                 if comp:
                     user.companies.append(comp)
 
-    # 4) Persiste
+    # 5) Persiste
     db.add(user)
     db.commit()
     db.refresh(user)

@@ -20,6 +20,7 @@ export interface UserRead {
   name: string;
   email: string;
   phone?: string;
+  cpf: string;
   is_active: boolean;
   role: Role;
   created_at: string;
@@ -41,7 +42,8 @@ export interface UserCreate {
   name: string;
   email: string;
   password: string;
-  phone?: string;
+  phone: string;
+  cpf: string;
   accepted_terms: boolean;
   company_id?: string;
 }

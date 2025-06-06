@@ -6,8 +6,8 @@
   flex-direction: column;
   gap: 1rem;
   background-color: white;
-  padding: 20px;
   border-radius: 20px;
+  margin-top: 20px;
 }
 
 .field {
@@ -18,12 +18,13 @@
   border-radius: 0.5rem;
   font-size: 15px;
   height: 43px;
-
+  width: 30%;
 }
 
 .flex {
   display: flex;
-  gap: 10px;
+  gap: 10px;  
+  width: 100%;
 }
 
 /* As regras abaixo são para o Notification e Button, caso ainda não estejam incluídas */
@@ -45,4 +46,9 @@
 .error {
   color: #e00;
   font-size: 0.85rem;
+}
+
+.checkboxLabel {
+  display: flex;
+  gap: 10px;
 }

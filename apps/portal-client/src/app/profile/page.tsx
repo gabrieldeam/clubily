@@ -131,6 +131,7 @@ export default function ProfilePage() {
         <div className={styles.gridItem}>
           <div className={styles.item}><p>Telefone</p><span>{user.phone}</span></div>
           <div className={styles.item}><p>E-mail</p><span>{user.email}</span></div>
+          <div className={styles.item}><p>CPF</p><span>{user.cpf}</span></div>
         </div>
 
         {/* ---------- LINKS ---------- */}
@@ -188,16 +189,37 @@ export default function ProfilePage() {
       <div className={styles.gridItem}>
         <h4>Endereços</h4>
         {loadingAddr ? (
-          <p>Carregando endereços…</p>
+          <p className={styles.loading}>Carregando endereços…</p>
         ) : addresses.length === 0 ? (
-          <p>Nenhum endereço cadastrado.</p>
+          <p className={styles.loading}>Nenhum endereço cadastrado.</p>
         ) : (
           <ul className={styles.addressList}>
             {addresses.map(addr => (
               <li key={addr.id} className={styles.addressItem}>
                 <div className={styles.addressInfo}>
-                  {addr.street}, {addr.city} – {addr.state}
+                  {/* 1) Rua e número */}
+                  <p>
+                    <strong>Rua:</strong> {addr.street}, <strong>Nº:</strong> {addr.number}
+                  </p>
+
+                  {/* 2) Bairro e complemento (se houver) */}
+                  <p>
+                    <strong>Bairro:</strong> {addr.neighborhood}
+                    {addr.complement && (
+                      <>
+                        {' '}
+                        – <strong>Complemento:</strong> {addr.complement}
+                      </>
+                    )}
+                  </p>
+
+                  {/* 3) Cidade, estado e CEP */}
+                  <p>
+                    <strong>Cidade:</strong> {addr.city} – <strong>Estado:</strong> {addr.state},{' '}
+                    <strong>CEP:</strong> {addr.postal_code}
+                  </p>                   
                 </div>
+
                 <button
                   className={styles.button}
                   onClick={() => handleDeleteAddress(addr.id)}
@@ -215,9 +237,9 @@ export default function ProfilePage() {
         <h4>Empresas que têm seu cadastro</h4>
 
         {loadingComp ? (
-          <p>Carregando empresas…</p>
+          <p className={styles.loading}>Carregando empresas…</p>
         ) : companies.length === 0 ? (
-          <p>Nenhuma empresa associada.</p>
+          <p className={styles.loading}>Nenhuma empresa associada.</p>
         ) : (
           <ul className={styles.list}>
             {companies.map(c => (

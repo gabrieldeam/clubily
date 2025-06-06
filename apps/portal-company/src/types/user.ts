@@ -4,6 +4,7 @@ export interface UserRead {
   id: string;
   name: string;
   email: string;
+  cpf: string;
   company_ids: string[];
   phone?: string;
   role: Role;
@@ -13,6 +14,7 @@ export interface UserRead {
 export interface LeadCreate {
   company_id: string;
   phone?: string;
+  cpf?: string;
 }
 
 export interface PreRegisterResponse {

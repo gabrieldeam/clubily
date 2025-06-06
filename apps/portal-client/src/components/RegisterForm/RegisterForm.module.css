@@ -23,6 +23,10 @@
   color: #8d8d8d;
 }
 
+.display {
+  display: flex;  
+  gap: 0.5rem;
+}
 
 .termsContainer {
   display: flex;

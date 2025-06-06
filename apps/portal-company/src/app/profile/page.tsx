@@ -86,8 +86,8 @@ export default function ProfilePage() {
                   <Image
                     src={`${process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL}${user.categories[0].image_url}`}
                     alt="Categoria"
-                    width={32}
-                    height={32}
+                    width={30}
+                    height={30}
                     className={styles.addCircle}
                   />
                 ) : (
@@ -157,6 +157,12 @@ export default function ProfilePage() {
               <p>E-mail</p>
               <span>{user.email}</span>
             </div>
+            {user.online_url && user.online_url.trim() !== '' && (
+              <div className={styles.item}>
+                <p>Site</p>
+                <span>{user.online_url}</span>
+              </div>
+            )}
           </div>
         </div>
 

@@ -164,31 +164,6 @@ useEffect(() => {
       <section className={styles.gridItemMap}>
             <h4>Descubra agora</h4>
 
-            {/* <div className={styles.mapSection}>
-              {coords ? (
-                <MapContainer
-                  center={coords}
-                  zoom={15}
-                  zoomControl={false}
-                  attributionControl={false}
-                  className={styles.mapContainer}
-                >
-                  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                </MapContainer>
-              ) : (
-                <p className={styles.mapMessage}>
-                  Não foi possível localizar este endereço.
-                </p>
-              )}
-
-              <button
-                className={styles.exploreMap}
-                onClick={() => router.push(`/maps?category_id=${id}`)}
-              >
-                Explorar mapa
-              </button>
-            </div> */}
-
             {loadingCompanies && <p>Carregando empresas…</p>}
 
             <div className={styles.companiesList}>

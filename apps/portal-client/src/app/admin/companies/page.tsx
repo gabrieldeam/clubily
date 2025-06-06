@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import {
-  searchCompanies,
+  searchCompaniesAdmin,
   activateCompany,
   deactivateCompany,
 } from '@/services/companyService';
@@ -21,7 +21,7 @@ export default function AdminCompaniesPage() {
   async function fetchCompanies() {
     setLoading(true);
     try {
-      const res = await searchCompanies(); // sem filtros
+      const res = await searchCompaniesAdmin(); // sem filtros
       setCompanies(res.data);
     } finally {
       setLoading(false);

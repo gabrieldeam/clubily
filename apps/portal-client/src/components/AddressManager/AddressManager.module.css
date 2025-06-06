@@ -13,9 +13,11 @@
   margin-bottom: 0.5rem;
 }
 
-.list li.selected {
-  border: 1px solid #000000;  
-  background-color: #ffffff;
+.loading {
+  background-color: #f0f0f0;
+  padding: 0.75rem;
+  border-radius: 4px;
+  margin: 0.5rem 0;
 }
 
 .item {
@@ -29,9 +31,22 @@
   margin-right: 1rem;
 }
 
+.buttonCancel {  
+  color: #FF4C00;
+  text-align: center;
+  width: 100%;
+  margin-top: 20px;
+}
+
+.buttonCancel:hover {
+  text-decoration: underline;
+}
 
 .button {
-  color: #FF4C00;
+  background-color: #FF4C00;
+  padding: 7px;
+  border-radius: 5px;
+  color: white;
 }
 
 .button:hover {
@@ -39,5 +54,5 @@
 }
 
 .buttonSelected {
-  color: #000000;
+  background-color: #FFA600;
 }

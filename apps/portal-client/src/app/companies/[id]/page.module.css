@@ -13,6 +13,17 @@
   width: 100%;
 }
 
+.whiteBoxAlert {  
+  background: #FF4C00;
+  border-radius: 20px;
+  padding: 16px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
 .sectionTitle { font-size: 18px; font-weight: 600; margin-bottom: 8px; color: #000; }
 
 /* LOGO + INFOS */

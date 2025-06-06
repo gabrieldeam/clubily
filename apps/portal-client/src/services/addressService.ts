@@ -1,7 +1,7 @@
 // src/services/addressService.ts
 
 import api from './api';
-import type { AddressCreate, AddressRead } from '@/types/address';
+import type { AddressCreate, AddressRead, AddressUpdate } from '@/types/address';
 
 /**
  * Cria um novo endereço para o usuário logado.
@@ -25,3 +25,9 @@ export const deleteAddress = (addressId: string) =>
 /** Busca um endereço pelo ID */
 export const getAddressById = (id: string) =>
   api.get<AddressRead>(`/addresses/${id}`);
+
+/**
+ * Atualiza parcialmente um endereço existente (PATCH /addresses/{address_id}).
+ */
+export const updateAddress = (addressId: string, payload: AddressUpdate) =>
+  api.patch<AddressRead>(`/addresses/${addressId}`, payload);

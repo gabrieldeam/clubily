@@ -1,7 +1,7 @@
 // src/components/RegisterForm/RegisterForm.tsx
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useState } from 'react';
 import styles from './RegisterForm.module.css';
 import FloatingLabelInput from '@/components/FloatingLabelInput/FloatingLabelInput';
 import Notification from '@/components/Notification/Notification';
@@ -26,6 +26,7 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
     name: '',
     email: '',
     phone: '',
+    cpf: '',
     password: '',
     confirm_password: '',
     accepted_terms: false,
@@ -35,9 +36,38 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
 
   const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
 
+  // 1) Helper to format CPF as XXX.XXX.XXX-XX
+  const formatCPF = (value: string): string => {
+    // keep only digits
+    const digits = value.replace(/\D/g, '').slice(0, 11);
+    let formatted = digits;
+
+    if (digits.length > 3) {
+      formatted = digits.slice(0, 3) + '.' + digits.slice(3);
+    }
+    if (digits.length > 6) {
+      formatted = digits.slice(0, 3) + '.' + digits.slice(3, 6) + '.' + digits.slice(6);
+    }
+    if (digits.length > 9) {
+      formatted = 
+        digits.slice(0, 3) + '.' +
+        digits.slice(3, 6) + '.' +
+        digits.slice(6, 9) + '-' +
+        digits.slice(9, 11);
+    }
+
+    return formatted;
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, type, value, checked } = e.target as HTMLInputElement;
+    const { name, type, value: rawValue, checked } = e.target as HTMLInputElement;
+    let value = type === 'checkbox' ? String(checked) : rawValue;
+
+    // 2) If the field is "cpf", auto-format it
+    if (name === 'cpf') {
+      value = formatCPF(rawValue);
+    }
+
     setForm(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
 
     if (name === 'password') {
@@ -68,6 +98,7 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
     if (!form.name) missing.push('Nome');
     if (!form.email) missing.push('E-mail');
     if (!form.phone) missing.push('Telefone');
+    if (!form.cpf) missing.push('CPF');
     if (!form.password) missing.push('Senha');
     if (!form.confirm_password) missing.push('Confirmação de senha');
     if (!form.accepted_terms) missing.push('Termos de uso');
@@ -128,20 +159,71 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
 
       {!showAddress && (
         <>
-          <FloatingLabelInput id="register-name" name="name" label="Nome" type="text" value={form.name} onChange={handleChange} />
-          <FloatingLabelInput id="register-email" name="email" label="E-mail" type="email" value={form.email} onChange={handleChange} />
-          <FloatingLabelInput id="register-phone" name="phone" label="Telefone" type="text" value={form.phone} onChange={handleChange} />
-          <FloatingLabelInput id="register-password" name="password" label="Senha" type="password" value={form.password} onChange={handleChange} />
-          <FloatingLabelInput id="register-confirm-password" name="confirm_password" label="Confirme a senha" type="password" value={form.confirm_password} onChange={handleChange} />
-
+          <FloatingLabelInput
+            id="register-name"
+            name="name"
+            label="Nome"
+            type="text"
+            value={form.name}
+            onChange={handleChange}
+          />
+          <FloatingLabelInput
+            id="register-email"
+            name="email"
+            label="E-mail"
+            type="email"
+            value={form.email}
+            onChange={handleChange}
+          />
+          <FloatingLabelInput
+            id="register-phone"
+            name="phone"
+            label="Telefone"
+            type="text"
+            value={form.phone}
+            onChange={handleChange}
+          />
+          <FloatingLabelInput
+            id="register-cpf"
+            name="cpf"
+            label="CPF"
+            type="text"
+            value={form.cpf}
+            onChange={handleChange}
+            maxLength={14}
+          />
+          <div className={styles.display}>
+            <FloatingLabelInput
+              id="register-password"
+              name="password"
+              label="Senha"
+              type="password"
+              value={form.password}
+              onChange={handleChange}
+            />
+            <FloatingLabelInput
+              id="register-confirm-password"
+              name="confirm_password"
+              label="Confirme a senha"
+              type="password"
+              value={form.confirm_password}
+              onChange={handleChange}
+            />
+          </div>
           <div className={styles.termsContainer}>
-            <input type="checkbox" id="accepted_terms" name="accepted_terms" checked={form.accepted_terms} onChange={handleChange} />
+            <input
+              type="checkbox"
+              id="accepted_terms"
+              name="accepted_terms"
+              checked={form.accepted_terms}
+              onChange={handleChange}
+            />
             <label htmlFor="accepted_terms">Aceito os termos de uso</label>
           </div>
 
           <Button type="submit">Cadastrar</Button>
         </>
-      )}    
+      )}
     </form>
   );
 }

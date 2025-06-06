@@ -105,63 +105,65 @@ export default function SimpleEditCompanyForm({
 
   return (
     <form className={styles.form} onSubmit={handleSubmit}>
+      <div className={styles.background}>
       <h2 className={styles.title}>Complete seu perfil</h2>
-
-      {notification && (
-        <Notification
-          type={notification.type as any}
-          message={notification.message}
-          onClose={() => setNotification(null)}
-        />
-      )}
-
-      {/* logo */}
-      <div className={styles.logoUpload}>
-        {logoPreview ? (
-          <img src={logoPreview} className={styles.logoPreview} />
-        ) : form.logo_url ? (
-          <img
-            src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${form.logo_url}`}
-            className={styles.logoPreview}
+        {notification && (
+          <Notification
+            type={notification.type as any}
+            message={notification.message}
+            onClose={() => setNotification(null)}
           />
-        ) : (
-          <div className={styles.logoPlaceholder}>Sem logo</div>
         )}
-        <label className={styles.logoBtn}>
-          Escolher logo
-          <input type="file" accept="image/*" hidden onChange={handleLogoChange} />
-        </label>
-      </div>
-
-      {/* descrição */}
-      <label className={styles.label}>Descrição</label>
-      <textarea
-        className={styles.textarea}
-        value={form.description}
-        onChange={handleDescriptionChange}
-        placeholder="Conte um pouco sobre seu negócio..."
-      />
-
-      {/* categorias */}
-      <div className={styles.catContainer}>
-        {categories.map(cat => (
-          <label key={cat.id} className={styles.catItem}>
-            <input
-              type="checkbox"
-              checked={form.category_ids.includes(cat.id)}
-              onChange={() => handleCategoryToggle(cat.id)}
+        
+        {/* logo */}
+        <div className={styles.logoUpload}>
+          {logoPreview ? (
+            <img src={logoPreview} className={styles.logoPreview} />
+          ) : form.logo_url ? (
+            <img
+              src={`${process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL}${form.logo_url}`}
+              className={styles.logoPreview}
             />
-            {cat.name}
+          ) : (
+            <div className={styles.logoPlaceholder}>Sem logo</div>
+          )}
+          <label className={styles.logoBtn}>
+            Escolher logo
+            <input type="file" accept="image/*" hidden onChange={handleLogoChange} />
           </label>
-        ))}
-      </div>
+        </div>
 
-      <div className={styles.actions}>
-        <Button type="submit">Salvar</Button>
-        <Button type="button" bgColor="#AAA" onClick={onClose}>
-          Fechar
-        </Button>
+        {/* descrição */}
+        <label className={styles.label}>Descrição</label>
+        <textarea
+          className={styles.textarea}
+          value={form.description}
+          onChange={handleDescriptionChange}
+          placeholder="Conte um pouco sobre seu negócio..."
+        />
+
+        {/* categorias */}
+        <div className={styles.catContainer}>
+          {categories.map(cat => (
+            <label key={cat.id} className={styles.catItem}>
+              <input
+                type="checkbox"
+                checked={form.category_ids.includes(cat.id)}
+                onChange={() => handleCategoryToggle(cat.id)}
+              />
+              {cat.name}
+            </label>
+          ))}
+        </div>
+
+        <div className={styles.actions}>
+          <Button type="submit">Salvar</Button>
+          <Button type="button" bgColor="#AAA" onClick={onClose}>
+            Fechar
+          </Button>
+        </div>
       </div>
+      
     </form>
   );
 }

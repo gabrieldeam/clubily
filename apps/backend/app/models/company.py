@@ -1,13 +1,14 @@
 # backend/app/models/company.py
 
 from uuid import uuid4
-from sqlalchemy import Column, String, Boolean, DateTime, UniqueConstraint,Text
+from sqlalchemy import Column, String, Boolean, DateTime, UniqueConstraint, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
-from app.db.base import Base
-from app.models.association import user_companies
-from app.models.association import company_categories
 from sqlalchemy.orm import relationship
+
+from app.db.base import Base
+from app.models.association import user_companies, company_categories
+
 
 class Company(Base):
     __tablename__ = "companies"
@@ -22,10 +23,20 @@ class Company(Base):
     hashed_password = Column(String(255), nullable=False)
     phone = Column(String(20), nullable=False)
     cnpj = Column(String(14), nullable=False, unique=True, index=True)
+
+    # Endereço físico
     street = Column(String(255), nullable=False)
+    number = Column(String(20), nullable=False)        # número
+    neighborhood = Column(String(100), nullable=False)  # bairro
+    complement = Column(String(100), nullable=True)     # complemento (opcional)
     city = Column(String(100), nullable=False)
     state = Column(String(100), nullable=False)
     postal_code = Column(String(20), nullable=False)
+
+    # Novo: URL do site e flag “venda apenas online”
+    online_url = Column(String(255), nullable=True)     # URL do site (opcional)
+    only_online = Column(Boolean, default=False, nullable=False)
+
     accepted_terms = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     description = Column(Text, nullable=True)
@@ -33,6 +44,8 @@ class Company(Base):
     email_verified_at = Column(DateTime(timezone=True))
     phone_verified_at = Column(DateTime(timezone=True))
     is_active = Column(Boolean, default=False, nullable=False)
+
+    # Relações
     users = relationship(
         "User",
         secondary=user_companies,

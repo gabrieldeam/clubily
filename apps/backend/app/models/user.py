@@ -19,19 +19,24 @@ class User(Base):
     __table_args__ = (
         UniqueConstraint("email"),
         UniqueConstraint("phone"),
+        UniqueConstraint("cpf"),
     )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     name = Column(String(100), nullable=False)
     email = Column(String(255), nullable=False, unique=True, index=True)
     hashed_password = Column(String(255), nullable=False)
+
+    # NOVO CAMPO: CPF (somente dígitos, 11 caracteres)
+    cpf = Column(String(11), nullable=True, unique=True, index=True)
+
     companies = relationship(
         "Company",
         secondary=user_companies,
         back_populates="users",
         lazy="joined",
     )
-    phone = Column(String(20))
+    phone = Column(String(20), nullable=True)
     is_active = Column(Boolean, default=True)
     role = Column(Enum(Role), default=Role.user)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

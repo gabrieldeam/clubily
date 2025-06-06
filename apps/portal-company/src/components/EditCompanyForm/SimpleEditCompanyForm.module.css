@@ -4,24 +4,52 @@
   gap: 1rem;
   max-width: 400px;
 }
+
+.background {
+  width: 100%;  
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background-color: white;
+  padding: 20px;
+  border-radius: 20px;
+}
+
 .title {
   text-align: center;
 }
+
 .logoUpload {
   display: flex;
   align-items: center;
   gap: 1rem;
 }
+
+.logoBack {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  background: #ffa600;
+  padding: 0.5rem;
+  border-radius: 50%;
+
+}
+
 .logoPreview,
 .logoPlaceholder {
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: #eee;
+  object-fit: cover;
+  background: #f1f1f1;
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
+  font-size: 0.8rem;
+  color: #555;
 }
+
 .logoBtn {
   background: #ffa600;
   color: white;
@@ -38,16 +66,24 @@
   border-radius: 0.5rem;
   min-height: 80px;
 }
+
 .catContainer {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
 }
+
 .catItem {
-  background: #f7f7f7;
-  padding: 0.4rem 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #f7fafc;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid #e2e8f0;
   border-radius: 0.4rem;
+  font-size: 0.9rem;
 }
+
 .actions {
   display: flex;
   gap: 1rem;

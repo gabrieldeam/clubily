@@ -1,3 +1,4 @@
+// src/components/CompanySettings/CompanySettings.tsx
 'use client';
 
 import { useEffect, useState, FormEvent } from 'react';
@@ -78,10 +79,10 @@ export default function CompanySettings({ companyId, onClose, onSaved }: Company
   }, [company.postal_code, showAddress]);
 
   useEffect(() => {
-  if (company.email) {
-    setEmail(company.email);
-  }
-}, [company.email]);
+    if (company.email) {
+      setEmail(company.email);
+    }
+  }, [company.email]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
@@ -136,6 +137,9 @@ export default function CompanySettings({ companyId, onClose, onSaved }: Company
           delete payload.street;
           delete payload.city;
           delete payload.state;
+          delete payload.number;
+          delete payload.neighborhood;
+          delete payload.complement;
         }
         await updateCompany(companyId, payload);
         setCompanyNotification({ type: 'success', message: 'Dados atualizados com sucesso.' });
@@ -150,6 +154,9 @@ export default function CompanySettings({ companyId, onClose, onSaved }: Company
           delete payload.street;
           delete payload.city;
           delete payload.state;
+          delete payload.number;
+          delete payload.neighborhood;
+          delete payload.complement;
         }
         await updateCompany(companyId, payload);
         setCompanyNotification({ type: 'success', message: 'Logo e dados atualizados com sucesso.' });
@@ -221,100 +228,100 @@ export default function CompanySettings({ companyId, onClose, onSaved }: Company
 
         {!showAddress ? (
           <>
-          <div className={editStyles.back}>
-            <div className={editStyles.background}>
-              <div className={editStyles.logoUpload}>
-                {logoPreview ? (
-                  <img
-                    src={logoPreview}
-                    alt="Pré-visualização"
-                    className={editStyles.logoPreview}
-                  />
-                ) : company.logo_url ? (
-                  <img
-                    src={`${process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL}${company.logo_url}`}
-                    alt="Logo atual"
-                    className={editStyles.logoPreview}
-                  />
-                ) : (
-                  <div className={editStyles.logoPlaceholder}>Sem logo</div>
-                )}
-
-                <label className={editStyles.logoBtn}>
-                  Trocar logo
-                  <input
-                    type="file"
-                    accept="image/*"
-                    hidden
-                    onChange={handleLogoChange}
-                  />
-                </label>
-              </div>
-
-              <FloatingLabelInput
-                id="edit-name"
-                name="name"
-                label="Nome"
-                value={company.name ?? ''}
-                onChange={handleChange}
-                required
-              />
-
-              <textarea
-                name="description"
-                placeholder="Descrição"
-                className={editStyles.textarea}
-                value={company.description ?? ''}
-                onChange={handleChange}
-              />
-            </div>
-            
-
-            <div className={editStyles.background}>
-              <FloatingLabelInput
-                id="edit-phone"
-                name="phone"
-                label="Telefone"
-                value={company.phone ?? ''}
-                onChange={handleChange}
-              />
-              <FloatingLabelInput
-                id="edit-email"
-                name="email"
-                label="E-mail"
-                value={company.email ?? ''}
-                onChange={handleChange}
-              />
-              <FloatingLabelInput
-                id="edit-cnpj"
-                name="cnpj"
-                label="CNPJ"
-                value={company.cnpj ?? ''}
-                onChange={handleChange}
-              />
-
-              <div className={editStyles.catContainer}>
-                {categories.map(cat => (
-                  <label key={cat.id} className={editStyles.catItem}>
-                    <input
-                      type="checkbox"
-                      checked={company.category_ids?.includes(cat.id) || false}
-                      onChange={() => handleCategoryToggle(cat.id)}
+            <div className={editStyles.back}>
+              <div className={editStyles.background}>
+                <div className={editStyles.logoUpload}>
+                  {logoPreview ? (
+                    <img
+                      src={logoPreview}
+                      alt="Pré-visualização"
+                      className={editStyles.logoPreview}
                     />
-                    {cat.name}
+                  ) : company.logo_url ? (
+                    <img
+                      src={`${process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL}${company.logo_url}`}
+                      alt="Logo atual"
+                      className={editStyles.logoPreview}
+                    />
+                  ) : (
+                    <div className={editStyles.logoPlaceholder}>Sem logo</div>
+                  )}
+
+                  <label className={editStyles.logoBtn}>
+                    Trocar logo
+                    <input
+                      type="file"
+                      accept="image/*"
+                      hidden
+                      onChange={handleLogoChange}
+                    />
                   </label>
-                ))}
+                </div>
+
+                <FloatingLabelInput
+                  id="edit-name"
+                  name="name"
+                  label="Nome"
+                  value={company.name ?? ''}
+                  onChange={handleChange}
+                  required
+                />
+
+                <textarea
+                  name="description"
+                  placeholder="Descrição"
+                  className={editStyles.textarea}
+                  value={company.description ?? ''}
+                  onChange={handleChange}
+                />
+                
               </div>
 
-              <button
-                type="button"
-                className={editStyles.addressButton}
-                onClick={() => setShowAddress(true)}
-              >
-                Editar Endereço
-              </button>
-            </div>            
-          </div>
+              <div className={editStyles.background}>
+                <FloatingLabelInput
+                  id="edit-phone"
+                  name="phone"
+                  label="Telefone"
+                  value={company.phone ?? ''}
+                  onChange={handleChange}
+                />
+                <FloatingLabelInput
+                  id="edit-email"
+                  name="email"
+                  label="E-mail"
+                  value={company.email ?? ''}
+                  onChange={handleChange}
+                />
+                <FloatingLabelInput
+                  id="edit-cnpj"
+                  name="cnpj"
+                  label="CNPJ"
+                  value={company.cnpj ?? ''}
+                  onChange={handleChange}
+                />
+
+                <div className={editStyles.catContainer}>
+                  {categories.map(cat => (
+                    <label key={cat.id} className={editStyles.catItem}>
+                      <input
+                        type="checkbox"
+                        checked={company.category_ids?.includes(cat.id) || false}
+                        onChange={() => handleCategoryToggle(cat.id)}
+                      />
+                      {cat.name}
+                    </label>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  className={editStyles.addressButton}
+                  onClick={() => setShowAddress(true)}
+                >
+                  Editar Endereço
+                </button>
+              </div>
+            </div>
 
             <div className={editStyles.buttons}>
               <Button type="submit">Salvar</Button>
@@ -325,6 +332,7 @@ export default function CompanySettings({ companyId, onClose, onSaved }: Company
           </>
         ) : (
           <div className={editStyles.background}>
+            <h3>Endereço</h3>
             <FloatingLabelInput
               id="edit-postal_code"
               name="postal_code"
@@ -332,27 +340,79 @@ export default function CompanySettings({ companyId, onClose, onSaved }: Company
               value={company.postal_code ?? ''}
               onChange={handleChange}
             />
+            <div className={editStyles.flex}>
+              <FloatingLabelInput
+                id="edit-street"
+                name="street"
+                label="Rua"
+                value={company.street ?? ''}
+                onChange={handleChange}
+              />
+              <FloatingLabelInput
+                id="edit-number"
+                name="number"
+                label="Número"
+                type="text"
+                value={company.number ?? ''}
+                onChange={handleChange}
+              />
+            </div>            
+
+            <div className={editStyles.flex}>
+              <FloatingLabelInput
+                id="edit-city"
+                name="city"
+                label="Cidade"
+                value={company.city ?? ''}
+                onChange={handleChange}
+              />
+              <FloatingLabelInput
+                id="edit-state"
+                name="state"
+                label="Estado"
+                value={company.state ?? ''}
+                onChange={handleChange}
+              />
+              <FloatingLabelInput
+                id="edit-neighborhood"
+                name="neighborhood"
+                label="Bairro"
+                type="text"
+                value={company.neighborhood ?? ''}
+                onChange={handleChange}
+              />
+            </div>
+            
             <FloatingLabelInput
-              id="edit-street"
-              name="street"
-              label="Rua"
-              value={company.street ?? ''}
+              id="edit-complement"
+              name="complement"
+              label="Complemento (opcional)"
+              type="text"
+              value={company.complement ?? ''}
               onChange={handleChange}
             />
-            <FloatingLabelInput
-              id="edit-city"
-              name="city"
-              label="Cidade"
-              value={company.city ?? ''}
-              onChange={handleChange}
-            />
-            <FloatingLabelInput
-              id="edit-state"
-              name="state"
-              label="Estado"
-              value={company.state ?? ''}
-              onChange={handleChange}
-            />
+
+            {/* — Adicionado: online_url e only_online — */}
+                <FloatingLabelInput
+                  id="edit-online_url"
+                  name="online_url"
+                  label="URL Online (opcional)"
+                  type="text"
+                  value={company.online_url ?? ''}
+                  onChange={handleChange}
+                />
+
+                <div className={editStyles.flex}>
+                  <input
+                    type="checkbox"
+                    id="only_online"
+                    name="only_online"
+                    checked={company.only_online ?? false}
+                    onChange={handleChange}
+                  />
+                  <label htmlFor="only_online">Este estabelecimento é somente online</label>
+                </div>
+
 
             <Button bgColor="#FFA600" onClick={() => setShowAddress(false)}>
               Continuar
@@ -385,12 +445,11 @@ export default function CompanySettings({ companyId, onClose, onSaved }: Company
               name="email"
               label="E-mail cadastrado"
               type="email"
-              value={email} 
+              value={email}
               onChange={e => setEmail(e.target.value)}
               required
             />
           )}
-
 
           {mode === 'reset' && (
             <>

@@ -12,7 +12,6 @@ import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { getCompanyInfo } from '@/services/companyService';
 import type { CompanyRead } from '@/types/company';
 import Header from '@/components/Header/Header';
-import MapSvg from '../../../../public/mapUser.svg';
 import styles from './page.module.css';
 
 const MapContainer = dynamic(() => import('react-leaflet').then(m => m.MapContainer), { ssr: false });
@@ -83,6 +82,12 @@ export default function CompanyPage() {
     window.open(url, '_blank', 'noopener');
   }, [company, coords]);
 
+  const addressExists =
+    !!company?.street &&
+    !!company?.city &&
+    !!company?.state &&
+    !!company?.postal_code;
+
   /* ===== skeletons ===== */
   if (authLoading) return null;
   if (loading) return (
@@ -99,10 +104,13 @@ export default function CompanyPage() {
     <div className={styles.pageWrapper}>
       <Header onSearch={q => router.push(`/search?name=${encodeURIComponent(q)}`)} />
 
+
       {showBanner && (
-        <button className={styles.outsideBanner} onClick={() => { setShowBanner(false); window.dispatchEvent(new Event('openAddressModal')); }}>
-          Essa empresa não atende sua área – clique para mudar de endereço
-        </button>
+        <div className={styles.whiteBoxAlert}>
+          <button className={styles.outsideBanner} onClick={() => { setShowBanner(false); window.dispatchEvent(new Event('openAddressModal')); }}>
+            Essa empresa está destivada ou não atende mais na sua área, clique aqui para mudar de endereço
+          </button>
+        </div>
       )}
 
       {/* ===== TOP BLOCK ===== */}
@@ -133,15 +141,40 @@ export default function CompanyPage() {
             );
           })()}
         </div>
-        <h2 className={styles.sectionTitle}>Localização</h2>
-        <div className={styles.leafletWrapper}>
-          {coords ? (
-            <MapContainer center={coords} zoom={16} style={{ width: '100%', height: '200px' }}>
-              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-              <Marker position={coords} icon={logoIcon}><Popup>{company.name}</Popup></Marker>
-            </MapContainer>
-          ) : <p>Carregando mapa…</p>}
-        </div>
+        
+        {/* ===== LOCALIZAÇÃO ===== */}
+        {addressExists && (
+          <>
+            <h2 className={styles.sectionTitle}>Localização</h2>
+            <div className={styles.leafletWrapper}>
+              {coords ? (
+                <MapContainer center={coords} zoom={16} style={{ width: '100%', height: '200px' }}>
+                  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                  <Marker position={coords} icon={logoIcon}>
+                    <Popup>
+                      <div className={styles.popupContent}>
+                        <strong>{company.name}</strong>
+                        <p>
+                          {company.street}, {company.city} – {company.state}, {company.postal_code}
+                        </p>
+                        <button
+                          type="button"
+                          className={styles.mapButton}
+                          onClick={handleOpenMap}
+                        >
+                          Abrir no Google Maps
+                        </button>
+                      </div>
+                    </Popup>
+                  </Marker>
+                </MapContainer>
+              ) : (
+                <p>Carregando mapa…</p>
+              )}
+            </div>
+          </>
+        )}
+
       </div>
 
       {/* ===== CONTATO ===== */}

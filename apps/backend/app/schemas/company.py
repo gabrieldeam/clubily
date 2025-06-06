@@ -27,8 +27,13 @@ class CompanyBase(BaseModel):
     street: str
     city: str
     state: str
+    number: str
+    neighborhood: str
+    complement: Optional[str] = None
     postal_code: str
     description: str | None = None
+    online_url: Optional[HttpUrl] = None
+    only_online: bool = False
 
     @field_validator("cnpj", mode="before")
     def normalize_cnpj(cls, v: str) -> str:
@@ -77,9 +82,14 @@ class CompanyUpdate(BaseModel):
     street: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = None
+    number: Optional[str] = None
+    neighborhood: Optional[str] = None
+    complement: Optional[str] = None
     postal_code: Optional[str] = None
     description: Optional[str] = None
     category_ids: Optional[List[UUID]] = None
+    online_url: Optional[HttpUrl] = None
+    only_online: Optional[bool] = None
 
     @field_validator("cnpj", mode="before")
     def normalize_cnpj(cls, v: str) -> str:
@@ -95,5 +105,4 @@ class CompanyUpdate(BaseModel):
 class CompanyReadWithService(CompanyRead):
     serves_address: bool
 
-    # herdando o mesmo from_attributes para converter do ORM
     model_config = ConfigDict(from_attributes=True)

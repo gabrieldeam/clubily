@@ -67,7 +67,7 @@ export default function ClientsPage() {
         </div>
 
         {loadingClients ? (
-          <p>Carregando clientes...</p>
+          <p className={styles.loading}>Carregando clientes...</p>
         ) : clients.length > 0 ? (
           <>
             <div className={styles.tableWrapper}>
@@ -75,14 +75,13 @@ export default function ClientsPage() {
                 <div className={styles.cellName}>Nome</div>
                 <div className={styles.cellEmail}>Email</div>
                 <div className={styles.cellPhone}>Telefone</div>
+                <div className={styles.cellPhone}>CPF</div>
               </div>
               <div className={styles.body}>
                 {clients.map(c => (
                   <div
                     key={c.id}
-                    className={`${styles.row} ${
-                      c.pre_registered ? styles.masked : ''
-                    }`}
+                    className={`${styles.row} ${c.pre_registered ? styles.masked : ''}`}
                     onClick={() =>
                       c.pre_registered ? openEditModal(c) : undefined
                     }
@@ -92,13 +91,30 @@ export default function ClientsPage() {
                         : undefined
                     }
                   >
-                    <div className={styles.cellName}>
+                    <div
+                      className={styles.cellPhone}
+                      data-label="Nome:"
+                    >
                       {c.pre_registered ? '*****' : c.name}
                     </div>
-                    <div className={styles.cellEmail}>
+                    <div
+                      className={styles.cellPhone}
+                      data-label="Email:"
+                    >
                       {c.pre_registered ? '*****' : c.email}
                     </div>
-                    <div className={styles.cellPhone}>{c.phone}</div>
+                    <div
+                      className={styles.cellPhone}
+                      data-label="Telefone:"
+                    >
+                      {c.phone}
+                    </div>
+                    <div
+                      className={styles.cellPhone}
+                      data-label="CPF:"
+                    >
+                      {c.pre_registered ? '*****' : c.cpf}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -122,7 +138,7 @@ export default function ClientsPage() {
             </div>
           </>
         ) : (
-          <p>Nenhum cliente encontrado na página atual.</p>
+          <p className={styles.loading}>Nenhum cliente encontrado na página atual.</p>
         )}
       </main>
 

@@ -3,29 +3,32 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
-import Modal from '@/components/Modal/Modal'; 
+import { useAddress } from '@/context/AddressContext';
+import Modal from '@/components/Modal/Modal';
 import AddressManager from '@/components/AddressManager/AddressManager';
 import styles from './Header.module.css';
 
 interface HeaderProps {
   onSearch?: (query: string) => void;
-  onAccountClick?: () => void;
 }
 
-export default function Header({
-  onSearch = () => {},
-  onAccountClick,
-}: HeaderProps) {
+export default function Header({ onSearch = () => {} }: HeaderProps) {
+  const { selectedAddress } = useAddress();
   const [query, setQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const isProfile = isModalOpen;
 
+  // 1) Se não houver endereço, abro modal assim que montar / selectedAddress mudar para null
+  useEffect(() => {
+    if (!selectedAddress) {
+      setIsModalOpen(true);
+    }
+  }, [selectedAddress]);
+
+  // 2) Também deixo um listener para abrir se alguém disparar 'openAddressModal'
   useEffect(() => {
     const handler = () => setIsModalOpen(true);
     window.addEventListener('openAddressModal', handler);
-    return () => {
-      window.removeEventListener('openAddressModal', handler);
-    };
+    return () => window.removeEventListener('openAddressModal', handler);
   }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -42,19 +45,6 @@ export default function Header({
     onSearch('');
   };
 
-  const openAccountModal = () => {
-    onAccountClick?.();
-    setIsModalOpen(true);
-  };
-
-  const closeAccountModal = () => {
-    setIsModalOpen(false);
-  };
-
-  const accountButtonClass = isProfile
-    ? `${styles.accountButton} ${styles.accountButtonActive}`
-    : styles.accountButton;
-
   return (
     <>
       <header className={styles.header}>
@@ -67,8 +57,8 @@ export default function Header({
         <div className={styles.searchSection}>
           <button
             type="button"
-            className={accountButtonClass}
-            onClick={openAccountModal}
+            className={styles.accountButton}
+            onClick={() => setIsModalOpen(true)}
           >
             <Image src="/icons/address.svg" alt="Endereços" width={24} height={24} />
             <span>Endereços</span>
@@ -87,11 +77,7 @@ export default function Header({
               onChange={handleInputChange}
             />
             {query && (
-              <button
-                type="button"
-                className={styles.clearButton}
-                onClick={clearSearch}
-              >
+              <button type="button" className={styles.clearButton} onClick={clearSearch}>
                 Cancelar
               </button>
             )}
@@ -99,10 +85,10 @@ export default function Header({
         </div>
       </header>
 
-      <Modal open={isModalOpen} onClose={closeAccountModal}>
+      <Modal open={isModalOpen} onClose={() => setIsModalOpen(false)}>
         <div className={styles.background}>
-           <AddressManager />
-         </div>
+          <AddressManager />
+        </div>
       </Modal>
     </>
   );

@@ -121,12 +121,11 @@ async def update_category(
     db.refresh(cat)
     return cat
 
-
 @router.get(
     "/used",
     response_model=List[CategoryRead],
     status_code=status.HTTP_200_OK,
-    summary="Categorias com pelo menos uma empresa, filtradas por localização"
+    summary="Categorias com pelo menos uma empresa ativa, filtradas por localização"
 )
 def read_used_categories(
     city: Optional[str] = Query(None, description="Filtrar por parte do nome da cidade"),
@@ -135,16 +134,21 @@ def read_used_categories(
     db: Session = Depends(get_db),
 ):
     """
-    Retorna categorias que têm pelo menos uma empresa associada,
+    Retorna categorias que têm pelo menos uma empresa ATIVA associada,
     opcionalmente filtrando empresas por cidade, estado e/ou CEP.
     """
-    q = db.query(Category).join(Category.companies)
+    # 1) join com Category.companies e filtra apenas empresas ativas
+    q = db.query(Category).join(Category.companies).filter(Company.is_active == True)
+
+    # 2) aplica os filtros de localização (se fornecidos)
     if city:
         q = q.filter(Company.city.ilike(f"%{city}%"))
     if state:
         q = q.filter(Company.state.ilike(f"%{state}%"))
     if postal_code:
         q = q.filter(Company.postal_code == postal_code)
+
+    # 3) garante que cada categoria apareça apenas uma vez no resultado
     q = q.distinct()
     return q.all()
 

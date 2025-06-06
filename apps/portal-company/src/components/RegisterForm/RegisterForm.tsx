@@ -33,7 +33,12 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
     street: '',
     city: '',
     state: '',
-    description: '',
+    number: '',
+    neighborhood: '',
+    complement: '',        // string vazia inicial
+    description: '',       // string vazia inicial
+    online_url: '',        // string vazia inicial
+    only_online: false,    // falso por padrão
     accepted_terms: false,
   });
   const [notification, setNotification] = useState<NotificationData | null>(null);
@@ -70,7 +75,8 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
       if (value && !passwordRegex.test(value)) {
         setNotification({
           type: 'error',
-          message: 'Senha deve ter ≥8 caracteres, incluindo 1 maiúscula, 1 minúscula, 1 número e 1 caractere especial.',
+          message:
+            'Senha deve ter ≥8 caracteres, incluindo 1 maiúscula, 1 minúscula, 1 número e 1 caractere especial.',
         });
       } else {
         setNotification(null);
@@ -101,12 +107,16 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
     if (!form.street) missing.push('Rua');
     if (!form.city) missing.push('Cidade');
     if (!form.state) missing.push('Estado');
+    if (!form.number) missing.push('Número');
+    if (!form.neighborhood) missing.push('Bairro');
     if (!form.accepted_terms) missing.push('Termos de uso');
 
     if (missing.length > 0) {
       setNotification({
         type: 'error',
-        message: `Campo${missing.length > 1 ? 's' : ''} ${missing.join(', ')} ${missing.length > 1 ? 'são' : 'é'} obrigatório${missing.length > 1 ? 's' : ''}.`,
+        message: `Campo${missing.length > 1 ? 's' : ''} ${missing.join(
+          ', '
+        )} ${missing.length > 1 ? 'são' : 'é'} obrigatório${missing.length > 1 ? 's' : ''}.`,
       });
       return;
     }
@@ -114,7 +124,8 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
     if (!passwordRegex.test(form.password)) {
       setNotification({
         type: 'error',
-        message: 'Senha deve ter ≥8 caracteres, incluindo 1 maiúscula, 1 minúscula, 1 número e 1 caractere especial.',
+        message:
+          'Senha deve ter ≥8 caracteres, incluindo 1 maiúscula, 1 minúscula, 1 número e 1 caractere especial.',
       });
       return;
     }
@@ -157,22 +168,80 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
         />
       )}
 
+      {/* PRIMEIRA ETAPA: Nome, contato, CNPJ, senha, descrição, online_url, only_online e aceite de termos */}
       {!showAddress && (
         <>
-          <FloatingLabelInput id="register-name" name="name" label="Nome" type="text" value={form.name} onChange={handleChange} />
-          <FloatingLabelInput id="register-email" name="email" label="E-mail" type="email" value={form.email} onChange={handleChange} />
-          <FloatingLabelInput id="register-phone" name="phone" label="Telefone" type="text" value={form.phone} onChange={handleChange} />
-          <FloatingLabelInput id="register-cnpj" name="cnpj" label="CNPJ" type="text" value={form.cnpj} onChange={handleChange} />
+          <FloatingLabelInput
+            id="register-name"
+            name="name"
+            label="Nome da empresa"
+            type="text"
+            value={form.name}
+            onChange={handleChange}
+          />
+          <FloatingLabelInput
+            id="register-email"
+            name="email"
+            label="E-mail"
+            type="email"
+            value={form.email}
+            onChange={handleChange}
+          />
 
-          <button type="button" className={styles.addressButton} onClick={() => setShowAddress(true)}>
+          <div className={styles.flex}>
+            <FloatingLabelInput
+              id="register-phone"
+              name="phone"
+              label="Telefone"
+              type="text"
+              value={form.phone}
+              onChange={handleChange}
+            />
+            <FloatingLabelInput
+              id="register-cnpj"
+              name="cnpj"
+              label="CNPJ"
+              type="text"
+              value={form.cnpj}
+              onChange={handleChange}
+            />
+          </div>
+
+          <button
+            type="button"
+            className={styles.addressButton}
+            onClick={() => setShowAddress(true)}
+          >
             Adicionar Endereço
           </button>
 
-          <FloatingLabelInput id="register-password" name="password" label="Senha" type="password" value={form.password} onChange={handleChange} />
-          <FloatingLabelInput id="register-confirm-password" name="confirm_password" label="Confirme a senha" type="password" value={form.confirm_password} onChange={handleChange} />
+          <div className={styles.flex}>
+            <FloatingLabelInput
+              id="register-password"
+              name="password"
+              label="Senha"
+              type="password"
+              value={form.password}
+              onChange={handleChange}
+            />
+            <FloatingLabelInput
+              id="register-confirm-password"
+              name="confirm_password"
+              label="Confirme a senha"
+              type="password"
+              value={form.confirm_password}
+              onChange={handleChange}
+            />
+          </div>
 
           <div className={styles.termsContainer}>
-            <input type="checkbox" id="accepted_terms" name="accepted_terms" checked={form.accepted_terms} onChange={handleChange} />
+            <input
+              type="checkbox"
+              id="accepted_terms"
+              name="accepted_terms"
+              checked={form.accepted_terms}
+              onChange={handleChange}
+            />
             <label htmlFor="accepted_terms">Aceito os termos de uso</label>
           </div>
 
@@ -180,12 +249,94 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
         </>
       )}
 
+      {/* SEGUNDA ETAPA: Endereço completo */}
       {showAddress && (
         <>
-          <FloatingLabelInput id="register-postal_code" name="postal_code" label="CEP" type="text" value={form.postal_code} onChange={handleChange} />
-          <FloatingLabelInput id="register-street" name="street" label="Rua" type="text" value={form.street} onChange={handleChange} />
-          <FloatingLabelInput id="register-city" name="city" label="Cidade" type="text" value={form.city} onChange={handleChange} />
-          <FloatingLabelInput id="register-state" name="state" label="Estado" type="text" value={form.state} onChange={handleChange} />
+          <FloatingLabelInput
+            id="register-postal_code"
+            name="postal_code"
+            label="CEP"
+            type="text"
+            value={form.postal_code}
+            onChange={handleChange}
+          />
+          <div className={styles.flex}>
+            <FloatingLabelInput
+              id="register-street"
+              name="street"
+              label="Rua"
+              type="text"
+              value={form.street}
+              onChange={handleChange}
+            />
+            <FloatingLabelInput
+              id="register-number"
+              name="number"
+              label="Número"
+              type="text"
+              value={form.number}
+              onChange={handleChange}
+            />
+          </div>
+          
+          <div className={styles.flex}>
+            <FloatingLabelInput
+              id="register-city"
+              name="city"
+              label="Cidade"
+              type="text"
+              value={form.city}
+              onChange={handleChange}
+            />
+            <FloatingLabelInput
+              id="register-state"
+              name="state"
+              label="Estado"
+              type="text"
+              value={form.state}
+              onChange={handleChange}
+            />
+            <FloatingLabelInput
+              id="register-neighborhood"
+              name="neighborhood"
+              label="Bairro"
+              type="text"
+              value={form.neighborhood}
+              onChange={handleChange}
+            />
+          </div>
+          
+          <FloatingLabelInput
+            id="register-complement"
+            name="complement"
+            label="Complemento (opcional)"
+            type="text"
+            value={form.complement ?? ''}
+            onChange={handleChange}
+          />
+
+          
+          {/* novo campo online_url (opcional) */}
+          <FloatingLabelInput
+            id="register-online_url"
+            name="online_url"
+            label="URL Online (opcional)"
+            type="text"
+            value={form.online_url ?? ''}
+            onChange={handleChange}
+          />
+
+          {/* novo checkbox only_online */}
+          <div className={styles.termsContainer}>
+            <input
+              type="checkbox"
+              id="only_online"
+              name="only_online"
+              checked={form.only_online}
+              onChange={handleChange}
+            />
+            <label htmlFor="only_online">Este estabelecimento é somente online</label>
+          </div>
 
           <Button bgColor="#FFA600" onClick={() => setShowAddress(false)}>
             Continuar

@@ -24,6 +24,14 @@ export const getCompanyInfo = (companyId: string) =>
 export const searchCompanies = (filters: CompanyFilter = {}) =>
   api.get<CompanyRead[]>('/companies/search', { params: filters });
 
+
+/**
+ * Busca empresas por localização (city/state/postal_code)
+ * GET /companies/search
+ */
+export const searchCompaniesAdmin = (filters: CompanyFilter = {}) =>
+  api.get<CompanyRead[]>('/companies/searchAdmin', { params: filters });
+
 /**
  * Busca empresas por categoria e localização
  * GET /companies/search-by-category?category_id=…&city=…&state=…&postal_code=…

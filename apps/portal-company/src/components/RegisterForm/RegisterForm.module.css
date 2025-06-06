@@ -41,3 +41,8 @@
   font-size: 1rem;
   cursor: pointer;
 }
+
+.flex {
+  display: flex;  
+  gap: 0.5rem;
+}
