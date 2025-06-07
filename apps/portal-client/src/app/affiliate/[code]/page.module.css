@@ -1,0 +1,101 @@
+.gridItem {
+  background: #fff;
+  padding: 20px;
+  border-radius: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.categories {
+  font-size: 15px;
+  padding: 10px;
+  background-color: #F0F0F0;
+  border-radius: 50px;
+  text-decoration: none;
+  color: #000;
+}
+.categories:hover {
+  background-color: #dfdfdf;
+}
+
+.gridItemMap {
+  background: #fff;
+  padding: 20px;
+  border-radius: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.companiesList {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.companyCard {
+  background: #F0F0F0;
+  padding: 10px 30px;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  gap: 10px;
+}
+
+.companyLogo {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.companyInfo {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex: 1;
+}
+
+.companyName {
+  font-size: 20px;
+  margin: 0;
+}
+
+.companyDesc {
+  margin: 4px 0 0;
+}
+
+.companyButton {
+  font-size: 15px;
+  padding: 10px 20px;
+  background-color: #F0F0F0;
+  border-radius: 50px;
+  text-decoration: none;
+  color: #000;
+}
+.companyButton:hover {
+  background-color: #dfdfdf;
+}
+
+.loading {
+  background-color: #f0f0f0;
+  padding: 30px;
+  text-align: center;
+  border-radius: 10px;
+}
+
+/* responsividade */
+@media (max-width: 767px) {
+  .companiesList {
+    grid-template-columns: 1fr;
+  }
+}

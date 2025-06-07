@@ -10,6 +10,7 @@ import type {
   PreRegisteredResponse,
   MsgResponse,
   LoginCredentials,
+  ReferralCode
 } from '@/types/user';
 
 import type { CompanyRead } from '@/types/company';
@@ -90,8 +91,6 @@ export const getMyCompanies = (
   api.get<CompanyRead[]>('/users/me/companies', {
     params: { page, page_size }
   });
-
-
   
 /**
  * Solicita exclusão de conta para o usuário logado
@@ -99,3 +98,17 @@ export const getMyCompanies = (
  */
 export const requestUserDeletion = () =>
   api.post<MsgResponse>('/users/me/delete-request');
+
+/**
+ * Cria um referral code para o usuário logado.
+ * POST /users/me/referral-code
+ */
+export const createMyReferralCode = () =>
+  api.post<ReferralCode>('/users/me/referral-code');
+
+/**
+ * Recupera o referral code do usuário logado.
+ * GET /users/me/referral-code
+ */
+export const getMyReferralCode = () =>
+  api.get<ReferralCode>('/users/me/referral-code');

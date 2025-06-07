@@ -9,7 +9,9 @@ import { useAuth } from '@/context/AuthContext';
 import { listAddresses, deleteAddress } from '@/services/addressService';
 import {
   getMyCompanies,
-  requestUserDeletion,   // ← novo endpoint
+  requestUserDeletion,
+  getMyReferralCode,
+  createMyReferralCode 
 } from '@/services/userService';
 import type { AddressRead } from '@/types/address';
 import type { CompanyRead } from '@/types/company';
@@ -37,6 +39,24 @@ export default function ProfilePage() {
   /* ---------------- delete conta ------------- */
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleteMsg, setDeleteMsg]       = useState<string|null>(null);
+
+  /* ---------------- referral code ---------------- */
+  const [referralCode, setReferralCode] = useState<string | null>(null);
+  const [loadingRef, setLoadingRef] = useState(true);
+  const [creatingRef, setCreatingRef] = useState(false);
+
+  useEffect(() => {
+    // Ao montar, tenta buscar o código
+    getMyReferralCode()
+      .then(res => setReferralCode(res.data.referral_code))
+      .catch(err => {
+        // 404 significa “ainda não gerou”
+        if (err.response?.status !== 404) {
+          console.error('Erro ao buscar referral code', err);
+        }
+      })
+      .finally(() => setLoadingRef(false));
+  }, []);
 
   /* ---------------- helpers ------------------ */
   const displayName = useMemo(() => {
@@ -101,6 +121,25 @@ export default function ProfilePage() {
     } finally {
       setDeleteConfirm(false);
     }
+  };
+
+  const handleCreateReferral = async () => {
+    setCreatingRef(true);
+    try {
+      const res = await createMyReferralCode();
+      setReferralCode(res.data.referral_code);
+    } catch (err) {
+      console.error('Erro ao criar referral code', err);
+      alert('Falha ao gerar código.');
+    } finally {
+      setCreatingRef(false);
+    }
+  };
+
+  const handleCopyReferral = () => {
+    if (!referralCode) return;
+    navigator.clipboard.writeText(referralCode);
+    alert('Código copiado!');
   };
 
   /* ---------------- loading guard ------------ */
@@ -273,6 +312,94 @@ export default function ProfilePage() {
           <button disabled={!hasMore}        onClick={()=>setPage(p=>p+1)}>Próxima</button>
         </div>
       </div>
+
+              {/* ---------- CÓDIGO DE AFILIADO ---------- */}
+<div className={`${styles.gridSubItem} ${styles.lastGridSubItem}`}>
+  <h4>Código de Afiliado</h4>
+
+  <div className={styles.affiliateWrapper}>
+    <Image
+      src="/affiliate-code.png"
+      alt="Cliente entregando código ao lojista"
+      width={1000}
+      height={1000}
+      className={styles.affiliateIllustration}
+      priority
+    />
+
+    {loadingRef ? (
+      <p className={styles.loading}>Carregando código…</p>
+    ) : referralCode ? (
+      /* ---------- código JÁ gerado ---------- */
+      <div className={styles.affiliateContent}>
+        <h5 className={styles.headline}>Seu código</h5>
+
+        <p className={styles.description}>
+          Entregue este código ao lojista e
+          garanta <strong>3 % de cashback vitalício</strong> sobre todas as
+          compras que ele fizer no programa.
+        </p>
+
+        <div className={styles.inputGroup}>
+          <input
+            readOnly
+            className={styles.referralInput}
+            value={referralCode}
+            onClick={handleCopyReferral}
+          />
+          <button
+            className={styles.copyButton}
+            onClick={handleCopyReferral}
+          >
+            Copiar
+          </button>
+        </div>
+
+        <div className={styles.linkWrapper}>
+          <Link href={`/affiliate/${referralCode}`} className={styles.affiliateLink}>
+            Ver página de afiliado
+          </Link>
+        </div>
+        
+      </div>
+    ) : (
+      /* ---------- AINDA não gerado ---------- */
+      <div className={styles.affiliateContent}>
+        <h5 className={styles.headline}>Ganhe dinheiro em 3 passos simples</h5>
+
+        <div className={styles.stepContent}>
+          <div className={styles.stepList}>
+            <div><strong>Gerar</strong> seu código exclusivo agora mesmo.</div>
+            <div><strong>Entregar</strong> ao lojista quando ele se cadastrar.</div>
+            <div>
+              <strong>Receber 3 %</strong> de todas as compras dele —
+              renda extra sem prazo de validade.
+            </div>
+          </div>
+
+          <div className={styles.benefitList}>
+            <div>✅ CAC <strong>zero</strong> — não gaste com anúncios</div>
+            <div>💰 Comissões recorrentes todo mês</div>
+            <div>🚀 Comece em menos de 1 minuto</div>
+          </div>
+        </div>
+
+        <button
+          className={styles.generateButton}
+          onClick={handleCreateReferral}
+          disabled={creatingRef}
+        >
+          {creatingRef ? 'Gerando…' : 'Quero meu código agora'}
+        </button>
+      </div>
+    )}
+  </div>
+</div>
+
+
+
+
+
 
       {/* ---------- MODAL EDITAR ---------- */}
       <Modal open={openEdit} onClose={() => setOpenEdit(false)}>

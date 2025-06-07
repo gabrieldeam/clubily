@@ -58,3 +58,6 @@ class Company(Base):
         back_populates="companies",
         lazy="joined",
     )
+    
+    # indicações resgatadas por esta empresa
+    referrals = relationship("Referral", back_populates="company", cascade="all, delete-orphan")

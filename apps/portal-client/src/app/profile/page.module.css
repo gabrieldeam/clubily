@@ -39,6 +39,10 @@
   margin-top: 10px;
 }
 
+.lastGridSubItem {
+  margin-bottom: 120px;
+}
+
 .profileHeader {
   display: flex;
   align-items: center;
@@ -333,6 +337,13 @@
   border-radius: 10px;
 }
 
+
+
+
+
+
+
+
 @media (min-width: 1024px) and (max-width: 1200px) {
 
 .list {
@@ -378,3 +389,196 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* 1) Grid full‑width, duas colunas: imagem fixa + conteúdo flexível */
+.affiliateWrapper {
+  display: flex;
+  gap: 50px;
+  align-items: center;
+  width: 100%;
+  padding: 32px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+}
+
+/* 2) Ilustração */
+.affiliateIllustration {
+  width: 100%;
+  max-width: 600px;
+  max-height: 220px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+/* 3) Área de texto e ações */
+.affiliateContent {
+  display: flex;
+  flex-direction: column;  
+  width: 100%;
+}
+
+/* 4) Títulos secundários (h5) */
+.subtitle {
+  margin: 0;
+  font-size: 20px;
+  color: #111827;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+/* 5) Parágrafos */
+.description {
+  margin: 8px 0 ;
+  font-size: 17px;
+  color: #374151;
+  line-height: 1.6;
+}
+
+/* 6) Lista de benefícios */
+.benefitsList {
+  margin: 0 0 24px;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 15px;
+  color: #4b5563;
+}
+/* 7) Input + copiar */
+.inputGroup {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+.referralInput {
+  flex: 1;
+  padding: 14px 18px;
+  font-size: 16px;
+  font-family: monospace;
+  color: #111827;
+  background: #f9fafb;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* 8) Botões */
+.copyButton,
+.generateButton {
+  font-size: 16px;
+  font-weight: 700;
+  padding: 14px 28px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: transform .1s, opacity .2s;
+}
+.copyButton {
+  background: #FF4C00;
+  color: #ffffff;
+}
+.copyButton:hover {
+  transform: translateY(-1px);
+  opacity: 0.9;
+}
+
+.generateButton {
+  background: linear-gradient(90deg, #4f46e5 0%, #3b82f6 100%);
+  color: #ffffff;
+  align-self: start;
+}
+.generateButton:hover {
+  transform: translateY(-1px);
+  opacity: 0.9;
+}
+.generateButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.stepContent {
+  display: flex;
+  width: 100%;
+  padding: 20px;
+  gap: 30px;
+}
+
+.headline {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.linkWrapper {
+  margin-top: 12px;
+  text-align: left;
+}
+
+.affiliateLink {
+  color: #FF4C00;
+  font-weight: 500;
+}
+
+.affiliateLink:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+  .affiliateWrapper {
+    display: flex;
+    flex-direction: column;
+    padding: 24px 16px;
+    gap: 24px;
+  }
+  .affiliateIllustration {
+    width: 160px;
+    margin: 0 auto;
+  }
+  .affiliateContent {
+    text-align: center;
+    gap: 16px;
+  }
+  .inputGroup {
+    flex-direction: column;
+    width: 100%;
+  }
+  .copyButton,
+  .generateButton {
+    width: 100%;
+  }
+  .benefitsList {
+    padding-left: 16px;
+    text-align: left;
+  }
+}
+

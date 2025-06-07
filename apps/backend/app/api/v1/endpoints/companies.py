@@ -21,6 +21,8 @@ from ....schemas.user import UserRead
 from app.models.category import Category
 from ...deps import get_current_company, get_db, require_admin
 from app.models.association import user_companies
+from ....schemas.referral import ReferralRedeem, ReferralRead
+from ....services.referral_service import redeem_referral_code
 
 router = APIRouter(tags=["companies"])
 
@@ -638,3 +640,15 @@ def request_company_deletion(
     )
 
     return {"msg": "Solicitação de exclusão de conta empresarial enviada. Em breve entraremos em contato."}
+
+@router.post("/redeem-referral", response_model=ReferralRead, status_code=status.HTTP_201_CREATED)
+def redeem_referral(
+    payload: ReferralRedeem,
+    db: Session = Depends(get_db),
+    current_company=Depends(get_current_company),
+):
+    try:
+        referral = redeem_referral_code(db, current_company.id, payload.referral_code)
+        return referral
+    except ValueError as e:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(e))

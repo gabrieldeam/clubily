@@ -75,3 +75,8 @@ export interface LoginCredentials {
   identifier: string; // email ou telefone
   password: string;
 }
+
+
+export interface ReferralCode {
+  referral_code: string;
+}

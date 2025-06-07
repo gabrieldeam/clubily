@@ -4,7 +4,9 @@ from fastapi import APIRouter, Depends, Query, status, BackgroundTasks, HTTPExce
 from sqlalchemy import select
 from typing import List
 from sqlalchemy.orm import Session
+from ....schemas.referral import ReferralCode
 from app.api.deps import get_current_user, get_db
+from ....services.referral_service import generate_referral_code, get_referral_code, get_companies_by_referral_code
 from jose import jwt
 from app.core.config import settings
 from app.core.email_utils import send_email
@@ -219,3 +221,39 @@ def request_user_deletion(
     )
 
     return {"msg": "Solicitação de exclusão de conta enviada. Em breve entraremos em contato."}
+
+@router.post("/me/referral-code", response_model=ReferralCode, status_code=status.HTTP_201_CREATED)
+def create_my_referral_code(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    try:
+        code = generate_referral_code(db, current_user)
+        return {"referral_code": code}
+    except Exception as e:
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+@router.get("/me/referral-code", response_model=ReferralCode)
+def read_my_referral_code(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    code = get_referral_code(db, current_user)
+    if not code:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Nenhum código gerado")
+    return {"referral_code": code}
+
+@router.get(
+    "/{code}/companies",
+    response_model=List[CompanyRead],
+    summary="Retorna todas as empresas indicadas por um código de usuário",
+)
+def list_companies_by_referral_code(
+    code: str,
+    db: Session = Depends(get_db),
+):
+    """
+    Recebe um código de indicação (`referral_code`) e devolve
+    todas as empresas que o usuário dono desse código indicou.
+    """
+    return get_companies_by_referral_code(db, code)

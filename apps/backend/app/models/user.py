@@ -50,3 +50,8 @@ class User(Base):
         cascade="all, delete-orphan",
         lazy="joined",
     )
+
+    # código único de indicação
+    referral_code = Column(String(10), unique=True, nullable=True, index=True)
+    # indicações resgatadas a partir deste usuário
+    referrals = relationship("Referral", back_populates="user", cascade="all, delete-orphan")
