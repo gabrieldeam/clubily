@@ -7,7 +7,7 @@ from app.db.session import SessionLocal
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 from datetime import datetime
-
+from sqlalchemy import or_, and_
 from ....schemas.company import CompanyCreate, CompanyRead, CompanyLogin, CompanyUpdate, CompanyReadWithService
 from ....schemas.token import Token
 from ....services.company_service import create, authenticate
@@ -333,16 +333,27 @@ def search_companies(
 ):
     """
     Filtra empresas ativas pela combinação de city, state e/ou postal_code.
+    Sempre inclui também as empresas com only_online=True.
     Se nenhum parâmetro for passado, retorna todas as empresas ativas.
     """
-    q = db.query(Company).filter(Company.is_active == True)  # <-- só empresas ativas
+    q = db.query(Company).filter(Company.is_active == True)
 
-    if city:
-        q = q.filter(Company.city.ilike(f"%{city}%"))
-    if state:
-        q = q.filter(Company.state.ilike(f"%{state}%"))
-    if postal_code:
-        q = q.filter(Company.postal_code == postal_code)
+    # só monta o OR extra se vier AO MENOS um filtro
+    if city or state or postal_code:
+        conds = []
+        if city:
+            conds.append(Company.city.ilike(f"%{city}%"))
+        if state:
+            conds.append(Company.state.ilike(f"%{state}%"))
+        if postal_code:
+            conds.append(Company.postal_code == postal_code)
+
+        q = q.filter(
+            or_(
+                Company.only_online == True,
+                and_(*conds)
+            )
+        )
 
     return q.all()
 
@@ -362,23 +373,34 @@ def search_companies_by_category(
 ):
     """
     Retorna empresas ativas que pertencem à `category_id` e opcionalmente
-    filtradas por cidade, estado e/ou CEP.
+    filtradas por cidade, estado e/ou CEP. Sempre inclui também as only_online.
     """
-    # 1) Começa filtrando apenas empresas ativas
-    q = db.query(Company).filter(Company.is_active == True)
+    # 1) só ativas e na categoria
+    q = (
+        db.query(Company)
+        .filter(Company.is_active == True)
+        .join(Company.categories)
+        .filter(Category.id == category_id)
+    )
 
-    # 2) Aplica filtros de localização (se fornecidos)
-    if city:
-        q = q.filter(Company.city.ilike(f"%{city}%"))
-    if state:
-        q = q.filter(Company.state.ilike(f"%{state}%"))
-    if postal_code:
-        q = q.filter(Company.postal_code == postal_code)
+    # 2) aplica OR(only_online, AND(filtros de localização))
+    if city or state or postal_code:
+        conds = []
+        if city:
+            conds.append(Company.city.ilike(f"%{city}%"))
+        if state:
+            conds.append(Company.state.ilike(f"%{state}%"))
+        if postal_code:
+            conds.append(Company.postal_code == postal_code)
 
-    # 3) Junta com categorias e filtra pela escolhida
-    q = q.join(Company.categories).filter(Category.id == category_id).distinct()
+        q = q.filter(
+            or_(
+                Company.only_online == True,
+                and_(*conds)
+            )
+        )
 
-    return q.all()
+    return q.distinct().all()
 
 
 @router.get(
@@ -395,22 +417,37 @@ def search_companies_by_name(
     db: Session = Depends(get_db),
 ):
     """
-    Procura empresas ativas cujo nome contenha 'name' (case-insensitive),
-    e para cada uma indica se ela atende o endereço (city, street, postal_code) fornecido.
+    Procura empresas ativas cujo nome contenha 'name'.
+    Se vier endereço (city/street/cep), aplica o mesmo OR para only_online.
+    Depois devolve o campo `serves_address` indicando se atende.
     """
-    # 1) busca apenas empresas ativas com nome LIKE
-    companies = (
-        db.query(Company)
-        .filter(
-            Company.is_active == True,         # só ativas
-            Company.name.ilike(f"%{name}%")    # nome que contenha `name`
-        )
-        .all()
+    # 1) base: só ativas + nome LIKE
+    q = db.query(Company).filter(
+        Company.is_active == True,
+        Company.name.ilike(f"%{name}%")
     )
 
+    # 2) se vier endereço, aplica OR(only_online, AND(endereço bate))
+    if city or street or postal_code:
+        conds = []
+        if city:
+            conds.append(Company.city.ilike(f"%{city}%"))
+        if street:
+            conds.append(Company.street.ilike(f"%{street}%"))
+        if postal_code:
+            conds.append(Company.postal_code == postal_code)
+
+        q = q.filter(
+            or_(
+                Company.only_online == True,
+                and_(*conds)
+            )
+        )
+
+    companies = q.all()
     results: list[dict] = []
     for comp in companies:
-        # 2) calcula o flag serves_address
+        # 3) calcula o flag serves_address
         served = True
         if city and comp.city.lower() != city.lower():
             served = False
@@ -419,10 +456,8 @@ def search_companies_by_name(
         if postal_code and comp.postal_code != postal_code:
             served = False
 
-        # 3) serializa o Company para dict via CompanyRead
+        # 4) monta o dict com o computed field
         comp_dict = CompanyRead.model_validate(comp).model_dump()
-
-        # 4) injeta o novo campo
         comp_dict["serves_address"] = served
         results.append(comp_dict)
 

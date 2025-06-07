@@ -1,14 +1,12 @@
 import type { CategoryRead } from '@/types/category';
 
-// filtros usados em toda busca “por localização”
 export interface CompanyFilter {
   city?: string;
   state?: string;
   postal_code?: string;
-  street?: string;       // ← adicionado
+  street?: string;
 }
 
-// o tipo base que você já tinha
 export interface CompanyRead {
   id: string;
   name: string;
@@ -18,8 +16,13 @@ export interface CompanyRead {
   street: string;
   city: string;
   state: string;
+  number: string;
+  neighborhood: string;
+  complement?: string;
   postal_code: string;
   description?: string;
+  online_url?: string;
+  only_online: boolean;
   created_at: string;
   email_verified_at?: string;
   phone_verified_at?: string;
@@ -30,7 +33,6 @@ export interface CompanyRead {
   phone_verified: boolean;
 }
 
-// novo tipo para o endpoint `/search-by-name`
 export interface CompanyReadWithService extends CompanyRead {
   serves_address: boolean;
 }

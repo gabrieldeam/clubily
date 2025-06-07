@@ -35,7 +35,7 @@ export default function CompanySettings({ companyId, onClose, onSaved }: Company
   const [company, setCompany] = useState<CompanyFormState>({});
   const [categories, setCategories] = useState<CategoryRead[]>([]);
   const [companyNotification, setCompanyNotification] = useState<NotificationData | null>(null);
-
+  const maxDescriptionLength = 130;
   const [showAddress, setShowAddress] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -117,6 +117,23 @@ export default function CompanySettings({ companyId, onClose, onSaved }: Company
       setCompanyNotification({ type: 'error', message: 'Selecione um arquivo de imagem válido.' });
     }
   };
+
+  const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const value = e.target.value;
+  if (value.length > maxDescriptionLength) {
+    setCompanyNotification({
+      type: 'error',
+      message: `Você excedeu o limite em ${value.length - maxDescriptionLength} caracteres.`,
+    });
+  } else {
+    setCompanyNotification(null);
+  }
+  setCompany(prev => ({
+    ...prev,
+    description: value.slice(0, maxDescriptionLength),
+  }));
+  setDataDirty(true);
+};
 
   const handleCompanySubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -272,8 +289,11 @@ export default function CompanySettings({ companyId, onClose, onSaved }: Company
                   placeholder="Descrição"
                   className={editStyles.textarea}
                   value={company.description ?? ''}
-                  onChange={handleChange}
+                  onChange={handleDescriptionChange}
                 />
+                <div className={editStyles.charCount}>
+                  {company.description?.length ?? 0}/{maxDescriptionLength}
+                </div>
                 
               </div>
 

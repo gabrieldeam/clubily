@@ -10,6 +10,7 @@ from app.models.category import Category
 from app.models.company import Company
 from app.schemas.category import CategoryRead
 from app.services.category_service import list_categories
+from sqlalchemy import or_, and_
 
 router = APIRouter(tags=["categories"])
 
@@ -125,7 +126,7 @@ async def update_category(
     "/used",
     response_model=List[CategoryRead],
     status_code=status.HTTP_200_OK,
-    summary="Categorias com pelo menos uma empresa ativa, filtradas por localização"
+    summary="Categorias com pelo menos uma empresa ativa (OU only_online), filtradas por localização"
 )
 def read_used_categories(
     city: Optional[str] = Query(None, description="Filtrar por parte do nome da cidade"),
@@ -135,21 +136,34 @@ def read_used_categories(
 ):
     """
     Retorna categorias que têm pelo menos uma empresa ATIVA associada,
-    opcionalmente filtrando empresas por cidade, estado e/ou CEP.
+    opcionalmente filtrando empresas por cidade, estado e/ou CEP,
+    mas **sempre incluindo** as empresas marcadas como only_online.
     """
     # 1) join com Category.companies e filtra apenas empresas ativas
     q = db.query(Category).join(Category.companies).filter(Company.is_active == True)
 
-    # 2) aplica os filtros de localização (se fornecidos)
-    if city:
-        q = q.filter(Company.city.ilike(f"%{city}%"))
-    if state:
-        q = q.filter(Company.state.ilike(f"%{state}%"))
-    if postal_code:
-        q = q.filter(Company.postal_code == postal_code)
+    # 2) se vier qualquer filtro de localização, aplique-o *apenas* às empresas não-online,
+    #    mas sempre deixe passar as only_online
+    if city or state or postal_code:
+        loc_conditions = []
+        if city:
+            loc_conditions.append(Company.city.ilike(f"%{city}%"))
+        if state:
+            loc_conditions.append(Company.state.ilike(f"%{state}%"))
+        if postal_code:
+            loc_conditions.append(Company.postal_code == postal_code)
 
-    # 3) garante que cada categoria apareça apenas uma vez no resultado
+        # only_online == True  OU  (todas as condições de localização)
+        q = q.filter(
+            or_(
+                Company.only_online == True,
+                and_(*loc_conditions)
+            )
+        )
+
+    # 3) distinct para não repetir categorias
     q = q.distinct()
+
     return q.all()
 
 @router.get(

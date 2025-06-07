@@ -47,26 +47,17 @@ export default function ClientsPage() {
     setOpenModal(true);
   };
 
-  const openEditModal = (c: UserRead) => {
-    if (c.pre_registered) {
-      setSelectedClient(c);
-      setOpenModal(true);
-    }
+  const openClientModal = (client: UserRead) => {
+    setSelectedClient(client);
+    setOpenModal(true);
   };
 
-  // Função para formatar exibição de CPF quando necessário
-  const formatCpfDisplay = (c: UserRead) => {
-    const shouldMaskCpf =
-      c.pre_registered &&
-      c.phone &&
-      c.cpf.slice(-6) === c.phone.slice(-6);
-    return shouldMaskCpf ? '*****' : c.cpf;
-  };
+  // formatadores
+  const formatPhoneDisplay = (c: UserRead) =>
+    c.pre_registered ? '*****' : c.phone ?? '—';
 
-  // Função para exibir telefone ou máscara
-  const formatPhoneDisplay = (c: UserRead) => {
-    return c.phone ? c.phone : '*****';
-  };
+  const formatCpfDisplay = (c: UserRead) =>
+    c.pre_registered ? '*****' : c.cpf ?? '—';
 
   return (
     <div className={styles.container}>
@@ -95,26 +86,23 @@ export default function ClientsPage() {
                 {clients.map(c => (
                   <div
                     key={c.id}
-                    className={`${styles.row} ${c.pre_registered ? styles.masked : ''}`}
-                    onClick={() =>
-                      c.pre_registered ? openEditModal(c) : undefined
-                    }
+                    className={`${styles.row} ${
+                      c.pre_registered ? styles.masked : ''
+                    }`}
+                    onClick={() => openClientModal(c)}
+                    style={{ cursor: 'pointer' }}
                     title={
                       c.pre_registered
                         ? 'Esse usuário não tem cadastro completo'
                         : undefined
                     }
                   >
-                    <div className={styles.cellPhone} data-label="Nome">
-                      {c.pre_registered ? '*****' : c.name}
-                    </div>
-                    <div className={styles.cellPhone} data-label="Email">
-                      {c.pre_registered ? '*****' : c.email}
-                    </div>
-                    <div className={styles.cellPhone} data-label="Telefone">
+                    <div className={styles.cellName}>{c.name}</div>
+                    <div className={styles.cellEmail}>{c.email}</div>
+                    <div className={styles.cellPhone}>
                       {formatPhoneDisplay(c)}
                     </div>
-                    <div className={styles.cellPhone} data-label="CPF">
+                    <div className={styles.cellPhone}>
                       {formatCpfDisplay(c)}
                     </div>
                   </div>
@@ -122,7 +110,6 @@ export default function ClientsPage() {
               </div>
             </div>
 
-            {/* Controles de página */}
             <div className={styles.pagination}>
               <button
                 onClick={() => setPage(p => Math.max(p - 1, 0))}
@@ -132,7 +119,9 @@ export default function ClientsPage() {
               </button>
               <span>Página {page + 1}</span>
               <button
-                onClick={() => (clients.length === LIMIT ? setPage(p => p + 1) : null)}
+                onClick={() =>
+                  clients.length === LIMIT ? setPage(p => p + 1) : undefined
+                }
                 disabled={clients.length < LIMIT}
               >
                 Próxima
@@ -160,7 +149,8 @@ export default function ClientsPage() {
                 {selectedClient.pre_registered ? '*****' : selectedClient.email}
               </p>
               <p>
-                <strong>Telefone:</strong> {formatPhoneDisplay(selectedClient)}
+                <strong>Telefone:</strong>{' '}
+                {formatPhoneDisplay(selectedClient)}
               </p>
               <p>
                 <strong>CPF:</strong> {formatCpfDisplay(selectedClient)}

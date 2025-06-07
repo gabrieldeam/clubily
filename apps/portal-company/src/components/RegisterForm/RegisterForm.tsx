@@ -111,6 +111,14 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
     if (!form.neighborhood) missing.push('Bairro');
     if (!form.accepted_terms) missing.push('Termos de uso');
 
+    if (form.online_url && !/^https?:\/\//i.test(form.online_url)) {
+      setNotification({
+        type: 'error',
+        message: 'Por favor, informe a URL completa, incluindo http:// ou https://.',
+      });
+      return;
+    }
+
     if (missing.length > 0) {
       setNotification({
         type: 'error',

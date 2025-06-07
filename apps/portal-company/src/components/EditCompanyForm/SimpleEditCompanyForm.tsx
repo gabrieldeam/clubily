@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, FormEvent } from 'react';
+import { useEffect, useState, FormEvent, ChangeEvent } from 'react';
 import styles from './SimpleEditCompanyForm.module.css';
 import FloatingLabelInput from '@/components/FloatingLabelInput/FloatingLabelInput';
 import Notification from '@/components/Notification/Notification';
@@ -38,12 +38,13 @@ export default function SimpleEditCompanyForm({
   });
   const [categories, setCategories] = useState<CategoryRead[]>([]);
   const [notification, setNotification] = useState<{ type: string; message: string } | null>(null);
+  const maxDescriptionLength = 130;
 
   // logo upload
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
-  // carrega dados iniciais
+  // load initial data
   useEffect(() => {
     getCompanyInfo(companyId).then(res => {
       const data = res.data as CompanyRead;
@@ -56,8 +57,18 @@ export default function SimpleEditCompanyForm({
     listCategories().then(res => setCategories(res.data));
   }, [companyId]);
 
-  const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setForm(f => ({ ...f, description: e.target.value }));
+  const handleDescriptionChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    if (value.length > maxDescriptionLength) {
+      setNotification({
+        type: 'error',
+        message: `Você excedeu o limite em ${value.length - maxDescriptionLength} caracteres.`,
+      });
+    } else {
+      setNotification(null);
+    }
+    const trimmed = value.slice(0, maxDescriptionLength);
+    setForm(f => ({ ...f, description: trimmed }));
   };
 
   const handleCategoryToggle = (id: string) => {
@@ -69,7 +80,7 @@ export default function SimpleEditCompanyForm({
     }));
   };
 
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !file.type.startsWith('image/')) {
       setNotification({ type: 'error', message: 'Selecione uma imagem válida.' });
@@ -82,13 +93,13 @@ export default function SimpleEditCompanyForm({
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     try {
-      // upload logo primeiro
+      // upload logo first
       if (logoFile) {
         const fd = new FormData();
         fd.append('image', logoFile);
         await uploadCompanyLogo(fd);
       }
-      // update descrição + categorias
+      // update description + categories
       const payload: Partial<CompanyUpdate> = {
         description: form.description,
         category_ids: form.category_ids,
@@ -106,7 +117,7 @@ export default function SimpleEditCompanyForm({
   return (
     <form className={styles.form} onSubmit={handleSubmit}>
       <div className={styles.background}>
-      <h2 className={styles.title}>Complete seu perfil</h2>
+        <h2 className={styles.title}>Complete seu perfil</h2>
         {notification && (
           <Notification
             type={notification.type as any}
@@ -114,7 +125,7 @@ export default function SimpleEditCompanyForm({
             onClose={() => setNotification(null)}
           />
         )}
-        
+
         {/* logo */}
         <div className={styles.logoUpload}>
           {logoPreview ? (
@@ -140,7 +151,9 @@ export default function SimpleEditCompanyForm({
           value={form.description}
           onChange={handleDescriptionChange}
           placeholder="Conte um pouco sobre seu negócio..."
+          maxLength={maxDescriptionLength}
         />
+        <div className={styles.charCount}>{form.description.length}/{maxDescriptionLength}</div>
 
         {/* categorias */}
         <div className={styles.catContainer}>
@@ -163,7 +176,6 @@ export default function SimpleEditCompanyForm({
           </Button>
         </div>
       </div>
-      
     </form>
   );
 }
