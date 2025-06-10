@@ -14,7 +14,7 @@ import type { CompanyRead } from '@/types/company';
 import Header from '@/components/Header/Header';
 import styles from './page.module.css';
 
-// Corrige ícone padrão do Leaflet no Next.js
+// Corrige ícone padrão do Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: '/leaflet/marker-icon-2x.png',
@@ -22,34 +22,21 @@ L.Icon.Default.mergeOptions({
   shadowUrl:     '/leaflet/marker-shadow.png',
 });
 
-// Dynamic imports para SSR off
-const MapContainer = dynamic(
-  () => import('react-leaflet').then(m => m.MapContainer),
-  { ssr: false }
-);
-const TileLayer = dynamic(
-  () => import('react-leaflet').then(m => m.TileLayer),
-  { ssr: false }
-);
-const Marker = dynamic(
-  () => import('react-leaflet').then(m => m.Marker),
-  { ssr: false }
-);
-const Popup = dynamic(
-  () => import('react-leaflet').then(m => m.Popup),
-  { ssr: false }
-);
+// Dinâmicos para desativar SSR
+const MapContainer = dynamic(() => import('react-leaflet').then(m => m.MapContainer), { ssr: false });
+const TileLayer    = dynamic(() => import('react-leaflet').then(m => m.TileLayer),    { ssr: false });
+const Marker       = dynamic(() => import('react-leaflet').then(m => m.Marker),       { ssr: false });
+const Popup        = dynamic(() => import('react-leaflet').then(m => m.Popup),        { ssr: false });
 
-// Fallback HTML para o ícone quando não houver logo
-const FALLBACK_ICON_HTML = `
+// Fallback HTML para Marker
+const FALLBACK_ICON_HTML = (initial: string) => `
   <div style="
-    background-color: #FFA600;
-    width: 50px;
-    height: 50px;
-    border-radius: 25px;
-    border: 2px solid #FFF;
-  "></div>
-`;
+    background-color:#FFA600;
+    width:50px;height:50px;
+    border-radius:25px;
+    display:flex;align-items:center;justify-content:center;
+    color:#FFF;font-size:24px;font-weight:600;
+  ">${initial}</div>`;
 
 export default function CompanyPage() {
   const { loading: authLoading } = useRequireAuth();
@@ -65,11 +52,10 @@ export default function CompanyPage() {
 
   const baseUrl = process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL ?? '';
 
-  // 1) Fetch empresa
+  // 1) Fetch company
   useEffect(() => {
     if (!id) return;
     setLoading(true);
-    setError(null);
     getCompanyInfo(id)
       .then(res => setCompany(res.data))
       .catch(() => setError('Não foi possível carregar os dados da empresa.'))
@@ -83,29 +69,26 @@ export default function CompanyPage() {
     fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}`)
       .then(res => res.json())
       .then((data: any[]) => {
-        if (data.length) {
-          setCoords([parseFloat(data[0].lat), parseFloat(data[0].lon)]);
+        if (data[0]) {
+          setCoords([+data[0].lat, +data[0].lon]);
         }
       })
       .catch(console.error);
   }, [company]);
 
-  // 3) Banner inativo
+  // 3) Banner inactive
   useEffect(() => {
     if (company && !company.is_active) {
       setShowBanner(true);
     }
   }, [company]);
 
-  // 4) Ícone – usa logo ou fallback
+  // 4) Marker icon (logo or fallback initial)
   const logoIcon = useMemo(() => {
+    const initial = company?.name?.[0]?.toUpperCase() || '';
     const html = company?.logo_url
-      ? `<div class="${styles.logoMarker}">
-           <img src="${baseUrl}${company.logo_url}"
-                alt="${company.name}"
-                style="width:100%;height:100%;border-radius:50%;" />
-         </div>`
-      : FALLBACK_ICON_HTML;
+      ? `<div class="${styles.logoMarker}"><img src="${baseUrl}${company.logo_url}" alt="${company.name}" /></div>`
+      : FALLBACK_ICON_HTML(initial);
     return new L.DivIcon({
       html,
       iconSize:   [50, 50],
@@ -117,10 +100,10 @@ export default function CompanyPage() {
   // 5) Abrir Google Maps
   const handleOpenMap = useCallback(() => {
     if (!company) return;
-    const query = coords
+    const q = coords
       ? `${coords[0]},${coords[1]}`
       : encodeURIComponent(`${company.street}, ${company.city}, ${company.state}, ${company.postal_code}`);
-    window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
+    window.open(`https://www.google.com/maps/search/?api=1&query=${q}`, '_blank');
   }, [company, coords]);
 
   const addressExists =
@@ -129,31 +112,26 @@ export default function CompanyPage() {
     !!company?.state &&
     !!company?.postal_code;
 
-  // 6) Skeletons e erros
   if (authLoading) return null;
-  if (loading)
-    return (
-      <section className={styles.container}>
-        <Header />
-        <p className={styles.message}>Carregando dados…</p>
-      </section>
-    );
-  if (error)
-    return (
-      <section className={styles.container}>
-        <Header />
-        <p className={styles.error}>{error}</p>
-      </section>
-    );
-  if (!company)
-    return (
-      <section className={styles.container}>
-        <Header />
-        <p className={styles.message}>Empresa não encontrada.</p>
-      </section>
-    );
+  if (loading) return (
+    <section className={styles.container}>
+      <Header />
+      <p className={styles.message}>Carregando dados…</p>
+    </section>
+  );
+  if (error) return (
+    <section className={styles.container}>
+      <Header />
+      <p className={styles.error}>{error}</p>
+    </section>
+  );
+  if (!company) return (
+    <section className={styles.container}>
+      <Header />
+      <p className={styles.message}>Empresa não encontrada.</p>
+    </section>
+  );
 
-  // 7) Render final
   return (
     <div className={styles.pageWrapper}>
       <Header onSearch={q => router.push(`/search?name=${encodeURIComponent(q)}`)} />
@@ -176,13 +154,20 @@ export default function CompanyPage() {
       <div className={`${styles.whiteBox} ${!company.is_active ? styles.inactive : ''}`}>
         <div className={styles.infoMapSection}>
           <div className={styles.infoColumn}>
-            <Image
-              src={company.logo_url ? `${baseUrl}${company.logo_url}` : '/placeholder-80.png'}
-              alt={company.name}
-              width={80}
-              height={80}
-              className={styles.logo}
-            />
+            {/* Fallback circular initial if no logo */}
+            {company.logo_url ? (
+              <Image
+                src={`${baseUrl}${company.logo_url}`}
+                alt={company.name}
+                width={80}
+                height={80}
+                className={styles.logo}
+              />
+            ) : (
+              <div className={styles.logoFallback}>
+                {company.name[0].toUpperCase()}
+              </div>
+            )}
             <div className={styles.textContainer}>
               <h1 className={styles.name}>{company.name}</h1>
               {company.description && (

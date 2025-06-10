@@ -238,24 +238,24 @@ export default function ProfilePage() {
                 <div className={styles.addressInfo}>
                   {/* 1) Rua e número */}
                   <p>
-                    <strong>Rua:</strong> {addr.street}, <strong>Nº:</strong> {addr.number}
+                    <strong>Rua</strong> {addr.street}, <strong>Nº</strong> {addr.number}
                   </p>
 
                   {/* 2) Bairro e complemento (se houver) */}
                   <p>
-                    <strong>Bairro:</strong> {addr.neighborhood}
+                    <strong>Bairro</strong> {addr.neighborhood}
                     {addr.complement && (
                       <>
                         {' '}
-                        – <strong>Complemento:</strong> {addr.complement}
+                        – <strong>Complemento</strong> {addr.complement}
                       </>
                     )}
                   </p>
 
                   {/* 3) Cidade, estado e CEP */}
                   <p>
-                    <strong>Cidade:</strong> {addr.city} – <strong>Estado:</strong> {addr.state},{' '}
-                    <strong>CEP:</strong> {addr.postal_code}
+                    <strong>Cidade</strong> {addr.city} – <strong>Estado</strong> {addr.state},{' '}
+                    <strong>CEP</strong> {addr.postal_code}
                   </p>                   
                 </div>
 
@@ -285,7 +285,7 @@ export default function ProfilePage() {
               <li key={c.id}>
                 <Link href={`/companies/${c.id}`} className={styles.itemcompanies}>
                   <div className={styles.companyInfo}>
-                    {c.logo_url && (
+                    {c.logo_url ? (
                       <Image
                         src={`${baseUrl}${c.logo_url}`}
                         alt={c.name}
@@ -293,10 +293,14 @@ export default function ProfilePage() {
                         height={60}
                         className={styles.logo}
                       />
-                    )}
+                    ) : (
+                      <div className={styles.logo}>
+                        {c.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}                    
                     <div>
                       <h2 className={styles.name}>{c.name}</h2>
-                      {c.description && <p className={styles.desc}>{c.description}</p>}
+                      {c.description && <p className={styles.companyDesc}>{c.description}</p>}
                     </div>
                   </div>
                   <span className={styles.tag}>Ver empresa</span>
@@ -314,30 +318,17 @@ export default function ProfilePage() {
       </div>
 
       {/* ---------- CÓDIGO DE AFILIADO ---------- */}
-      <div className={`${styles.gridSubItemReferral} ${styles.lastGridSubItem}`}>
-        <h4>Código de Afiliado</h4>
+ <div className={`${styles.gridSubItemReferral} ${styles.lastGridSubItem}`}>
+        <h4 className={styles.title}>Código de Afiliado</h4>
 
         <div className={styles.affiliateWrapper}>
-          <Image
-            src="/affiliate-code.png"
-            alt="Cliente entregando código ao lojista"
-            width={1000}
-            height={1000}
-            className={styles.affiliateIllustration}
-            priority
-          />
-
           {loadingRef ? (
             <p className={styles.loading}>Carregando código…</p>
           ) : referralCode ? (
             /* ---------- código JÁ gerado ---------- */
             <div className={styles.affiliateContent}>
-              <h5 className={styles.headline}>Seu código</h5>
-
               <p className={styles.description}>
-                Entregue este código ao lojista e
-                garanta <strong>3 % de cashback vitalício</strong> sobre todas as
-                compras que ele fizer no programa.
+                Entregue este código ao lojista e garanta <strong>3 % de cashback vitalício</strong> sobre todas as compras que ele fizer.
               </p>
 
               <div className={styles.inputGroup}>
@@ -356,11 +347,10 @@ export default function ProfilePage() {
               </div>
 
               <div className={styles.linkWrapper}>
-                <Link href={`/affiliate/${referralCode}`} className={styles.affiliateLink}>
+                <Link href={`/affiliate/${referralCode}`} className={styles.copyButton}>
                   Ver página de afiliado
                 </Link>
               </div>
-              
             </div>
           ) : (
             /* ---------- AINDA não gerado ---------- */
@@ -369,18 +359,15 @@ export default function ProfilePage() {
 
               <div className={styles.stepContent}>
                 <div className={styles.stepList}>
-                  <div><strong>Gerar</strong> seu código exclusivo agora mesmo.</div>
-                  <div><strong>Entregar</strong> ao lojista quando ele se cadastrar.</div>
-                  <div>
-                    <strong>Receber 3 %</strong> de todas as compras dele —
-                    renda extra sem prazo de validade.
-                  </div>
+                  <div><strong>Gerar</strong> seu código agora.</div>
+                  <div><strong>Entregar</strong> ao lojista.</div>
+                  <div><strong>Receber 3 %</strong> de todas as compras dele.</div>
                 </div>
 
                 <div className={styles.benefitList}>
-                  <div>✅ CAC <strong>zero</strong> — não gaste com anúncios</div>
-                  <div>💰 Comissões recorrentes todo mês</div>
-                  <div>🚀 Comece em menos de 1 minuto</div>
+                  <div>Pronto em menos de 1 minuto</div>
+                  <div>Sem gastos com anúncios</div>
+                  <div>Comissões recorrentes todos os meses</div>
                 </div>
               </div>
 
@@ -395,6 +382,8 @@ export default function ProfilePage() {
           )}
         </div>
       </div>
+
+
       {/* ---------- MODAL EDITAR ---------- */}
       <Modal open={openEdit} onClose={() => setOpenEdit(false)}>
         <EditUserForm

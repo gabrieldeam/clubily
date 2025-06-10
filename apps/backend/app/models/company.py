@@ -58,6 +58,13 @@ class Company(Base):
         back_populates="companies",
         lazy="joined",
     )
+
+    cashback_programs = relationship(
+        "CashbackProgram",
+        back_populates="company",
+        lazy="joined",
+        cascade="all, delete-orphan",
+    )
     
     # indicações resgatadas por esta empresa
     referrals = relationship("Referral", back_populates="company", cascade="all, delete-orphan")

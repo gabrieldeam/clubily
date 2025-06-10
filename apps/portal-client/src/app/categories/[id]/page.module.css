@@ -175,6 +175,18 @@
   background-color: #e59400;
 }
 
+.companyDesc {
+  margin: 4px 0 0;
+  color: #555;
+
+  /* multiline clamp */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;        /* número máximo de linhas */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;      /* reticências */
+}
+
 
 @media (min-width: 768px) and (max-width: 1024px) {
   
@@ -206,5 +218,25 @@
 
   .arrowButton {
     display: none;
+  }
+
+    .companyCard {
+  padding: 10px;
+  }
+
+  .companyInfo {
+    gap: 10px;
+  }
+    .companyLogo {
+    width: 60px;
+    height: 60px;
+  }
+
+  .companyName {
+  font-size: 18px;
+}
+
+  .companyDesc {
+    font-size: 15px;
   }
 }

@@ -46,7 +46,7 @@ export default function AffiliatePage() {
               {companies.map(comp => (
                 <div key={comp.id} className={styles.companyCard}>
                   <div className={styles.companyInfo}>
-                    {comp.logo_url && (
+                    {comp.logo_url ? (
                       <Image
                         src={`${baseUrl}${comp.logo_url}`}
                         alt={comp.name}
@@ -54,6 +54,10 @@ export default function AffiliatePage() {
                         height={80}
                         className={styles.companyLogo}
                       />
+                    ) : (
+                      <div className={styles.companyLogo}>
+                        {comp.name.charAt(0).toUpperCase()}
+                      </div>
                     )}
                     <div>
                       <h5 className={styles.companyName}>{comp.name}</h5>

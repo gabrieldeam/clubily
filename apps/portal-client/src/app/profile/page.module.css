@@ -39,20 +39,6 @@
   margin-top: 10px;
 }
 
-.gridSubItemReferral {
-  background: linear-gradient(90deg, #FF4C00 0%, #FFA600 100%);
-  padding: 20px;
-  border-radius: 20px;
-  height: auto;
-  display: flex;
-  justify-content: space-around;
-  flex-direction: column;
-  gap: 10px;  
-  width: 100%;
-  margin-top: 10px;
-  color: white;
-}
-
 .lastGridSubItem {
   margin-bottom: 120px;
 }
@@ -243,6 +229,7 @@
   background: #f0f0f0;
   padding: 20px;
   border-radius: 10px;
+  font-size: 15px;
 }
 
 .addressInfo {
@@ -317,9 +304,16 @@
   margin: 0;
 }
 
-.desc {
-  margin: 0.5rem 0;
+.companyDesc {
+  margin: 4px 0 0;
   color: #555;
+
+  /* multiline clamp */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;        /* número máximo de linhas */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;      /* reticências */
 }
 
 .tag {
@@ -402,6 +396,27 @@
   .addressList {
     grid-template-columns: 1fr;
   }
+
+
+    .itemcompanies {
+  padding: 10px;
+  }
+
+  .companyInfo {
+    gap: 10px;
+  }
+    .logo {
+    width: 60px;
+    height: 60px;
+  }
+
+  .name {
+  font-size: 18px;
+}
+
+  .companyDesc {
+    font-size: 15px;
+  }
 }
 
 
@@ -428,165 +443,160 @@
 
 
 
-
-
-
-/* 1) Grid full‑width, duas colunas: imagem fixa + conteúdo flexível */
-.affiliateWrapper {
-  display: flex;
-  gap: 50px;
-  align-items: center;
-  width: 100%;
-  border-radius: 12px;
-}
-
-/* 2) Ilustração */
-.affiliateIllustration {
-  width: 100%;
-  max-width: 500px;
-  max-height: 180px;
-  object-fit: cover;
-  border-radius: 8px;
-}
-
-/* 3) Área de texto e ações */
-.affiliateContent {
-  display: flex;
-  flex-direction: column;  
-  width: 100%;
-}
-
-/* 4) Títulos secundários (h5) */
-.subtitle {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 700;
-  line-height: 1.3;
-}
-
-/* 5) Parágrafos */
-.description {
-  margin: 8px 0 ;
-  font-size: 17px;
-  line-height: 1.6;
-}
-
-/* 6) Lista de benefícios */
-.benefitsList {
-  margin: 0 0 24px;
-  padding: 0;
-  list-style: none;
+.gridSubItemReferral {
+  background: linear-gradient(90deg, #FF4C00 0%, #FFA600 100%);
+  padding: 40px 20px;
+  border-radius: 20px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  font-size: 15px;
+  align-items: center;
+  text-align: center;
+  gap: 24px;
+  color: white;
+  margin-top: 10px;
 }
-/* 7) Input + copiar */
+
+/* Title (h4) */
+.title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+/* Wrapper for the dynamic content */
+.affiliateWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 600px;
+  width: 100%;
+  gap: 20px;
+}
+
+/* Content block shared by both states */
+.affiliateContent {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 16px;
+}
+
+/* Secondary headings (h5) */
+.headline {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+/* Paragraph text */
+.description {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+/* Input + copy button group */
 .inputGroup {
   display: flex;
   gap: 12px;
-  margin-top: 16px;
+  justify-content: center;
 }
+
 .referralInput {
   flex: 1;
-  padding: 10px 18px;
-  font-size: 16px;
+  padding: 10px 16px;
+  font-size: 1rem;
   font-family: monospace;
-  color: #000000;
-  background: #f9fafb;
+  background: #ffffff;
+  color: #000;
   border-radius: 6px;
   cursor: pointer;
 }
 
-/* 8) Botões */
+/* Buttons */
 .copyButton,
 .generateButton {
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 700;
-  padding: 14px 28px;
+  padding: 12px 24px;
   border: none;
   border-radius: 6px;
   cursor: pointer;
   transition: transform .1s, opacity .2s;
 }
+
 .copyButton {
-  background: #FF4C00;
-  color: #ffffff;
+  background: #ffffff33; /* semi-transparent white */
+  color: white;
 }
+
 .copyButton:hover {
   transform: translateY(-1px);
   opacity: 0.9;
 }
 
 .generateButton {
-  background: linear-gradient(90deg, #4f46e5 0%, #3b82f6 100%);
-  color: #ffffff;
-  align-self: start;
+  background: #ffffff33;
+  color: white;
+  align-self: center;
 }
+
 .generateButton:hover {
   transform: translateY(-1px);
   opacity: 0.9;
 }
+
 .generateButton:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
+/* Steps and benefits lists */
 .stepContent {
   display: flex;
-  width: 100%;
-  padding: 20px;
-  gap: 30px;
+  gap: 16px;
 }
 
-.headline {
-  margin: 0;
-  font-size: 1.3rem;
-  font-weight: 700;
+.stepList,
+.benefitList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.95rem;
 }
 
+.benefitList div {
+  display: flex;
+  justify-content: center;
+}
+
+/* Affiliate link */
 .linkWrapper {
   margin-top: 12px;
-  text-align: left;
 }
 
 .affiliateLink {
-  background-color: #FF4C00;
   font-weight: 500;
-  padding: 5px;
-  border-radius: 5px;
-}
-
-.affiliateLink:hover {
   text-decoration: underline;
+  color: white;
 }
 
+/* Loading state */
+.loading {
+  font-size: 1rem;
+  color: #ffffffbb;
+}
+
+/* Responsive adjustments */
 @media (max-width: 640px) {
-  .affiliateWrapper {
-    display: flex;
-    flex-direction: column;
-    padding: 24px 16px;
-    gap: 24px;
-  }
-  .affiliateIllustration {
-    width: 160px;
-    margin: 0 auto;
-  }
-  .affiliateContent {
-    text-align: center;
-    gap: 16px;
+  .gridSubItemReferral {
+    padding: 32px 16px;
   }
   .inputGroup {
     flex-direction: column;
-    width: 100%;
   }
   .copyButton,
   .generateButton {
     width: 100%;
   }
-  .benefitsList {
-    padding-left: 16px;
-    text-align: left;
-  }
 }
-

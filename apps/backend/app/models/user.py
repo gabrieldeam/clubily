@@ -51,6 +51,13 @@ class User(Base):
         lazy="joined",
     )
 
+    cashbacks = relationship(
+        "Cashback",
+        back_populates="user",
+        lazy="joined",
+        cascade="all, delete-orphan",
+    )
+
     # código único de indicação
     referral_code = Column(String(10), unique=True, nullable=True, index=True)
     # indicações resgatadas a partir deste usuário

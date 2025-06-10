@@ -8,13 +8,14 @@ import React, {
   useEffect,
   ReactNode,
 } from 'react';
+import { useAuth } from '@/context/AuthContext';
 import { listAddresses, updateAddress } from '@/services/addressService';
 import type { AddressRead } from '@/types/address';
 
 interface AddressContextValue {
   addresses: AddressRead[];
   selectedAddress: AddressRead | null;
-  loading: boolean;               // ← novo
+  loading: boolean;
   refreshAddresses: () => Promise<void>;
   selectAddress: (addr: AddressRead) => Promise<void>;
 }
@@ -22,11 +23,12 @@ interface AddressContextValue {
 const AddressContext = createContext<AddressContextValue | undefined>(undefined);
 
 export function AddressProvider({ children }: { children: ReactNode }) {
+  const { user, loading: authLoading } = useAuth();
   const [addresses, setAddresses] = useState<AddressRead[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<AddressRead | null>(null);
-  const [loading, setLoading] = useState(true); // ← controla quando terminou de init
+  const [loading, setLoading] = useState(false);
 
-  // 1) busca e inicializa seleção
+  // Função para buscar e inicializar seleção
   const refreshAddresses = async () => {
     setLoading(true);
     try {
@@ -34,12 +36,11 @@ export function AddressProvider({ children }: { children: ReactNode }) {
       const all = res.data;
       setAddresses(all);
 
-      // se já tiver is_selected
       const pre = all.find(a => a.is_selected);
       if (pre) {
         setSelectedAddress(pre);
       } else if (all.length) {
-        // senão marca o primeiro
+        // marca o primeiro
         const { data: upd } = await updateAddress(all[0].id, { is_selected: true });
         setAddresses(prev =>
           prev.map(a => (a.id === upd.id ? upd : { ...a, is_selected: false }))
@@ -57,11 +58,14 @@ export function AddressProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Só executa depois que o usuário for carregado e for não-nulo
   useEffect(() => {
-    refreshAddresses();
-  }, []);
+    if (!authLoading && user) {
+      refreshAddresses();
+    }
+  }, [authLoading, user]);
 
-  // 2) trocar seleção
+  // Função para trocar seleção
   const selectAddress = async (addr: AddressRead) => {
     if (selectedAddress?.id === addr.id) return;
     setLoading(true);
@@ -92,7 +96,7 @@ export function AddressProvider({ children }: { children: ReactNode }) {
       value={{
         addresses,
         selectedAddress,
-        loading,            // ← exposto
+        loading,
         refreshAddresses,
         selectAddress,
       }}
