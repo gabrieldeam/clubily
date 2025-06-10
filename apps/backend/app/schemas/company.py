@@ -35,6 +35,14 @@ class CompanyBase(BaseModel):
     online_url: Optional[HttpUrl] = None
     only_online: bool = False
 
+    @field_validator("online_url", mode="before")
+    @classmethod
+    def empty_str_to_none(cls, v):
+        # se vier string vazia, trate como None
+        if isinstance(v, str) and not v.strip():
+            return None
+        return v
+
     @field_validator("cnpj", mode="before")
     def normalize_cnpj(cls, v: str) -> str:
         digits = re.sub(r"\D", "", v or "")

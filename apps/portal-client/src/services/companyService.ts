@@ -74,4 +74,4 @@ export const searchCompaniesByName = (
  * Retorna todas as empresas indicadas por um referral code.
  */
 export const getCompaniesByReferralCode = (code: string) =>
-  api.get<CompanyRead[]>(`/users/referral-code/${code}/companies`);
+  api.get<CompanyRead[]>(`/users/${code}/companies`);

@@ -1,3 +1,4 @@
+// src/components/Header/Header.tsx
 'use client';
 
 import Link from 'next/link';
@@ -13,18 +14,18 @@ interface HeaderProps {
 }
 
 export default function Header({ onSearch = () => {} }: HeaderProps) {
-  const { selectedAddress } = useAddress();
+  const { selectedAddress, loading: loadingAddr } = useAddress();
   const [query, setQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // 1) Se não houver endereço, abro modal assim que montar / selectedAddress mudar para null
+  // 1) Só abrir modal quando termos carregado os endereços e não houver seleção
   useEffect(() => {
-    if (!selectedAddress) {
+    if (!loadingAddr && !selectedAddress) {
       setIsModalOpen(true);
     }
-  }, [selectedAddress]);
+  }, [loadingAddr, selectedAddress]);
 
-  // 2) Também deixo um listener para abrir se alguém disparar 'openAddressModal'
+  // 2) Listener para evento programático
   useEffect(() => {
     const handler = () => setIsModalOpen(true);
     window.addEventListener('openAddressModal', handler);
@@ -87,7 +88,7 @@ export default function Header({ onSearch = () => {} }: HeaderProps) {
 
       <Modal open={isModalOpen} onClose={() => setIsModalOpen(false)}>
         <div className={styles.background}>
-          <AddressManager />
+          <AddressManager onClose={() => setIsModalOpen(false)} />
         </div>
       </Modal>
     </>

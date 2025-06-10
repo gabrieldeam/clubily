@@ -313,94 +313,88 @@ export default function ProfilePage() {
         </div>
       </div>
 
-              {/* ---------- CÓDIGO DE AFILIADO ---------- */}
-<div className={`${styles.gridSubItem} ${styles.lastGridSubItem}`}>
-  <h4>Código de Afiliado</h4>
+      {/* ---------- CÓDIGO DE AFILIADO ---------- */}
+      <div className={`${styles.gridSubItemReferral} ${styles.lastGridSubItem}`}>
+        <h4>Código de Afiliado</h4>
 
-  <div className={styles.affiliateWrapper}>
-    <Image
-      src="/affiliate-code.png"
-      alt="Cliente entregando código ao lojista"
-      width={1000}
-      height={1000}
-      className={styles.affiliateIllustration}
-      priority
-    />
-
-    {loadingRef ? (
-      <p className={styles.loading}>Carregando código…</p>
-    ) : referralCode ? (
-      /* ---------- código JÁ gerado ---------- */
-      <div className={styles.affiliateContent}>
-        <h5 className={styles.headline}>Seu código</h5>
-
-        <p className={styles.description}>
-          Entregue este código ao lojista e
-          garanta <strong>3 % de cashback vitalício</strong> sobre todas as
-          compras que ele fizer no programa.
-        </p>
-
-        <div className={styles.inputGroup}>
-          <input
-            readOnly
-            className={styles.referralInput}
-            value={referralCode}
-            onClick={handleCopyReferral}
+        <div className={styles.affiliateWrapper}>
+          <Image
+            src="/affiliate-code.png"
+            alt="Cliente entregando código ao lojista"
+            width={1000}
+            height={1000}
+            className={styles.affiliateIllustration}
+            priority
           />
-          <button
-            className={styles.copyButton}
-            onClick={handleCopyReferral}
-          >
-            Copiar
-          </button>
-        </div>
 
-        <div className={styles.linkWrapper}>
-          <Link href={`/affiliate/${referralCode}`} className={styles.affiliateLink}>
-            Ver página de afiliado
-          </Link>
-        </div>
-        
-      </div>
-    ) : (
-      /* ---------- AINDA não gerado ---------- */
-      <div className={styles.affiliateContent}>
-        <h5 className={styles.headline}>Ganhe dinheiro em 3 passos simples</h5>
+          {loadingRef ? (
+            <p className={styles.loading}>Carregando código…</p>
+          ) : referralCode ? (
+            /* ---------- código JÁ gerado ---------- */
+            <div className={styles.affiliateContent}>
+              <h5 className={styles.headline}>Seu código</h5>
 
-        <div className={styles.stepContent}>
-          <div className={styles.stepList}>
-            <div><strong>Gerar</strong> seu código exclusivo agora mesmo.</div>
-            <div><strong>Entregar</strong> ao lojista quando ele se cadastrar.</div>
-            <div>
-              <strong>Receber 3 %</strong> de todas as compras dele —
-              renda extra sem prazo de validade.
+              <p className={styles.description}>
+                Entregue este código ao lojista e
+                garanta <strong>3 % de cashback vitalício</strong> sobre todas as
+                compras que ele fizer no programa.
+              </p>
+
+              <div className={styles.inputGroup}>
+                <input
+                  readOnly
+                  className={styles.referralInput}
+                  value={referralCode}
+                  onClick={handleCopyReferral}
+                />
+                <button
+                  className={styles.copyButton}
+                  onClick={handleCopyReferral}
+                >
+                  Copiar
+                </button>
+              </div>
+
+              <div className={styles.linkWrapper}>
+                <Link href={`/affiliate/${referralCode}`} className={styles.affiliateLink}>
+                  Ver página de afiliado
+                </Link>
+              </div>
+              
             </div>
-          </div>
+          ) : (
+            /* ---------- AINDA não gerado ---------- */
+            <div className={styles.affiliateContent}>
+              <h5 className={styles.headline}>Ganhe dinheiro em 3 passos simples</h5>
 
-          <div className={styles.benefitList}>
-            <div>✅ CAC <strong>zero</strong> — não gaste com anúncios</div>
-            <div>💰 Comissões recorrentes todo mês</div>
-            <div>🚀 Comece em menos de 1 minuto</div>
-          </div>
+              <div className={styles.stepContent}>
+                <div className={styles.stepList}>
+                  <div><strong>Gerar</strong> seu código exclusivo agora mesmo.</div>
+                  <div><strong>Entregar</strong> ao lojista quando ele se cadastrar.</div>
+                  <div>
+                    <strong>Receber 3 %</strong> de todas as compras dele —
+                    renda extra sem prazo de validade.
+                  </div>
+                </div>
+
+                <div className={styles.benefitList}>
+                  <div>✅ CAC <strong>zero</strong> — não gaste com anúncios</div>
+                  <div>💰 Comissões recorrentes todo mês</div>
+                  <div>🚀 Comece em menos de 1 minuto</div>
+                </div>
+              </div>
+
+              <button
+                className={styles.generateButton}
+                onClick={handleCreateReferral}
+                disabled={creatingRef}
+              >
+                {creatingRef ? 'Gerando…' : 'Quero meu código agora'}
+              </button>
+            </div>
+          )}
         </div>
-
-        <button
-          className={styles.generateButton}
-          onClick={handleCreateReferral}
-          disabled={creatingRef}
-        >
-          {creatingRef ? 'Gerando…' : 'Quero meu código agora'}
-        </button>
       </div>
-    )}
-  </div>
-</div>
-
-
-
-
-
-
       {/* ---------- MODAL EDITAR ---------- */}
       <Modal open={openEdit} onClose={() => setOpenEdit(false)}>
         <EditUserForm

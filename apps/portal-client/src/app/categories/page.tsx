@@ -2,79 +2,93 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import Link  from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Image from 'next/image';
-import { listUsedCategories } from '@/services/categoryService';
-import type { CategoryRead } from '@/types/category';
-import { useAddress } from '@/context/AddressContext';
 import Header from '@/components/Header/Header';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
+import { useAddress } from '@/context/AddressContext';
+import { listUsedCategories } from '@/services/categoryService';
+import type { CategoryRead } from '@/types/category';
 import styles from './page.module.css';
 
 export default function CategoriesPage() {
   const router = useRouter();
-  /* ─── login obrigatório ──────────────────────────────── */
   const { loading: authLoading } = useRequireAuth();
-  if (authLoading) return null;      
+  if (authLoading) return null;
 
-  /* ─── endereço ───────────────────────────────────────── */
-  const { selectedAddress, filterField } = useAddress();
+  const { selectedAddress } = useAddress();
 
-  /* abre modal de endereço se não houver nenhum */
+  // State de categorias
+  const [cats, setCats] = useState<CategoryRead[]>([]);
+  const [dataLoading, setDataLoading] = useState(true);
+
+  // Se não houver endereço selecionado, abrimos modal e não buscamos
   useEffect(() => {
     if (!selectedAddress) {
       window.dispatchEvent(new Event('openAddressModal'));
     }
   }, [selectedAddress]);
 
-  /* ─── categorias ─────────────────────────────────────── */
-  const [cats, setCats]     = useState<CategoryRead[]>([]);
-  const [dataLoading, setDL] = useState(true);
-
+  // Fetch de categorias baseado em selectedAddress.city
   useEffect(() => {
     let mounted = true;
-    async function fetch() {
-      setDL(true);
+    async function fetchCategories() {
+      setDataLoading(true);
 
-      if (!selectedAddress?.[filterField]) {
-        mounted && setCats([]);
-        setDL(false);
+      if (!selectedAddress) {
+        // sem endereço, limpa e sai
+        if (mounted) setCats([]);
+        setDataLoading(false);
+        return;
+      }
+
+      const city = selectedAddress.city;
+      if (!city) {
+        if (mounted) setCats([]);
+        setDataLoading(false);
         return;
       }
 
       try {
-        const params: Record<string,string> = {
-          [filterField]: selectedAddress[filterField] as string,
-        };
-        const res = await listUsedCategories(params);
-        mounted && setCats(res.data);
+        const res = await listUsedCategories({ city });
+        if (mounted) setCats(res.data);
       } catch {
-        mounted && setCats([]);
+        if (mounted) setCats([]);
       } finally {
-        mounted && setDL(false);
+        if (mounted) setDataLoading(false);
       }
     }
-    fetch();
-    return () => { mounted = false; };
-  }, [selectedAddress, filterField]);
 
-  /* ─── mensagens de estado ────────────────────────────── */
-  if (dataLoading)   return <p className={styles.message}>Carregando categorias…</p>;
-  if (!selectedAddress)
+    fetchCategories();
+    return () => {
+      mounted = false;
+    };
+  }, [selectedAddress]);
+
+  // Mensagens de estado
+  if (dataLoading) {
+    return (
+      <p className={styles.message}>Carregando categorias…</p>
+    );
+  }
+
+  if (!selectedAddress) {
     return (
       <p className={styles.message}>
         Selecione um endereço para ver categorias.
       </p>
     );
-  if (!cats.length)
+  }
+
+  if (cats.length === 0) {
     return (
       <p className={styles.message}>
         Nenhuma categoria encontrada para este filtro.
       </p>
     );
+  }
 
-  /* ─── renderização normal ────────────────────────────── */
   const baseUrl = process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL ?? '';
 
   return (
@@ -95,7 +109,9 @@ export default function CategoriesPage() {
                 />
                 <span className={styles.name}>{cat.name}</span>
               </div>
-              <button className={styles.categories}>Ver tudo</button>
+              <button className={styles.categories}>
+                Ver tudo
+              </button>
             </Link>
           </div>
         ))}

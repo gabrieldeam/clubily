@@ -6,6 +6,8 @@ import type {
   TokenResponse,
   CompanyStatus,
   CompanyUpdate,
+  ReferralRedeem, 
+  ReferralRead, 
 } from '@/types/company';
 import type { UserRead } from '@/types/user';
 
@@ -94,3 +96,12 @@ export const logoutCompany = () =>
 // 8. Solicitação de exclusão de conta empresarial
 export const requestCompanyDeletion = () =>
   api.post<{ msg: string }>('/companies/me/delete-request');
+
+
+// 9. Resgate de referral
+/**
+ * Resgata um referral code para a empresa logada.
+ * POST /companies/redeem-referral
+ */
+export const redeemReferral = (payload: ReferralRedeem) =>
+  api.post<ReferralRead>('/companies/redeem-referral', payload);

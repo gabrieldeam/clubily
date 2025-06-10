@@ -46,3 +46,8 @@
   display: flex;  
   gap: 0.5rem;
 }
+
+.actions {
+  display: flex;
+  gap: 5px;
+}

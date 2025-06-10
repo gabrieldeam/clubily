@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import * as L from 'leaflet';
+import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { getCompanyInfo } from '@/services/companyService';
@@ -14,10 +14,42 @@ import type { CompanyRead } from '@/types/company';
 import Header from '@/components/Header/Header';
 import styles from './page.module.css';
 
-const MapContainer = dynamic(() => import('react-leaflet').then(m => m.MapContainer), { ssr: false });
-const TileLayer    = dynamic(() => import('react-leaflet').then(m => m.TileLayer),    { ssr: false });
-const Marker       = dynamic(() => import('react-leaflet').then(m => m.Marker),       { ssr: false });
-const Popup        = dynamic(() => import('react-leaflet').then(m => m.Popup),        { ssr: false });
+// Corrige ícone padrão do Leaflet no Next.js
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: '/leaflet/marker-icon-2x.png',
+  iconUrl:       '/leaflet/marker-icon.png',
+  shadowUrl:     '/leaflet/marker-shadow.png',
+});
+
+// Dynamic imports para SSR off
+const MapContainer = dynamic(
+  () => import('react-leaflet').then(m => m.MapContainer),
+  { ssr: false }
+);
+const TileLayer = dynamic(
+  () => import('react-leaflet').then(m => m.TileLayer),
+  { ssr: false }
+);
+const Marker = dynamic(
+  () => import('react-leaflet').then(m => m.Marker),
+  { ssr: false }
+);
+const Popup = dynamic(
+  () => import('react-leaflet').then(m => m.Popup),
+  { ssr: false }
+);
+
+// Fallback HTML para o ícone quando não houver logo
+const FALLBACK_ICON_HTML = `
+  <div style="
+    background-color: #FFA600;
+    width: 50px;
+    height: 50px;
+    border-radius: 25px;
+    border: 2px solid #FFF;
+  "></div>
+`;
 
 export default function CompanyPage() {
   const { loading: authLoading } = useRequireAuth();
@@ -33,6 +65,7 @@ export default function CompanyPage() {
 
   const baseUrl = process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL ?? '';
 
+  // 1) Fetch empresa
   useEffect(() => {
     if (!id) return;
     setLoading(true);
@@ -43,33 +76,45 @@ export default function CompanyPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
+  // 2) Geocode
   useEffect(() => {
     if (!company) return;
     const addr = `${company.street}, ${company.city}, ${company.state}, ${company.postal_code}`;
     fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}`)
       .then(res => res.json())
       .then((data: any[]) => {
-        if (data.length) setCoords([parseFloat(data[0].lat), parseFloat(data[0].lon)]);
+        if (data.length) {
+          setCoords([parseFloat(data[0].lat), parseFloat(data[0].lon)]);
+        }
       })
       .catch(console.error);
   }, [company]);
 
+  // 3) Banner inativo
   useEffect(() => {
-    if (company && company.is_active === false) {
+    if (company && !company.is_active) {
       setShowBanner(true);
     }
   }, [company]);
 
+  // 4) Ícone – usa logo ou fallback
   const logoIcon = useMemo(() => {
-    if (!company?.logo_url) return undefined;
+    const html = company?.logo_url
+      ? `<div class="${styles.logoMarker}">
+           <img src="${baseUrl}${company.logo_url}"
+                alt="${company.name}"
+                style="width:100%;height:100%;border-radius:50%;" />
+         </div>`
+      : FALLBACK_ICON_HTML;
     return new L.DivIcon({
-      html: `<div class="${styles.logoMarker}"><img src="${baseUrl}${company.logo_url}" alt="${company.name}" /></div>`,
-      iconSize: [50, 50],
+      html,
+      iconSize:   [50, 50],
       iconAnchor: [25, 50],
-      className: ''
+      className:  '',
     });
   }, [company, baseUrl]);
 
+  // 5) Abrir Google Maps
   const handleOpenMap = useCallback(() => {
     if (!company) return;
     const query = coords
@@ -84,26 +129,31 @@ export default function CompanyPage() {
     !!company?.state &&
     !!company?.postal_code;
 
+  // 6) Skeletons e erros
   if (authLoading) return null;
-  if (loading) return (
-    <section className={styles.container}>
-      <Header />
-      <p className={styles.message}>Carregando dados…</p>
-    </section>
-  );
-  if (error) return (
-    <section className={styles.container}>
-      <Header />
-      <p className={styles.error}>{error}</p>
-    </section>
-  );
-  if (!company) return (
-    <section className={styles.container}>
-      <Header />
-      <p className={styles.message}>Empresa não encontrada.</p>
-    </section>
-  );
+  if (loading)
+    return (
+      <section className={styles.container}>
+        <Header />
+        <p className={styles.message}>Carregando dados…</p>
+      </section>
+    );
+  if (error)
+    return (
+      <section className={styles.container}>
+        <Header />
+        <p className={styles.error}>{error}</p>
+      </section>
+    );
+  if (!company)
+    return (
+      <section className={styles.container}>
+        <Header />
+        <p className={styles.message}>Empresa não encontrada.</p>
+      </section>
+    );
 
+  // 7) Render final
   return (
     <div className={styles.pageWrapper}>
       <Header onSearch={q => router.push(`/search?name=${encodeURIComponent(q)}`)} />
@@ -117,7 +167,8 @@ export default function CompanyPage() {
               window.dispatchEvent(new Event('openAddressModal'));
             }}
           >
-            Essa empresa está desativada ou não atende mais na sua área, clique aqui para mudar de endereço
+            Essa empresa está desativada ou não atende mais na sua área,
+            clique aqui para mudar de endereço
           </button>
         </div>
       )}
@@ -125,15 +176,13 @@ export default function CompanyPage() {
       <div className={`${styles.whiteBox} ${!company.is_active ? styles.inactive : ''}`}>
         <div className={styles.infoMapSection}>
           <div className={styles.infoColumn}>
-            {company.logo_url && (
-              <Image
-                src={`${baseUrl}${company.logo_url}`}
-                alt={company.name}
-                width={80}
-                height={80}
-                className={styles.logo}
-              />
-            )}
+            <Image
+              src={company.logo_url ? `${baseUrl}${company.logo_url}` : '/placeholder-80.png'}
+              alt={company.name}
+              width={80}
+              height={80}
+              className={styles.logo}
+            />
             <div className={styles.textContainer}>
               <h1 className={styles.name}>{company.name}</h1>
               {company.description && (
@@ -167,34 +216,31 @@ export default function CompanyPage() {
           })()}
         </div>
 
-        {!company.only_online && addressExists && (
+        {!company.only_online && addressExists && coords && (
           <>
             <h2 className={styles.sectionTitle}>Localização</h2>
             <div className={styles.leafletWrapper}>
-              {coords ? (
-                <MapContainer center={coords} zoom={16} style={{ width: '100%', height: '200px' }}>
-                  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                  <Marker position={coords} icon={logoIcon}>
-                    <Popup>
-                      <div className={styles.popupContent}>
-                        <strong>{company.name}</strong>
-                        <p>
-                          {company.street}, {company.city} &ndash; {company.state}, {company.postal_code}
-                        </p>
-                        <button
-                          type="button"
-                          className={styles.mapButton}
-                          onClick={handleOpenMap}
-                        >
-                          Abrir no Google Maps
-                        </button>
-                      </div>
-                    </Popup>
-                  </Marker>
-                </MapContainer>
-              ) : (
-                <p>Carregando mapa…</p>
-              )}
+              <MapContainer center={coords} zoom={16} style={{ width: '100%', height: '200px' }}>
+                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                <Marker position={coords} icon={logoIcon}>
+                  <Popup>
+                    <div className={styles.popupContent}>
+                      <strong>{company.name}</strong>
+                      <p>
+                        {company.street}, {company.city} &ndash; {company.state},{' '}
+                        {company.postal_code}
+                      </p>
+                      <button
+                        type="button"
+                        className={styles.mapButton}
+                        onClick={handleOpenMap}
+                      >
+                        Abrir no Google Maps
+                      </button>
+                    </div>
+                  </Popup>
+                </Marker>
+              </MapContainer>
             </div>
           </>
         )}
@@ -235,7 +281,9 @@ export default function CompanyPage() {
         <h2 className={styles.sectionTitle}>Status</h2>
         <div className={styles.infoRow}>
           <span className={styles.infoLabel}>Ativa</span>
-          <span className={styles.infoValue}>{company.is_active ? 'Sim' : 'Não'}</span>
+          <span className={styles.infoValue}>
+            {company.is_active ? 'Sim' : 'Não'}
+          </span>
         </div>
         <div className={styles.infoRow}>
           <span className={styles.infoLabel}>Email verificado</span>

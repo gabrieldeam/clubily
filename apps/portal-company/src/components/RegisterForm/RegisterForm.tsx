@@ -6,8 +6,8 @@ import styles from './RegisterForm.module.css';
 import FloatingLabelInput from '@/components/FloatingLabelInput/FloatingLabelInput';
 import Notification from '@/components/Notification/Notification';
 import Button from '@/components/Button/Button';
-import { registerCompany } from '@/services/companyService';
-import type { CompanyCreate } from '@/types/company';
+import { registerCompany, redeemReferral } from '@/services/companyService';
+import type { CompanyCreate, ReferralRedeem } from '@/types/company';
 
 type NotificationType = 'success' | 'error' | 'info';
 interface NotificationData {
@@ -16,12 +16,14 @@ interface NotificationData {
 }
 
 type LocalForm = CompanyCreate & { confirm_password: string };
+type Stage = 'register' | 'referral';
 
 interface RegisterFormProps {
   onSuccess: () => void;
 }
 
 export default function RegisterForm({ onSuccess }: RegisterFormProps) {
+  // formulário principal
   const [form, setForm] = useState<LocalForm>({
     name: '',
     email: '',
@@ -35,17 +37,24 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
     state: '',
     number: '',
     neighborhood: '',
-    complement: '',        // string vazia inicial
-    description: '',       // string vazia inicial
-    online_url: '',        // string vazia inicial
-    only_online: false,    // falso por padrão
+    complement: '',
+    description: '',
+    online_url: '',
+    only_online: false,
     accepted_terms: false,
   });
+
   const [notification, setNotification] = useState<NotificationData | null>(null);
   const [showAddress, setShowAddress] = useState(false);
+  const [stage, setStage] = useState<Stage>('register');
+
+  // estado para referral
+  const [referralCode, setReferralCode] = useState('');
+  const [referralNotification, setReferralNotification] = useState<NotificationData | null>(null);
 
   const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
 
+  // ViaCEP
   useEffect(() => {
     const cep = form.postal_code.replace(/\D/g, '');
     if (showAddress && cep.length === 8) {
@@ -63,39 +72,29 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
             }));
           }
         })
-        .catch(() => setNotification({ type: 'error', message: 'Erro ao buscar CEP.' }));
+        .catch(() =>
+          setNotification({ type: 'error', message: 'Erro ao buscar CEP.' })
+        );
     }
   }, [form.postal_code, showAddress]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, type, value, checked } = e.target as HTMLInputElement;
-    setForm(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
-
-    if (name === 'password') {
-      if (value && !passwordRegex.test(value)) {
-        setNotification({
-          type: 'error',
-          message:
-            'Senha deve ter ≥8 caracteres, incluindo 1 maiúscula, 1 minúscula, 1 número e 1 caractere especial.',
-        });
-      } else {
-        setNotification(null);
-      }
-    }
-
-    if (name === 'confirm_password') {
-      if (value && value !== form.password) {
-        setNotification({ type: 'error', message: 'As senhas não coincidem.' });
-      } else {
-        setNotification(null);
-      }
-    }
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const t = e.target as HTMLInputElement;
+    setForm(prev => ({
+      ...prev,
+      [t.name]: t.type === 'checkbox' ? t.checked : t.value,
+    }));
+    setNotification(null);
   };
 
+  // 1) disparar registro
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setNotification(null);
 
+    // validações básicas
     const missing: string[] = [];
     if (!form.name) missing.push('Nome');
     if (!form.email) missing.push('E-mail');
@@ -114,7 +113,7 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
     if (form.online_url && !/^https?:\/\//i.test(form.online_url)) {
       setNotification({
         type: 'error',
-        message: 'Por favor, informe a URL completa, incluindo http:// ou https://.',
+        message: 'Informe a URL completa, incluindo http:// ou https://.',
       });
       return;
     }
@@ -124,7 +123,9 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
         type: 'error',
         message: `Campo${missing.length > 1 ? 's' : ''} ${missing.join(
           ', '
-        )} ${missing.length > 1 ? 'são' : 'é'} obrigatório${missing.length > 1 ? 's' : ''}.`,
+        )} ${
+          missing.length > 1 ? 'são' : 'é'
+        } obrigatório${missing.length > 1 ? 's' : ''}.`,
       });
       return;
     }
@@ -133,7 +134,7 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
       setNotification({
         type: 'error',
         message:
-          'Senha deve ter ≥8 caracteres, incluindo 1 maiúscula, 1 minúscula, 1 número e 1 caractere especial.',
+          'Senha deve ter ≥8 caracteres, incluindo 1 maiúscula, 1 minúscula, 1 número e 1 especial.',
       });
       return;
     }
@@ -144,26 +145,73 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
     }
 
     const { confirm_password, ...payload } = form;
-
     try {
       await registerCompany(payload);
-      setNotification({ type: 'success', message: 'Cadastro realizado! Verifique seu e-mail.' });
-      setForm(prev => ({ ...prev, password: '', confirm_password: '' }));
-      onSuccess();
-    } catch (error: any) {
-      console.error(error);
-      const data = error.response?.data;
-      let detailMsg = 'Erro no cadastro. Tente novamente.';
+      // sucesso → vai para etapa de indicação
+      setStage('referral');
+    } catch (err: any) {
+      const data = err.response?.data;
+      let msg = 'Erro no cadastro. Tente novamente.';
       if (data) {
-        if (typeof data.detail === 'string') {
-          detailMsg = data.detail;
-        } else if (Array.isArray(data.detail)) {
-          detailMsg = data.detail.map((d: any) => d.msg).join(', ');
-        }
+        if (typeof data.detail === 'string') msg = data.detail;
+        else if (Array.isArray(data.detail))
+          msg = data.detail.map((d: any) => d.msg).join(', ');
       }
-      setNotification({ type: 'error', message: detailMsg });
+      setNotification({ type: 'error', message: msg });
     }
   };
+
+  // 2) resgate de referral
+  const handleRedeem = async () => {
+    setReferralNotification(null);
+    if (!referralCode.trim()) {
+      setReferralNotification({ type: 'error', message: 'Informe o código.' });
+      return;
+    }
+    try {
+      await redeemReferral({ referral_code: referralCode } as ReferralRedeem);
+      setReferralNotification({
+        type: 'success',
+        message: 'Código resgatado com sucesso!',
+      });
+      setTimeout(onSuccess, 800);
+    } catch (err: any) {
+      const detail = err.response?.data?.detail || 'Código inválido.';
+      setReferralNotification({ type: 'error', message: detail });
+    }
+  };
+
+  const handleSkipReferral = () => onSuccess();
+
+  // RENDER
+  if (stage === 'referral') {
+    return (
+      <div className={styles.form}>
+        <h2 className={styles.title}>Código de indicação</h2>
+        {referralNotification && (
+          <Notification
+            type={referralNotification.type as NotificationType}
+            message={referralNotification.message}
+            onClose={() => setReferralNotification(null)}
+          />
+        )}
+        <FloatingLabelInput
+          id="referral_code"
+          name="referral_code"
+          label="Código de indicação"
+          type="text"
+          value={referralCode}
+          onChange={e => setReferralCode(e.target.value)}
+        />
+        <div className={styles.actions}>
+          <Button onClick={handleRedeem}>Resgatar</Button>
+          <Button bgColor="#AAA" onClick={handleSkipReferral}>
+            Não tenho código
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className={styles.form}>
@@ -176,7 +224,7 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
         />
       )}
 
-      {/* PRIMEIRA ETAPA: Nome, contato, CNPJ, senha, descrição, online_url, only_online e aceite de termos */}
+      {/* ETAPA 1 */}
       {!showAddress && (
         <>
           <FloatingLabelInput
@@ -195,7 +243,6 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
             value={form.email}
             onChange={handleChange}
           />
-
           <div className={styles.flex}>
             <FloatingLabelInput
               id="register-phone"
@@ -214,7 +261,6 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
               onChange={handleChange}
             />
           </div>
-
           <button
             type="button"
             className={styles.addressButton}
@@ -222,7 +268,6 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
           >
             Adicionar Endereço
           </button>
-
           <div className={styles.flex}>
             <FloatingLabelInput
               id="register-password"
@@ -241,7 +286,6 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
               onChange={handleChange}
             />
           </div>
-
           <div className={styles.termsContainer}>
             <input
               type="checkbox"
@@ -252,12 +296,11 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
             />
             <label htmlFor="accepted_terms">Aceito os termos de uso</label>
           </div>
-
           <Button type="submit">Cadastrar</Button>
         </>
       )}
 
-      {/* SEGUNDA ETAPA: Endereço completo */}
+      {/* ETAPA 2 */}
       {showAddress && (
         <>
           <FloatingLabelInput
@@ -286,7 +329,6 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
               onChange={handleChange}
             />
           </div>
-          
           <div className={styles.flex}>
             <FloatingLabelInput
               id="register-city"
@@ -313,7 +355,6 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
               onChange={handleChange}
             />
           </div>
-          
           <FloatingLabelInput
             id="register-complement"
             name="complement"
@@ -322,19 +363,14 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
             value={form.complement ?? ''}
             onChange={handleChange}
           />
-
-          
-          {/* novo campo online_url (opcional) */}
           <FloatingLabelInput
             id="register-online_url"
             name="online_url"
             label="URL Online (opcional)"
             type="text"
-            value={form.online_url ?? ''}
+            value={form.online_url}
             onChange={handleChange}
           />
-
-          {/* novo checkbox only_online */}
           <div className={styles.termsContainer}>
             <input
               type="checkbox"
@@ -343,9 +379,10 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
               checked={form.only_online}
               onChange={handleChange}
             />
-            <label htmlFor="only_online">Este estabelecimento é somente online</label>
+            <label htmlFor="only_online">
+              Este estabelecimento é somente online
+            </label>
           </div>
-
           <Button bgColor="#FFA600" onClick={() => setShowAddress(false)}>
             Continuar
           </Button>

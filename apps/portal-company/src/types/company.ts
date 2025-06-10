@@ -70,3 +70,14 @@ export interface CompanyUpdate {
   online_url?: string;
   only_online?: boolean;
 }
+
+export interface ReferralRedeem {
+  referral_code: string;
+}
+
+export interface ReferralRead {
+  id: string;
+  user_id: string;
+  company_id: string;
+  created_at: string;
+}

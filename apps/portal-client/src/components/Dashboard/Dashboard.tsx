@@ -1,7 +1,7 @@
 // src/app/dashboard/page.tsx
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -17,108 +17,82 @@ import { useRequireAuth } from '@/hooks/useRequireAuth';
 
 export default function Dashboard() {
   const router = useRouter();
-  const { loading } = useRequireAuth();
-  const { selectedAddress, filterField } = useAddress();
+  const { loading: authLoading } = useRequireAuth();
+  const { selectedAddress } = useAddress();
 
-  // 1) Enquanto o hook de autenticação estiver carregando, mostre “Carregando…”
-  if (loading) {
-    return <p>Carregando…</p>;
-  }
+  // 1) Enquanto autenticação carrega
+  if (authLoading) return <p>Carregando…</p>;
 
-  // 2) Estados para categorias/empresas
+  // 2) Categorias
   const [cats, setCats] = useState<CategoryRead[]>([]);
   const [loadingCats, setLoadingCats] = useState(true);
-  const [catsLoadedOnce, setCatsLoadedOnce] = useState(false);
 
+  // 3) Empresas
   const [companies, setCompanies] = useState<CompanyRead[]>([]);
   const [loadingCompanies, setLoadingCompanies] = useState(true);
 
-  // 3) Buscar categorias APENAS depois que houver selectedAddress
-  useEffect(() => {
-    // Se selectedAddress ainda for null, não faz nada (ainda não chamamos a API)
-    if (!selectedAddress) {
-      return;
-    }
+  const baseUrl = process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL ?? '';
 
-    let isAlive = true;
+  // 4) Buscar categorias depois que tivermos selectedAddress
+  useEffect(() => {
+    if (!selectedAddress) return;
+
+    let alive = true;
     (async () => {
       setLoadingCats(true);
-
-      // Se, mesmo tendo selectedAddress, filterField não existir, devolve array vazio:
-      if (!selectedAddress[filterField]) {
-        if (isAlive) setCats([]);
+      const cityValue = selectedAddress.city; // fixa em city
+      if (!cityValue) {
+        if (alive) setCats([]);
         setLoadingCats(false);
         return;
       }
-
       try {
-        const res = await listUsedCategories({
-          [filterField]: selectedAddress[filterField] as string,
-        });
-        if (isAlive) setCats(res.data);
+        const res = await listUsedCategories({ city: cityValue });
+        if (alive) setCats(res.data);
       } catch {
-        if (isAlive) setCats([]);
+        if (alive) setCats([]);
       } finally {
-        if (isAlive) setLoadingCats(false);
+        if (alive) setLoadingCats(false);
       }
     })();
+    return () => { alive = false; };
+  }, [selectedAddress]);
 
-    return () => {
-      isAlive = false;
-    };
-  }, [selectedAddress, filterField]);
-
-  // 4) Assim que terminar a primeira vez que loadingCats virar false, marcamos catsLoadedOnce
+  // 5) Buscar empresas após selectedAddress
   useEffect(() => {
-    if (!loadingCats && selectedAddress) {
-      setCatsLoadedOnce(true);
-    }
-  }, [loadingCats, selectedAddress]);
+    if (!selectedAddress) return;
 
-  // 5) Buscar empresas depois que houver selectedAddress
-  useEffect(() => {
-    if (!selectedAddress) {
-      return;
-    }
-
-    let isAlive = true;
+    let alive = true;
     (async () => {
       setLoadingCompanies(true);
-
-      // Se não houver valor em selectedAddress[filterField], devolve array vazio:
-      if (!selectedAddress[filterField]) {
-        if (isAlive) setCompanies([]);
+      const cityValue = selectedAddress.city;
+      if (!cityValue) {
+        if (alive) setCompanies([]);
         setLoadingCompanies(false);
         return;
       }
-
       try {
-        const res = await searchCompanies({
-          [filterField]: selectedAddress[filterField] as string,
-        });
-        if (isAlive) setCompanies(res.data.slice(0, 10));
+        const res = await searchCompanies({ city: cityValue });
+        if (alive) setCompanies(res.data.slice(0, 10));
       } catch {
-        if (isAlive) setCompanies([]);
+        if (alive) setCompanies([]);
       } finally {
-        if (isAlive) setLoadingCompanies(false);
+        if (alive) setLoadingCompanies(false);
       }
     })();
+    return () => { alive = false; };
+  }, [selectedAddress]);
 
-    return () => {
-      isAlive = false;
-    };
-  }, [selectedAddress, filterField]);
-
-  // 6) Controle do scroll horizontal nas categorias
+  // 6) Scroll categorias
   const listRef = useRef<HTMLDivElement>(null);
   const [canLeft, setCanLeft] = useState(false);
   const [canRight, setCanRight] = useState(false);
-  const updateArrows = () => {
+  const updateArrows = useCallback(() => {
     const el = listRef.current;
     if (!el) return;
     setCanLeft(el.scrollLeft > 0);
     setCanRight(el.scrollWidth - el.clientWidth - el.scrollLeft > 0);
-  };
+  }, []);
   useEffect(() => {
     const el = listRef.current;
     if (!el) return;
@@ -129,37 +103,23 @@ export default function Dashboard() {
       el.removeEventListener('scroll', updateArrows);
       window.removeEventListener('resize', updateArrows);
     };
-  }, [cats]);
+  }, [cats, updateArrows]);
 
   const scrollBy = (d: number) =>
     listRef.current?.scrollBy({ left: d, behavior: 'smooth' });
 
-  const baseUrl = process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL ?? '';
+  // 7) Apenas renderizar depois de carregadas categorias e ter endereço
+  const ready = !!selectedAddress && !loadingCats;
 
-  // 7) “Pronto para exibir” significa que já temos selectedAddress e já terminou o primeiro fetch de categorias
-  const readyToShow = !!selectedAddress && catsLoadedOnce;
-
-  // 8) Se ainda não estiver pronto para exibir (ou seja, selectedAddress for null, OU ainda estamos aguardando a 1ª resposta de categorias),
-  //    mostramos apenas o Header. Nem a mensagem de “sem dados” aparece, nem o “Carregando categorias…”.
-  if (!readyToShow) {
-    return (
-      <div>
-        <Header onSearch={(q) => router.push(`/search?name=${encodeURIComponent(q)}`)} />
-      </div>
-    );
+  if (!ready) {
+    return <Header onSearch={q => router.push(`/search?name=${encodeURIComponent(q)}`)} />;
   }
 
-  // 9) A partir de agora, sabemos que:
-  //    - selectedAddress existe
-  //    - catsLoadedOnce === true (já terminou o primeiro fetch de categorias)
-  //    Então, ou exibimos “sem dados” (se cats estiver vazio), ou exibimos tudo: lista de categorias + lista de empresas.
-
-  // 10) Se, mesmo após o fetch inicial, o array de categorias estiver vazio, mostramos a seção “sem dados”:
+  // 8) Sem categorais: mostrar mensagem e botão para trocar
   if (cats.length === 0) {
     return (
       <div>
-        <Header onSearch={(q) => router.push(`/search?name=${encodeURIComponent(q)}`)} />
-
+        <Header onSearch={q => router.push(`/search?name=${encodeURIComponent(q)}`)} />
         <section className={styles.gridItemNoData}>
           <p>Infelizmente não temos empresas parceiras na sua região.</p>
           <button
@@ -173,12 +133,12 @@ export default function Dashboard() {
     );
   }
 
-  // 11) Se chegamos aqui, significa que cats.length > 0: exibimos então a grid de categorias + lista de empresas.
+  // 9) Render normal com categorias + empresas
   return (
     <div>
-      <Header onSearch={(q) => router.push(`/search?name=${encodeURIComponent(q)}`)} />
+      <Header onSearch={q => router.push(`/search?name=${encodeURIComponent(q)}`)} />
 
-      {/* --------- CATEGORIAS --------- */}
+      {/* CATEGORIAS */}
       <section className={styles.gridItem}>
         <h4 className={styles.inlineHeader}>Categorias</h4>
 
@@ -192,7 +152,7 @@ export default function Dashboard() {
         )}
 
         <div ref={listRef} className={styles.categoriesGrid}>
-          {cats.map((cat) => (
+          {cats.map(cat => (
             <Link key={cat.id} href={`/categories/${cat.id}`} className={styles.card}>
               <Image
                 src={`${baseUrl}${cat.image_url ?? ''}`}
@@ -216,41 +176,37 @@ export default function Dashboard() {
         )}
       </section>
 
-      {/* --------- EMPRESAS --------- */}
+      {/* EMPRESAS */}
       <section className={styles.gridItem}>
         <h4>Descubra agora</h4>
-
-        {loadingCompanies && <p>Carregando empresas…</p>}
-
-        {!loadingCompanies && companies.length === 0 && (
-          // Se quiser, poderia colocar: <p>Nenhuma empresa encontrada.</p>
-          null
-        )}
-
-        <div className={styles.companiesList}>
-          {companies.map((comp) => (
-            <div key={comp.id} className={styles.companyCard}>
-              <div className={styles.companyInfo}>
-                {comp.logo_url && (
-                  <Image
-                    src={`${baseUrl}${comp.logo_url}`}
-                    alt={comp.name}
-                    width={60}
-                    height={60}
-                    className={styles.companyLogo}
-                  />
-                )}
-                <div>
-                  <h5 className={styles.companyName}>{comp.name}</h5>
-                  <p className={styles.companyDesc}>{comp.description}</p>
+        {loadingCompanies ? (
+          <p>Carregando empresas…</p>
+        ) : (
+          <div className={styles.companiesList}>
+            {companies.map(comp => (
+              <div key={comp.id} className={styles.companyCard}>
+                <div className={styles.companyInfo}>
+                  {comp.logo_url && (
+                    <Image
+                      src={`${baseUrl}${comp.logo_url}`}
+                      alt={comp.name}
+                      width={60}
+                      height={60}
+                      className={styles.companyLogo}
+                    />
+                  )}
+                  <div>
+                    <h5 className={styles.companyName}>{comp.name}</h5>
+                    <p className={styles.companyDesc}>{comp.description}</p>
+                  </div>
                 </div>
+                <Link href={`/companies/${comp.id}`} className={styles.companyButton}>
+                  Ver empresa
+                </Link>
               </div>
-              <Link href={`/companies/${comp.id}`} className={styles.companyButton}>
-                Ver empresa
-              </Link>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );

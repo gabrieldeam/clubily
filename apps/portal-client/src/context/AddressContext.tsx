@@ -1,93 +1,100 @@
 // src/context/AddressContext.tsx
 'use client';
 
-import {
+import React, {
   createContext,
   useContext,
   useState,
   useEffect,
   ReactNode,
 } from 'react';
-import type { AddressRead } from '@/types/address';
 import { listAddresses, updateAddress } from '@/services/addressService';
+import type { AddressRead } from '@/types/address';
 
 interface AddressContextValue {
+  addresses: AddressRead[];
   selectedAddress: AddressRead | null;
-  setSelectedAddress: (addr: AddressRead | null) => void;
-  filterField: FilterField;
-  setFilterField: (field: FilterField) => void;
+  loading: boolean;               // ← novo
+  refreshAddresses: () => Promise<void>;
+  selectAddress: (addr: AddressRead) => Promise<void>;
 }
-
-export type FilterField = 'city' | 'street' | 'postal_code' | 'country';
 
 const AddressContext = createContext<AddressContextValue | undefined>(undefined);
 
 export function AddressProvider({ children }: { children: ReactNode }) {
-  const [selectedAddress, setSelectedAddressState] = useState<AddressRead | null>(null);
-  const [filterField, setFilterFieldState] = useState<FilterField>('city');
+  const [addresses, setAddresses] = useState<AddressRead[]>([]);
+  const [selectedAddress, setSelectedAddress] = useState<AddressRead | null>(null);
+  const [loading, setLoading] = useState(true); // ← controla quando terminou de init
 
-  // 1. On mount, load all addresses and pick the one with is_selected = true.
-  //    If none is selected, pick the first, mark it as selected on the server, and store it.
-  useEffect(() => {
-    async function initializeSelection() {
-      try {
-        const res = await listAddresses();
-        const allAddresses: AddressRead[] = res.data;
-
-        if (allAddresses.length === 0) {
-          setSelectedAddressState(null);
-          return;
-        }
-
-        // Find any address already marked as selected
-        const preSelected = allAddresses.find((addr) => addr.is_selected);
-        if (preSelected) {
-          setSelectedAddressState(preSelected);
-          return;
-        }
-
-        // If none has is_selected=true, pick the first and update it
-        const first = allAddresses[0];
-        const updated = await updateAddress(first.id, { is_selected: true });
-        setSelectedAddressState(updated.data);
-      } catch (err) {
-        console.error('Erro ao inicializar endereço selecionado:', err);
-        setSelectedAddressState(null);
-      }
-    }
-
-    initializeSelection();
-  }, []);
-
-  // 2. When the user explicitly changes the selected address, update it on the server.
-  const setSelectedAddress = async (addr: AddressRead | null) => {
-    if (!addr) {
-      // Unselecting all (if your API supports it, otherwise simply clear local state)
-      setSelectedAddressState(null);
-      return;
-    }
-
+  // 1) busca e inicializa seleção
+  const refreshAddresses = async () => {
+    setLoading(true);
     try {
-      // Mark the new address as selected
-      const updated = await updateAddress(addr.id, { is_selected: true });
-      setSelectedAddressState(updated.data);
+      const res = await listAddresses();
+      const all = res.data;
+      setAddresses(all);
+
+      // se já tiver is_selected
+      const pre = all.find(a => a.is_selected);
+      if (pre) {
+        setSelectedAddress(pre);
+      } else if (all.length) {
+        // senão marca o primeiro
+        const { data: upd } = await updateAddress(all[0].id, { is_selected: true });
+        setAddresses(prev =>
+          prev.map(a => (a.id === upd.id ? upd : { ...a, is_selected: false }))
+        );
+        setSelectedAddress(upd);
+      } else {
+        setSelectedAddress(null);
+      }
     } catch (err) {
-      console.error('Erro ao selecionar novo endereço:', err);
+      console.error('Erro ao inicializar endereços:', err);
+      setAddresses([]);
+      setSelectedAddress(null);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // 3. Filter field logic remains in-memory (no localStorage)
-  const setFilterField = (field: FilterField) => {
-    setFilterFieldState(field);
+  useEffect(() => {
+    refreshAddresses();
+  }, []);
+
+  // 2) trocar seleção
+  const selectAddress = async (addr: AddressRead) => {
+    if (selectedAddress?.id === addr.id) return;
+    setLoading(true);
+    try {
+      if (selectedAddress) {
+        await updateAddress(selectedAddress.id, { is_selected: false });
+      }
+      const { data: upd } = await updateAddress(addr.id, { is_selected: true });
+      setAddresses(prev =>
+        prev.map(a =>
+          a.id === upd.id
+            ? upd
+            : a.id === selectedAddress?.id
+            ? { ...a, is_selected: false }
+            : a
+        )
+      );
+      setSelectedAddress(upd);
+    } catch (err) {
+      console.error('Erro ao selecionar endereço:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <AddressContext.Provider
       value={{
+        addresses,
         selectedAddress,
-        setSelectedAddress,
-        filterField,
-        setFilterField,
+        loading,            // ← exposto
+        refreshAddresses,
+        selectAddress,
       }}
     >
       {children}
