@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timedelta
 from app.models.cashback import Cashback
 from app.models.cashback_program import CashbackProgram
 
@@ -8,13 +8,14 @@ def assign_cashback(db: Session, user_id: str, program_id: str, amount_spent: fl
     if not program or not program.is_active:
         raise ValueError("Programa de cashback inválido ou inativo")
     value = (amount_spent * float(program.percent)) / 100.0
+    expires = datetime.utcnow() + timedelta(days=program.validity_days)
     cb = Cashback(
         user_id=user_id,
         program_id=program_id,
         amount_spent=amount_spent,
         cashback_value=value,
         assigned_at=datetime.utcnow(),
-        expires_at=program.valid_until,
+        expires_at=expires,
         is_active=True,
     )
     db.add(cb)

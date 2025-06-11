@@ -25,6 +25,9 @@ from app.models.association import user_companies
 from app.models.category import Category
 from app.models.association import company_categories
 from app.models.address import Address
+from app.models.referral import Referral
+from app.models.cashback import Cashback
+from app.models.cashback_program import CashbackProgram
 
 
 # ...importe aqui outros models quando criar novos

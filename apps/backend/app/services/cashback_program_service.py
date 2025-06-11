@@ -7,7 +7,7 @@ def create_program(db: Session, company_id: str, obj_in: CashbackProgramCreate) 
         company_id=company_id,
         description=obj_in.description,
         percent=obj_in.percent,
-        valid_until=obj_in.valid_until,
+        validity_days=obj_in.validity_days,
         is_active=obj_in.is_active,
         is_visible=obj_in.is_visible,
     )

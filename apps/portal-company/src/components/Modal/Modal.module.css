@@ -6,6 +6,9 @@
   justify-content: center;
   align-items: center;
   z-index: 1010;
+  
+  overflow-y: auto;
+  overflow-x: hidden; 
 }
 
 .content {
@@ -14,7 +17,6 @@
   border-radius: 0.75rem;
   width: 100%;
   max-height: 100vh;
-  overflow-y: auto;
 }
 
 .closeBtn {
@@ -31,8 +33,3 @@
 }
 
 
-@media screen and (min-width: 1024px) and (max-height: 900px) {
- .closeBtn {
-  right: -12rem;
-}
-}

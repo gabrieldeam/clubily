@@ -8,7 +8,7 @@ from app.services.cashback_service import (
     get_cashbacks_by_user,
 )
 
-router = APIRouter(prefix="/users/{user_id}/cashbacks", tags=["cashbacks"])
+router = APIRouter(tags=["cashback_associations"])
 
 @router.post("/", response_model=CashbackRead, status_code=status.HTTP_201_CREATED)
 def create_cashback(

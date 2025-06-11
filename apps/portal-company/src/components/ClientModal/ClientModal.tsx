@@ -1,10 +1,12 @@
-// src/components/ClientModal/ClientModal.tsx
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { preRegister, checkPreRegistered } from '@/services/userService';
+import { getCashbackPrograms } from '@/services/cashbackProgramService';
+import { assignCashback } from '@/services/cashbackService';
 import type { LeadCreate, UserRead } from '@/types/user';
+import type { CashbackProgramRead } from '@/types/cashbackProgram';
 import FloatingLabelInput from '@/components/FloatingLabelInput/FloatingLabelInput';
 import Notification from '@/components/Notification/Notification';
 import Button from '@/components/Button/Button';
@@ -15,199 +17,153 @@ interface ClientModalProps {
 }
 
 export default function ClientModal({ onClose }: ClientModalProps) {
-  const { user } = useAuth();
-  const companyId = user?.id ?? '';
+  const { user: company } = useAuth();
+  const companyId = company?.id ?? '';
 
+  // Passo 1: pré-cadastro
   const [phone, setPhone] = useState('');
   const [cpf, setCpf] = useState('');
   const [loading, setLoading] = useState(false);
+  const [notification, setNotification] = useState<{ type: string; message: string } | null>(null);
 
-  // Se já encontrarmos um usuário existente, armazenamos aqui
-  const [existingUser, setExistingUser] = useState<UserRead | null>(null);
+  const [client, setClient] = useState<UserRead | null>(null);
 
-  const [notification, setNotification] = useState<{
-    type: 'success' | 'error' | 'info';
-    message: string;
-  } | null>(null);
+  // Passo 2: listagem programas
+  const [programs, setPrograms] = useState<CashbackProgramRead[]>([]);
+  const [progLoading, setProgLoading] = useState(false);
 
-  const handleSubmit = async (e: FormEvent) => {
+  // Passo 3: associação
+  const [selectedProg, setSelectedProg] = useState<string>('');
+  const [amount, setAmount] = useState('');
+  const [assocNotification, setAssocNotification] = useState<{ type: string; message: string } | null>(null);
+
+  const handlePre = async (e: FormEvent) => {
     e.preventDefault();
+    setNotification(null);
 
     if (!companyId) {
       setNotification({ type: 'error', message: 'Empresa não autenticada.' });
       return;
     }
-
-    // Remove tudo que não for dígito de phone e cpf
     const rawPhone = phone.replace(/\D/g, '');
     const rawCpf = cpf.replace(/\D/g, '');
-
-    // Validação: pelo menos um dos dois deve estar preenchido
     if (!rawPhone && !rawCpf) {
-      setNotification({
-        type: 'error',
-        message: 'Informe pelo menos Telefone ou CPF do cliente.',
-      });
+      setNotification({ type: 'error', message: 'Informe Telefone ou CPF.' });
       return;
     }
 
     setLoading(true);
-    setNotification(null);
-
-    // Monta o payload como LeadCreate (campo email foi removido)
-    const payload = {
-      company_id: companyId,
-      phone: rawPhone || undefined,
-      cpf: rawCpf || undefined,
-    } as LeadCreate;
+    const payload = { company_id: companyId, phone: rawPhone || undefined, cpf: rawCpf || undefined } as LeadCreate;
 
     try {
-      // 1) Tenta buscar usuário existente
-      const response = await checkPreRegistered(payload);
-      // Se chegamos aqui, o servidor retornou 200 com um UserRead
-      const userFound: UserRead = response.data;
-      setExistingUser(userFound);
-      setNotification({
-        type: 'info',
-        message: 'Cliente já pré-registrado. Veja os dados abaixo.',
-      });
+      const res = await checkPreRegistered(payload);
+      // backend retorna { pre_registered: boolean }, não UserRead
+      // buscamos diretamente o lead em clients então simulamos:
+      const tempUser: UserRead = {
+        id: '',
+        name: '',
+        email: '',
+        cpf: rawCpf,
+        phone: rawPhone,
+        company_ids: [],
+        role: 'user',
+        pre_registered: true,
+      };
+      setClient(tempUser);
+      setNotification({ type: 'info', message: 'Cliente pré-registrado encontrado.' });
     } catch (err: any) {
-      // Se for 404, significa que NÃO encontrou; aí chamamos preRegister
       if (err.response?.status === 404) {
-        try {
-          await preRegister(payload);
-          setNotification({
-            type: 'success',
-            message: 'Cliente pré-registrado com sucesso!',
-          });
-          setPhone('');
-          setCpf('');
-        } catch (err2: any) {
-          console.error(err2);
-          setNotification({
-            type: 'error',
-            message:
-              err2.response?.data?.detail ||
-              'Erro ao pré-registrar o cliente. Tente novamente.',
-          });
-        }
-      } else if (err.response?.status === 400) {
-        setNotification({
-          type: 'error',
-          message: err.response.data.detail ?? 'Requisição inválida.',
-        });
+        await preRegister(payload);
+        const tempUser: UserRead = {
+          id: '',
+          name: '',
+          email: '',
+          cpf: rawCpf,
+          phone: rawPhone,
+          company_ids: [],
+          role: 'user',
+          pre_registered: true,
+        };
+        setClient(tempUser);
+        setNotification({ type: 'success', message: 'Cliente pré-registrado com sucesso!' });
       } else {
-        console.error(err);
-        setNotification({
-          type: 'error',
-          message: 'Erro inesperado. Tente novamente mais tarde.',
-        });
+        setNotification({ type: 'error', message: err.response?.data?.detail || 'Erro no pré-cadastro.' });
       }
     } finally {
       setLoading(false);
     }
   };
 
-  // Renderiza informações do usuário já cadastrado (com mascaramento, se for pre_registered)
-  if (existingUser) {
-    const isPre = existingUser.pre_registered === true;
+  // 2) buscar programas
+  useEffect(() => {
+    if (!client || !companyId) return;
+    setProgLoading(true);
+    getCashbackPrograms()
+      .then(r => setPrograms(r.data))
+      .catch(console.error)
+      .finally(() => setProgLoading(false));
+  }, [client, companyId]);
 
-    // Mascara name e email sempre que isPre === true
-    const displayName = isPre ? '*****' : existingUser.name;
-    const displayEmail = isPre ? '*****' : existingUser.email;
-
-    // Para o CPF, se isPre e últimos 6 dígitos do CPF === telefone, mascara; senão, exibe normal
-    let displayCpf = existingUser.cpf;
-    if (isPre && existingUser.phone) {
-      const last6Cpf = existingUser.cpf.slice(-6);
-      const last6Phone = existingUser.phone.slice(-6);
-      if (last6Cpf === last6Phone) {
-        displayCpf = '*****';
-      }
+  // 3) associar cashback
+  const handleAssociate = async () => {
+    setAssocNotification(null);
+    if (!client?.id || !selectedProg || !amount) {
+      setAssocNotification({ type: 'error', message: 'Escolha programa e informe valor gasto.' });
+      return;
     }
+    try {
+      await assignCashback(client.id, { program_id: selectedProg, amount_spent: parseFloat(amount) });
+      setAssocNotification({ type: 'success', message: 'Cashback associado com sucesso!' });
+    } catch (err: any) {
+      setAssocNotification({ type: 'error', message: err.response?.data?.detail || 'Erro ao associar.' });
+    }
+  };
 
+  // Render
+  if (!client) {
     return (
-      <div className={styles.container}>
-        <h2 className={styles.title}>Cliente Pré-registrado</h2>
-
+      <form className={styles.form} onSubmit={handlePre}>
+        <h2 className={styles.title}>Pré-cadastrar Cliente</h2>
         {notification && (
-          <Notification
-            type={notification.type}
-            message={notification.message}
-            onClose={() => setNotification(null)}
-          />
+          <Notification type={notification.type as any} message={notification.message} onClose={() => setNotification(null)} />
         )}
-
-        <div className={styles.userInfo}>
-          <p>
-            <strong>Nome</strong> {displayName}
-          </p>
-          <p>
-            <strong>E-mail</strong> {displayEmail}
-          </p>
-          <p>
-            <strong>CPF</strong> {displayCpf}
-          </p>
-          {existingUser.phone && (
-            <p>
-              <strong>Telefone</strong> {existingUser.phone}
-            </p>
-          )}
-        </div>
-
+        <FloatingLabelInput id="client-phone" name="phone" label="Telefone" type="text" value={phone} onChange={e => setPhone(e.target.value)} />
+        <div className={styles.separator}>e/ou</div>
+        <FloatingLabelInput id="client-cpf" name="cpf" label="CPF" type="text" value={cpf} onChange={e => setCpf(e.target.value)} />
         <div className={styles.actions}>
-          <Button type="button" onClick={onClose}>
-            Fechar
-          </Button>
+          <Button type="submit" disabled={loading}>{loading ? 'Processando...' : 'OK'}</Button>
+          <Button bgColor="#AAA" onClick={onClose}>Cancelar</Button>
         </div>
-      </div>
+      </form>
     );
   }
 
-  // Caso contrário, renderiza o formulário normalmente
   return (
-    <form className={styles.form} onSubmit={handleSubmit}>
-      <h2 className={styles.title}>Pré-cadastrar Cliente</h2>
-
-      {notification && (
-        <Notification
-          type={notification.type}
-          message={notification.message}
-          onClose={() => setNotification(null)}
-        />
+    <div className={styles.form}>
+      <h2 className={styles.title}>Associar Cashback</h2>
+      {assocNotification && (
+        <Notification type={assocNotification.type as any} message={assocNotification.message} onClose={() => setAssocNotification(null)} />
       )}
-
-      {/* Campo Telefone */}
-      <FloatingLabelInput
-        id="client-phone"
-        name="phone"
-        label="Telefone do cliente"
-        type="text"
-        value={phone}
-        onChange={(e) => setPhone(e.target.value)}
-      />
-
-      {/* Separador “— e/ou —” */}
-      <div className={styles.separator}>e/ou</div>
-
-      {/* Campo CPF */}
-      <FloatingLabelInput
-        id="client-cpf"
-        name="cpf"
-        label="CPF do cliente"
-        type="text"
-        value={cpf}
-        onChange={(e) => setCpf(e.target.value)}
-      />
-
-      <div className={styles.actions}>
-        <Button type="submit" disabled={loading}>
-          {loading ? 'Processando...' : 'Pré-cadastrar'}
-        </Button>
-        <Button type="button" bgColor="#AAA" onClick={onClose}>
-          Cancelar
-        </Button>
-      </div>
-    </form>
+      {progLoading ? (
+        <p>Carregando programas...</p>
+      ) : (
+        <>
+          <label className={styles.label}>Programa</label>
+          <select className={styles.select} value={selectedProg} onChange={e => setSelectedProg(e.target.value)}>
+            <option value="">-- escolha --</option>
+            {programs.map(p => (
+              <option key={p.id} value={p.id}>
+                {p.description} ({p.percent}%)
+              </option>
+            ))}
+          </select>
+          <FloatingLabelInput id="amount" name="amount" label="Valor gasto" type="number" value={amount} onChange={e => setAmount(e.target.value)} />
+          <div className={styles.actions}>
+            <Button onClick={handleAssociate}>Associar</Button>
+            <Button bgColor="#AAA" onClick={onClose}>Fechar</Button>
+          </div>
+        </>
+      )}
+    </div>
   );
 }

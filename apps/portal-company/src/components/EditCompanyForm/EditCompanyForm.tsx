@@ -232,7 +232,7 @@ export default function CompanySettings({ companyId, onClose, onSaved }: Company
   };
 
   return (
-    <div>
+    <div className={editStyles.page}>
       {/* Edit Company Form */}
       <form onSubmit={handleCompanySubmit} className={editStyles.form}>
         {companyNotification && (

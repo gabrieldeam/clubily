@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field
 class CashbackProgramBase(BaseModel):
     description: str
     percent: float = Field(..., ge=0, le=100)
-    valid_until: datetime
+    validity_days: int = Field(..., ge=1, description="Número de dias de validade")
     is_active: bool = True
     is_visible: bool = True
 

@@ -16,7 +16,7 @@ interface NavLink {
 const links: NavLink[] = [
   { name: 'Dashboard', href: '/',        icon: '/icons/dashboard.svg' },
   { name: 'Clientes',  href: '/clients',  icon: '/icons/client.svg'    },
-  { name: 'Programas', href: '/program', icon: '/icons/program.svg'   },
+  { name: 'Programas', href: '/programs', icon: '/icons/program.svg'   },
   { name: 'Carteira',  href: '/wallet',  icon: '/icons/wallet.svg'    },
 ];
 
