@@ -5,6 +5,7 @@ from ..schemas.cashback_program import CashbackProgramCreate
 def create_program(db: Session, company_id: str, obj_in: CashbackProgramCreate) -> CashbackProgram:
     program = CashbackProgram(
         company_id=company_id,
+        name =obj_in.name,
         description=obj_in.description,
         percent=obj_in.percent,
         validity_days=obj_in.validity_days,

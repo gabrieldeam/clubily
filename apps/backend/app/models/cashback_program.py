@@ -10,6 +10,7 @@ class CashbackProgram(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     company_id = Column(UUID(as_uuid=True), ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(100), nullable=False)
     description = Column(String(255), nullable=False)
     percent = Column(Numeric(5, 2), nullable=False)
     validity_days = Column(Integer, nullable=False)

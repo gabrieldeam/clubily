@@ -3,6 +3,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 class CashbackProgramBase(BaseModel):
+    name: str
     description: str
     percent: float = Field(..., ge=0, le=100)
     validity_days: int = Field(..., ge=1, description="Número de dias de validade")

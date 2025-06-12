@@ -153,7 +153,7 @@ export default function ClientModal({ onClose }: ClientModalProps) {
             <option value="">-- escolha --</option>
             {programs.map(p => (
               <option key={p.id} value={p.id}>
-                {p.description} ({p.percent}%)
+                {p.name} ({p.percent}%)
               </option>
             ))}
           </select>

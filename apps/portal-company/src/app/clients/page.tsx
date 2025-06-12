@@ -21,15 +21,20 @@ export default function ClientsPage() {
   const [clients, setClients] = useState<UserRead[]>([]);
   const [loadingClients, setLoadingClients] = useState(true);
 
+  // modais
   const [openModal, setOpenModal] = useState(false);
   const [selectedClient, setSelectedClient] = useState<UserRead | null>(null);
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+
+  // modo de visualização: 'list' ou 'card'
+  const [viewMode, setViewMode] = useState<'list' | 'card'>('list');
 
   // protege rota
   useEffect(() => {
     if (!loading && !user) router.replace('/');
   }, [loading, user, router]);
 
-  // fetch toda vez que mudar de página
+  // busca clientes
   useEffect(() => {
     if (!user) return;
     setLoadingClients(true);
@@ -54,10 +59,10 @@ export default function ClientsPage() {
 
   // formatadores
   const formatPhoneDisplay = (c: UserRead) =>
-    c.pre_registered ? '*****' : c.phone ?? '—';
+    c.phone && c.phone.trim() !== '' ? c.phone : '*****';
 
   const formatCpfDisplay = (c: UserRead) =>
-    c.pre_registered ? '*****' : c.cpf ?? '—';
+    c.cpf && c.cpf.trim() !== '' ? c.cpf : '*****';
 
   return (
     <div className={styles.container}>
@@ -66,49 +71,84 @@ export default function ClientsPage() {
       <main className={styles.main}>
         <div className={styles.headerRow}>
           <h2>Meus Clientes</h2>
-          <button className={styles.addBtn} onClick={openAddModal}>
-            Adicionar Cliente
-          </button>
+          <div className={styles.actionsHeader}>
+            <button
+              className={styles.viewToggleBtn}
+              onClick={() => setViewModalOpen(true)}
+            >
+              Mudar Visualização
+            </button>
+            <button className={styles.addBtn} onClick={openAddModal}>
+              Adicionar Cliente
+            </button>
+          </div>
         </div>
 
         {loadingClients ? (
           <p className={styles.loading}>Carregando clientes...</p>
         ) : clients.length > 0 ? (
           <>
-            <div className={styles.tableWrapper}>
-              <div className={styles.rowHeader}>
-                <div className={styles.cellName}>Nome</div>
-                <div className={styles.cellEmail}>Email</div>
-                <div className={styles.cellPhone}>Telefone</div>
-                <div className={styles.cellPhone}>CPF</div>
+            {viewMode === 'list' ? (
+              <div className={styles.tableWrapper}>
+                <div className={styles.rowHeader}>
+                  <div className={styles.cellName}>Nome</div>
+                  <div className={styles.cellEmail}>Email</div>
+                  <div className={styles.cellPhone}>Telefone</div>
+                  <div className={styles.cellPhone}>CPF</div>
+                </div>
+                <div className={styles.body}>
+                  {clients.map(c => (
+                    <div
+                      key={c.id}
+                      className={`${styles.row} ${c.pre_registered ? styles.masked : ''}`}
+                      onClick={() => openClientModal(c)}
+                      title={c.pre_registered ? 'Usuário pré-cadastrado' : undefined}
+                    >
+                      <div className={styles.cellName} data-label="Nome:">
+                        {c.pre_registered ? '*****' : c.name}
+                      </div>
+                      <div className={styles.cellEmail} data-label="Email:">
+                        {c.pre_registered ? '*****' : c.email}
+                      </div>
+                      <div className={styles.cellPhone} data-label="Telefone:">
+                        {formatPhoneDisplay(c)}
+                      </div>
+                      <div className={styles.cellPhone} data-label="CPF:">
+                        {formatCpfDisplay(c)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className={styles.body}>
+            ) : (
+              <div className={styles.cardGrid}>
                 {clients.map(c => (
                   <div
                     key={c.id}
-                    className={`${styles.row} ${
-                      c.pre_registered ? styles.masked : ''
-                    }`}
+                    className={styles.card}
                     onClick={() => openClientModal(c)}
-                    style={{ cursor: 'pointer' }}
-                    title={
-                      c.pre_registered
-                        ? 'Esse usuário não tem cadastro completo'
-                        : undefined
-                    }
                   >
-                    <div className={styles.cellName}>{c.name}</div>
-                    <div className={styles.cellEmail}>{c.email}</div>
-                    <div className={styles.cellPhone}>
-                      {formatPhoneDisplay(c)}
+                    <div className={styles.cardHeader}>
+                      <h3>{c.pre_registered ? '*****' : c.name}</h3>
+                      {c.pre_registered && (
+                        <span className={styles.cardBadge}>Pré-cadastrado</span>
+                      )}
                     </div>
-                    <div className={styles.cellPhone}>
-                      {formatCpfDisplay(c)}
+                    <p className={styles.cardSubtitle}>
+                      {c.pre_registered ? '*****' : c.email}
+                    </p>
+                    <div className={styles.cardDetails}>
+                      <p>
+                        <strong>Telefone:</strong> {formatPhoneDisplay(c)}
+                      </p>
+                      <p>
+                        <strong>CPF:</strong> {formatCpfDisplay(c)}
+                      </p>
                     </div>
                   </div>
                 ))}
               </div>
-            </div>
+            )}
 
             <div className={styles.pagination}>
               <button
@@ -135,6 +175,7 @@ export default function ClientsPage() {
         )}
       </main>
 
+      {/* Modal de detalhes / edição */}
       <Modal open={openModal} onClose={() => setOpenModal(false)}>
         {selectedClient ? (
           <div className={styles.modalContent}>
@@ -149,8 +190,7 @@ export default function ClientsPage() {
                 {selectedClient.pre_registered ? '*****' : selectedClient.email}
               </p>
               <p>
-                <strong>Telefone:</strong>{' '}
-                {formatPhoneDisplay(selectedClient)}
+                <strong>Telefone:</strong> {formatPhoneDisplay(selectedClient)}
               </p>
               <p>
                 <strong>CPF:</strong> {formatCpfDisplay(selectedClient)}
@@ -160,6 +200,31 @@ export default function ClientsPage() {
         ) : (
           <ClientModal onClose={() => setOpenModal(false)} />
         )}
+      </Modal>
+
+      {/* Modal de escolha de visualização */}
+      <Modal open={viewModalOpen} onClose={() => setViewModalOpen(false)}>
+        <div className={styles.viewModeModal}>
+          <h2>Escolha o modo de visualização</h2>
+          <div className={styles.viewOptions}>
+            <button
+              onClick={() => {
+                setViewMode('list');
+                setViewModalOpen(false);
+              }}
+            >
+              📄 Lista
+            </button>
+            <button
+              onClick={() => {
+                setViewMode('card');
+                setViewModalOpen(false);
+              }}
+            >
+              🧾 Card
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

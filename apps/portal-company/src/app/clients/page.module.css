@@ -1,3 +1,4 @@
+/* src/app/clients/page.module.css */
 
 .main {
   background: #ffffff;
@@ -14,7 +15,26 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+}
+
+.actionsHeader {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.viewToggleBtn {
+  padding: 8px 12px;
+  background-color: #e5e7eb;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+}
+
+.viewToggleBtn:hover {
+  background-color: #d1d5db;
 }
 
 .addBtn {
@@ -36,61 +56,57 @@
   overflow-x: auto;
 }
 
-/* Cabeçalho (rowHeader) e cada linha (row) usam grid de 3 colunas */
+/* Lista */
 .rowHeader,
 .row {
   display: grid;
   grid-template-columns: 2fr 3fr 2fr 2fr;
   align-items: center;
+  padding: 12px 16px;        /* aumentei padding para espaçamento igual aos cards */
+  gap: 0.5rem;
+  border-radius: 8px;       /* antes era 10px */
+  font-size: 0.95rem;        /* padroniza fonte em 0.95rem */
+  transition: background-color 0.2s, transform 0.2s;
 }
 
+/* Cabeçalho */
 .rowHeader {
   background-color: #f3f4f6;
-  border-radius: 10px;
-  padding: 8px 0;
+  margin-bottom: 8px;
 }
 
 .rowHeader .cellName,
 .rowHeader .cellEmail,
 .rowHeader .cellPhone {
+  padding: 0;                /* padding já aplicado na rowHeader */
   font-weight: 600;
-  padding: 8px 16px;
+  color: #374151;
 }
 
-.body {
-  margin-top: 8px;
-}
-
+/* Linhas */
 .row {
-  padding: 12px 0;
-  transition: background-color 0.2s;
-  border-radius: 10px;
+  background-color: #fff;
   cursor: pointer;
 }
 
-.body .row:nth-child(odd) {
-  background-color: #ffffff;
-  border-radius: 10px;
+.row:nth-child(even) {
+  background-color: #fafafa;
 }
 
-.body .row:nth-child(even) {
-  background-color: #f9fafb;
-  border-radius: 10px;
-}
-
-.body .row:hover {
-  background-color: #000000;
-  border-radius: 10px;
-  color: white;
+.row:hover {
+  background-color: #f0f0f0;
+  transform: translateY(-2px);
 }
 
 .row .cellName,
 .row .cellEmail,
 .row .cellPhone {
-  padding: 8px 16px;
+  padding: 0;                /* padding já aplicado na row */
+  font-size: 0.95rem;
+  color: #111827;
 }
 
-/* Se o usuário estiver pré-cadastrado, mascara Nome e Email */
+/* Se quiser manter o mascaramento igual antes: */
 .masked .cellName,
 .masked .cellEmail {
   color: transparent;
@@ -103,6 +119,67 @@
   color: #555;
   position: absolute;
   left: 16px;
+}
+
+/* Cards */
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.25s ease;
+  cursor: pointer;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cardHeader h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.cardBadge {
+  background: #ffedd5;
+  color: #b45309;
+  padding: 0.25rem 0.5rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.cardSubtitle {
+  color: #6b7280;
+  font-size: 0.95rem;
+  margin: 0.5rem 0 1rem;
+  font-weight: 500;
+}
+
+.cardDetails p {
+  margin: 0.25rem 0;
+  font-size: 0.9rem;
+  color: #374151;
 }
 
 /* Paginação */
@@ -119,12 +196,45 @@
   cursor: not-allowed;
 }
 
-/* Mensagem de carregando / nenhum cliente */
+/* Loading / vazio */
 .loading {
   background-color: #F0F0F0;
   padding: 30px;
   border-radius: 10px;
   text-align: center;
+}
+
+/* Modal de escolha de visualização */
+.viewModeModal {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.viewModeModal h2 {
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+}
+
+.viewOptions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.viewOptions button {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  background-color: #f3f4f6;
+  transition: background 0.2s;
+}
+
+.viewOptions button:hover {
+  background-color: #e5e7eb;
 }
 
 .modalContent {
@@ -154,112 +264,50 @@
   color: #222;
 }
 
-.actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 1.25rem;
-}
-
-@media (max-width: 900px) {
-  /* Reduz um pouco o padding e o gap para caber melhor no tablet */
-  .main {
-    padding: 16px;
-    gap: 16px;
-  }
-
-  .rowHeader,
-  .row {
-    /* Ajusta proporção: menos diferença entre as colunas */
-    grid-template-columns: 1.5fr 2.5fr 1.5fr;
-  }
-
-  .row .cellName,
-  .row .cellEmail,
-  .row .cellPhone {
-    padding: 6px 12px;
-  }
-
-  .rowHeader .cellName,
-  .rowHeader .cellEmail,
-  .rowHeader .cellPhone {
-    padding: 6px 12px;
-    font-size: 0.95rem;
-  }
-
-  .headerRow h2 {
-    font-size: 1.2rem;
-  }
-
-  .addBtn {
-    font-size: 0.85rem;
-    padding: 6px 12px;
-  }
-}
-
-/* ================================
-   ESTILOS PARA MOBILE (até 600px)
-   ================================ */
-
+/* Responsivo (até 600px) */
 @media (max-width: 600px) {
   .main {
     padding: 12px;
     gap: 12px;
   }
 
-  /* Oculta o cabeçalho de colunas no mobile */
   .rowHeader {
     display: none;
   }
 
   .body {
     margin-top: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
   }
 
   .row {
-    /* transforma cada linha em “card” vertical */
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    padding: 12px;
-    margin-bottom: 8px;
-    background-color: #ffffff;
-    border-radius: 10px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
   }
 
-  /* Cada célula vira uma linha com label antes do valor */
   .row .cellName,
   .row .cellEmail,
   .row .cellPhone {
-    width: 100%;
-    padding: 4px 0;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
+    padding: 0;
+    font-size: 0.95rem;
   }
 
   .row .cellName::before,
   .row .cellEmail::before,
   .row .cellPhone::before {
-    /* adiciona etiqueta antes do conteúdo */
     content: attr(data-label);
     font-weight: 600;
     margin-right: 6px;
-    width: 80px; /* largura fixa para alinhar os labels */
-    flex-shrink: 0;
+    color: #444;
+    width: 85px;
+    display: inline-block;
   }
 
-  .row .cellName {
-    /* data-label="Nome:" será injetado via HTML (JSX) */
-    font-size: 1rem;
+  .masked .cellName::after,
+  .masked .cellEmail::after {
+    left: auto;
+    position: static;
+    margin-left: 6px;
   }
-
-  .row .cellEmail {
-    font-size: 0.95rem;
-  }
-
-  .row .cellPhone {
-    font-size: 0.95rem;
-  }
-
 }

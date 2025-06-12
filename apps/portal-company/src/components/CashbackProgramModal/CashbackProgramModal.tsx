@@ -21,6 +21,7 @@ export default function CashbackProgramModal({
   onSave,
   onCancel,
 }: Props) {
+  const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [percent, setPercent] = useState(0);
   const [validityDays, setValidityDays] = useState(1);
@@ -33,6 +34,7 @@ export default function CashbackProgramModal({
 
   useEffect(() => {
     if (program) {
+      setName(program.name);
       setDescription(program.description);
       setPercent(program.percent);
       setValidityDays(program.validity_days);
@@ -50,6 +52,14 @@ export default function CashbackProgramModal({
     }
   };
 
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    if (val.length <= 100) {
+      setName(val);
+      setCharCount(val.length);
+    }
+  };
+
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!description || percent < 0 || percent > 100 || validityDays < 1) {
@@ -58,6 +68,7 @@ export default function CashbackProgramModal({
     }
     onSave(
       {
+        name,
         description,
         percent,
         validity_days: validityDays,
@@ -80,6 +91,18 @@ export default function CashbackProgramModal({
           onClose={() => setNotification(null)}
         />
       )}
+
+      <FloatingLabelInput
+        id="prog-name"
+        name="Name"
+        label="Name"
+        type="text"
+        value={name}
+        onChange={handleNameChange}
+        maxLength={100}
+      />
+      <div className={styles.charCount}>{charCount}/100 caracteres</div>
+
       <FloatingLabelInput
         id="prog-desc"
         name="description"

@@ -1,5 +1,6 @@
 // src/types/cashbackProgram.ts
 export interface CashbackProgramBase {
+  name: string;
   description: string;
   percent: number;    
   validity_days: number;
