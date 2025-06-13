@@ -1,0 +1,41 @@
+// src/types/cashback.ts
+
+import type { CashbackProgramRead } from '@/types/cashbackProgram';
+
+export interface CashbackBase {
+  amount_spent: number;
+}
+
+export interface CashbackCreate extends CashbackBase {
+  program_id: string; // UUID como string
+}
+
+export interface CashbackRead extends CashbackBase {
+  id: string;
+  user_id: string;
+  program_id: string;
+  cashback_value: number;
+  assigned_at: string;   // ISO date string
+  expires_at: string;    // ISO date string
+  is_active: boolean;
+  created_at: string;    // ISO date string
+  program: CashbackProgramRead;
+}
+
+export interface CashbackSummary {
+  total_balance: number;
+  next_expiration?: string; // ISO date string ou undefined
+}
+
+export interface UserCashbackCompany {
+  company_id: string;
+  name: string;
+  logo_url?: string;
+}
+
+export interface PaginatedCashbacks {
+  total: number;
+  skip: number;
+  limit: number;
+  items: CashbackRead[];
+}

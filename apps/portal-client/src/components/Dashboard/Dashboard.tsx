@@ -12,6 +12,7 @@ import type { CategoryRead } from '@/types/category';
 import type { CompanyRead } from '@/types/company';
 import Header from '@/components/Header/Header';
 import styles from './Dashboard.module.css';
+import CashbackSummaryCard from '@/components/CashbackSummaryCard/CashbackSummaryCard';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 
@@ -137,6 +138,10 @@ export default function Dashboard() {
   return (
     <div>
       <Header onSearch={q => router.push(`/search?name=${encodeURIComponent(q)}`)} />
+
+      <section className={styles.gridItem}>
+        <CashbackSummaryCard />
+      </section>
 
       {/* CATEGORIAS */}
       <section className={styles.gridItem}>

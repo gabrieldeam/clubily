@@ -7,7 +7,8 @@ import type { LeadCreate, CheckPreRegisteredParams, PreRegisterResponse, UserRea
  * POST /auth/pre-register
  */
 export const preRegister = (payload: LeadCreate) =>
-  api.post<PreRegisterResponse>('/auth/pre-register', payload);
+  // antes: api.post<PreRegisterResponse>(...)
+  api.post<UserRead>('/auth/pre-register', payload);
 
 /**
  * Verifica se já existe pré-cadastro (lead) para este email/phone e empresa.

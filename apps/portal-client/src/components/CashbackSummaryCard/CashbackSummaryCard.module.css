@@ -1,0 +1,64 @@
+.card {
+  border-radius: 16px;
+  display: flex;
+  gap: 16px;
+  width: 100%;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.balance, .expiration {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.balanceLabel, .expLabel {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.balanceValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #FFA600;
+}
+
+.expValue {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.footer {
+  text-align: center;
+}
+
+.button {
+  background: #FFA600;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 20px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color .2s, transform .1s;
+}
+
+.button:hover {
+  background-color: #e59400;
+  transform: translateY(-1px);
+}
+
+.loading, .error {
+  text-align: center;
+  color: #666;
+}
