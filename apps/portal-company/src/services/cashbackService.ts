@@ -9,4 +9,4 @@ import type { CashbackCreate, CashbackRead } from '@/types/cashback';
 export const assignCashback = (
   userId: string,
   payload: CashbackCreate
-) => api.post<CashbackRead>(`/users/${userId}/cashbacks`, payload);
+) => api.post<CashbackRead>(`/cashbacks/${userId}`, payload);

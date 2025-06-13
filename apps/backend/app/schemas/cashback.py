@@ -1,6 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 from pydantic import BaseModel, ConfigDict
+from typing import Optional, List
 from app.schemas.cashback_program import CashbackProgramRead
 
 class CashbackBase(BaseModel):
@@ -19,5 +20,27 @@ class CashbackRead(CashbackBase):
     is_active: bool
     created_at: datetime
     program: CashbackProgramRead
+
+    model_config = ConfigDict(from_attributes=True)
+
+class CashbackSummary(BaseModel):
+    total_balance: float
+    next_expiration: Optional[datetime] = None
+
+    model_config = ConfigDict()
+
+class UserCashbackCompany(BaseModel):
+    company_id: UUID
+    name: str
+    logo_url: Optional[str]
+
+    model_config = ConfigDict()
+
+
+class PaginatedCashbacks(BaseModel):
+    total: int
+    skip: int
+    limit: int
+    items: List[CashbackRead]
 
     model_config = ConfigDict(from_attributes=True)

@@ -29,6 +29,20 @@ export default function ClientsPage() {
   // modo de visualização: 'list' ou 'card'
   const [viewMode, setViewMode] = useState<'list' | 'card'>('list');
 
+  // detecta mobile
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // em mobile, força card
+  useEffect(() => {
+    if (isMobile) setViewMode('card');
+  }, [isMobile]);
+
   // protege rota
   useEffect(() => {
     if (!loading && !user) router.replace('/');
@@ -61,8 +75,13 @@ export default function ClientsPage() {
   const formatPhoneDisplay = (c: UserRead) =>
     c.phone && c.phone.trim() !== '' ? c.phone : '*****';
 
-  const formatCpfDisplay = (c: UserRead) =>
-    c.cpf && c.cpf.trim() !== '' ? c.cpf : '*****';
+  const formatCpfDisplay = (c: UserRead) => {
+    if (!c.cpf || c.cpf.trim() === '') return '*****';
+    if (!c.phone || c.phone.trim() === '') return c.cpf;
+    const cpfLast4 = c.cpf.slice(-4);
+    const phoneLast4 = c.phone.slice(-4);
+    return cpfLast4 === phoneLast4 ? '*****' : c.cpf;
+  };
 
   return (
     <div className={styles.container}>
@@ -72,12 +91,14 @@ export default function ClientsPage() {
         <div className={styles.headerRow}>
           <h2>Meus Clientes</h2>
           <div className={styles.actionsHeader}>
-            <button
-              className={styles.viewToggleBtn}
-              onClick={() => setViewModalOpen(true)}
-            >
-              Mudar Visualização
-            </button>
+            {!isMobile && (
+              <button
+                className={styles.viewToggleBtn}
+                onClick={() => setViewModalOpen(true)}
+              >
+                Mudar Visualização
+              </button>
+            )}
             <button className={styles.addBtn} onClick={openAddModal}>
               Adicionar Cliente
             </button>

@@ -1,3 +1,4 @@
+// src/components/ClientModal/ClientModal.tsx
 'use client';
 
 import { FormEvent, useEffect, useState } from 'react';
@@ -53,38 +54,22 @@ export default function ClientModal({ onClose }: ClientModalProps) {
     }
 
     setLoading(true);
-    const payload = { company_id: companyId, phone: rawPhone || undefined, cpf: rawCpf || undefined } as LeadCreate;
+    const params: LeadCreate = {
+      company_id: companyId,
+      phone: rawPhone || undefined,
+      cpf: rawCpf || undefined,
+    };
 
     try {
-      const res = await checkPreRegistered(payload);
-      // backend retorna { pre_registered: boolean }, não UserRead
-      // buscamos diretamente o lead em clients então simulamos:
-      const tempUser: UserRead = {
-        id: '',
-        name: '',
-        email: '',
-        cpf: rawCpf,
-        phone: rawPhone,
-        company_ids: [],
-        role: 'user',
-        pre_registered: true,
-      };
-      setClient(tempUser);
+      // tenta verificar pré-cadastro existente
+      const resCheck = await checkPreRegistered(params);
+      setClient(resCheck.data);
       setNotification({ type: 'info', message: 'Cliente pré-registrado encontrado.' });
     } catch (err: any) {
       if (err.response?.status === 404) {
-        await preRegister(payload);
-        const tempUser: UserRead = {
-          id: '',
-          name: '',
-          email: '',
-          cpf: rawCpf,
-          phone: rawPhone,
-          company_ids: [],
-          role: 'user',
-          pre_registered: true,
-        };
-        setClient(tempUser);
+        // não existe: cria novo lead
+        const resPre = await preRegister(params);
+        setClient(resPre.data);
         setNotification({ type: 'success', message: 'Cliente pré-registrado com sucesso!' });
       } else {
         setNotification({ type: 'error', message: err.response?.data?.detail || 'Erro no pré-cadastro.' });
@@ -96,13 +81,13 @@ export default function ClientModal({ onClose }: ClientModalProps) {
 
   // 2) buscar programas
   useEffect(() => {
-    if (!client || !companyId) return;
+    if (!client) return;
     setProgLoading(true);
     getCashbackPrograms()
       .then(r => setPrograms(r.data))
       .catch(console.error)
       .finally(() => setProgLoading(false));
-  }, [client, companyId]);
+  }, [client]);
 
   // 3) associar cashback
   const handleAssociate = async () => {
@@ -127,12 +112,30 @@ export default function ClientModal({ onClose }: ClientModalProps) {
         {notification && (
           <Notification type={notification.type as any} message={notification.message} onClose={() => setNotification(null)} />
         )}
-        <FloatingLabelInput id="client-phone" name="phone" label="Telefone" type="text" value={phone} onChange={e => setPhone(e.target.value)} />
+        <FloatingLabelInput
+          id="client-phone"
+          name="phone"
+          label="Telefone"
+          type="text"
+          value={phone}
+          onChange={e => setPhone(e.target.value)}
+        />
         <div className={styles.separator}>e/ou</div>
-        <FloatingLabelInput id="client-cpf" name="cpf" label="CPF" type="text" value={cpf} onChange={e => setCpf(e.target.value)} />
+        <FloatingLabelInput
+          id="client-cpf"
+          name="cpf"
+          label="CPF"
+          type="text"
+          value={cpf}
+          onChange={e => setCpf(e.target.value)}
+        />
         <div className={styles.actions}>
-          <Button type="submit" disabled={loading}>{loading ? 'Processando...' : 'OK'}</Button>
-          <Button bgColor="#AAA" onClick={onClose}>Cancelar</Button>
+          <Button type="submit" disabled={loading}>
+            {loading ? 'Processando...' : 'OK'}
+          </Button>
+          <Button bgColor="#AAA" onClick={onClose}>
+            Cancelar
+          </Button>
         </div>
       </form>
     );
@@ -157,10 +160,19 @@ export default function ClientModal({ onClose }: ClientModalProps) {
               </option>
             ))}
           </select>
-          <FloatingLabelInput id="amount" name="amount" label="Valor gasto" type="number" value={amount} onChange={e => setAmount(e.target.value)} />
+          <FloatingLabelInput
+            id="amount"
+            name="amount"
+            label="Valor gasto"
+            type="number"
+            value={amount}
+            onChange={e => setAmount(e.target.value)}
+          />
           <div className={styles.actions}>
             <Button onClick={handleAssociate}>Associar</Button>
-            <Button bgColor="#AAA" onClick={onClose}>Fechar</Button>
+            <Button bgColor="#AAA" onClick={onClose}>
+              Fechar
+            </Button>
           </div>
         </>
       )}

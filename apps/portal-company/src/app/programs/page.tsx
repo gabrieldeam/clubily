@@ -24,6 +24,20 @@ export default function ProgramsPage() {
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'card'>('list');
 
+  // detecta mobile
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // força card em mobile
+  useEffect(() => {
+    if (isMobile) setViewMode('card');
+  }, [isMobile]);
+
   const fetchPrograms = () => {
     setLoading(true);
     getCashbackPrograms()
@@ -67,18 +81,24 @@ export default function ProgramsPage() {
       <main className={styles.main}>
         <div className={styles.topBar}>
           <div className={styles.summary}>
-            <h2>Programas de Cashback</h2>
-            <div>Total <strong>{total}</strong></div>
-            <div>Ativos <strong>{active}</strong></div>
-            <div>Visíveis <strong>{visible}</strong></div>
+            <h2>Cashback</h2>
+            {!isMobile && (
+              <>
+                <div>Total <strong>{total}</strong></div>
+                <div>Ativos <strong>{active}</strong></div>
+                <div>Visíveis <strong>{visible}</strong></div>
+              </>
+            )}
           </div>
           <div className={styles.actionsHeader}>
-            <button
-              className={styles.viewToggleBtn}
-              onClick={() => setViewModalOpen(true)}
-            >
-              Mudar Visualização
-            </button>
+            {!isMobile && (
+              <button
+                className={styles.viewToggleBtn}
+                onClick={() => setViewModalOpen(true)}
+              >
+                Mudar Visualização
+              </button>
+            )}
             <button className={styles.addBtn} onClick={openCreate}>
               + Novo Programa
             </button>
@@ -168,8 +188,22 @@ export default function ProgramsPage() {
         <div className={styles.viewModeModal}>
           <h2>Modo de visualização</h2>
           <div className={styles.viewOptions}>
-            <button onClick={() => { setViewMode('list'); setViewModalOpen(false); }}>📄 Lista</button>
-            <button onClick={() => { setViewMode('card'); setViewModalOpen(false); }}>🧾 Card</button>
+            <button
+              onClick={() => {
+                setViewMode('list');
+                setViewModalOpen(false);
+              }}
+            >
+              📄 Lista
+            </button>
+            <button
+              onClick={() => {
+                setViewMode('card');
+                setViewModalOpen(false);
+              }}
+            >
+              🧾 Card
+            </button>
           </div>
         </div>
       </Modal>
