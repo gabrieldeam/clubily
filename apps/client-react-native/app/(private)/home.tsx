@@ -20,10 +20,13 @@ import { imagePublicBaseUrl } from '../../services/api';
 import { SvgUri } from 'react-native-svg';
 import type { CategoryRead } from '../../types/category';
 import type { CompanyRead, CompanyFilter } from '../../types/company';
+import CashbackIcon from '../../assets/icons/cashback.svg';
+import { getCashbackSummary } from '../../services/cashbackService';
+import type { CashbackSummary } from '../../types/cashback';
 
 export default function HomeScreen() {
   const { user } = useAuth();
-  const { selectedAddress, filterField } = useAddress();
+  const { selectedAddress } = useAddress();
   const router = useRouter();
 
   const [showModal, setShowModal] = useState(false);
@@ -33,12 +36,20 @@ export default function HomeScreen() {
   const [loadingComps, setLoadingComps] = useState(false);
 
   const buildFilters = (): CompanyFilter => {
-    const filters: any = {};
-    if (!selectedAddress) return filters;
-    if (filterField === 'city') filters.city = selectedAddress.city;
-    else if (filterField === 'postal_code') filters.postal_code = selectedAddress.postal_code;
-    return filters;
+    if (!selectedAddress) return {};
+    return { city: selectedAddress.city };  // ou postal_code
   };
+
+  const [summary, setSummary] = useState<CashbackSummary | null>(null);
+  const [loadingSummary, setLoadingSummary] = useState(true);
+
+  useEffect(() => {
+    setLoadingSummary(true);
+    getCashbackSummary()
+      .then(res => setSummary(res))
+      .catch(() => setSummary(null))
+      .finally(() => setLoadingSummary(false));
+  }, []);
 
   // fetch categories and companies
   useEffect(() => {
@@ -56,7 +67,7 @@ export default function HomeScreen() {
       .then(res => setCompanies(res.data))
       .catch(() => setCompanies([]))
       .finally(() => setLoadingComps(false));
-  }, [selectedAddress, filterField]);
+  }, [selectedAddress]);
 
 
   // Se não houver endereço selecionado, exibe o fluxo antigo
@@ -114,6 +125,35 @@ export default function HomeScreen() {
         contentContainerStyle={{ paddingBottom: 20, flexGrow: 1 }}
         nestedScrollEnabled
       >
+      <View style={styles.whiteBox}>
+        {loadingSummary ? (
+          <ActivityIndicator color="#FFA600" />
+        ) : (
+          <View style={styles.cashbackSummaryContainer}>
+            <View style={styles.cashbackSummaryLeft}>
+              <CashbackIcon width={36} height={36} />
+              <View style={styles.cashbackText}>
+                <Text style={styles.cashbackTitle}>cashbacks</Text>
+                <Text style={styles.cashbackValue}>
+                  {summary
+                    ? summary.total_balance.toLocaleString('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL',
+                      })
+                    : 'R$ 0,00'}
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={styles.cashbackButton}
+              onPress={() => router.push('/cashbacks')}
+            >
+              <Text style={styles.cashbackButtonText}>Ver tudo</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+
         {/* Categorias com rolagem horizontal */}
         {categories.length > 0 && (
           <View style={styles.whiteBox}>
@@ -175,7 +215,7 @@ export default function HomeScreen() {
                       { marginBottom: index === 4 ? 0 : 10 },
                     ]}
                   >
-                    {comp.logo_url &&
+                    {comp.logo_url ? (
                       (() => {
                         const logoUri = `${imagePublicBaseUrl}${comp.logo_url}`;
                         const isSvg = logoUri.toLowerCase().endsWith('.svg');
@@ -193,13 +233,26 @@ export default function HomeScreen() {
                             }
                           />
                         );
-                      })()}
+                      })()
+                    ) : (
+                      <View style={styles.companyLogoPlaceholder}>
+                        <Text style={styles.companyLogoText}>
+                          {comp.name.charAt(0).toUpperCase()}
+                        </Text>
+                      </View>
+                    )}
 
                     <View style={styles.companyInfo}>
                       <Text style={styles.companyName}>{comp.name}</Text>
-                      <Text style={styles.companyDesc}>
-                        {comp.description}
-                      </Text>
+                      {comp.description && (
+                        <Text
+                          style={styles.companyDesc}
+                          numberOfLines={2}
+                          ellipsizeMode="tail"
+                        >
+                          {comp.description}
+                        </Text>
+                      )}
                     </View>
 
                     <TouchableOpacity
@@ -305,6 +358,20 @@ const styles = StyleSheet.create({
     marginRight: 12,
     backgroundColor: '#FFA600',
   },
+    companyLogoPlaceholder: {
+    width: 70,
+    height: 70,
+    borderRadius: 50,
+    marginRight: 12,
+    backgroundColor: '#FFA600',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  companyLogoText: {
+    color: '#FFF',
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
   companyInfo: {
     flex: 1,
   },
@@ -331,4 +398,43 @@ const styles = StyleSheet.create({
     color: '#000',
     fontWeight: '500',
   },
+
+    // === resumo de cashbacks ===
+  cashbackSummaryContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  cashbackSummaryLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  cashbackText: {
+    marginLeft: 12,
+  },
+  cashbackTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+  },
+  cashbackValue: {
+    fontSize: 21,
+    fontWeight: '700',
+    color: '#000',
+    marginTop: 4,
+  },
+  cashbackButton: {
+    backgroundColor: '#F0F0F0',
+    borderColor: '#D9D9D9',
+    borderWidth: 1,
+    borderRadius: 50,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  cashbackButtonText: {
+    color: '#000',
+    fontWeight: '500',
+  },
+
+
 });

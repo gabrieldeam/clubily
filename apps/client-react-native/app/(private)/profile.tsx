@@ -165,24 +165,32 @@ export default function ProfileScreen() {
                     return (
                       <View key={comp.id} style={styles.companyCard}>
                         {/* Logo */}
-                        {comp.logo_url && (
-                          isSvg ? (
-                            <View style={styles.companyLogoWrapper}>
-                              <SvgUri uri={logoUri} width="100%" height="100%" />
-                            </View>
-                          ) : (
-                            <Image
-                              source={{ uri: logoUri }}
-                              style={styles.companyLogo}
-                              onError={(e) =>
-                                console.warn(
-                                  'Erro ao carregar logo PNG/JPG:',
-                                  e.nativeEvent.error
-                                )
-                              }
-                            />
-                          )
-                        )}
+                                            {comp.logo_url ? (
+                                              (() => {
+                                                const logoUri = `${imagePublicBaseUrl}${comp.logo_url}`;
+                                                const isSvg = logoUri.toLowerCase().endsWith('.svg');
+                                                return isSvg ? (
+                                                  <SvgUri uri={logoUri} width={80} height={80} />
+                                                ) : (
+                                                  <Image
+                                                    source={{ uri: logoUri }}
+                                                    style={styles.companyLogo}
+                                                    onError={(e) =>
+                                                      console.warn(
+                                                        'Erro ao carregar logo PNG/JPG:',
+                                                        e.nativeEvent.error
+                                                      )
+                                                    }
+                                                  />
+                                                );
+                                              })()
+                                            ) : (
+                                              <View style={styles.companyLogoPlaceholder}>
+                                                <Text style={styles.companyLogoText}>
+                                                  {comp.name.charAt(0).toUpperCase()}
+                                                </Text>
+                                              </View>
+                                            )}
 
                         {/* Informações da empresa */}
                         <View style={styles.companyInfo}>
@@ -439,6 +447,21 @@ const styles = StyleSheet.create({
     marginRight: 12,
     backgroundColor: '#FFA600',
   },
+    companyLogoPlaceholder: {
+    width: 70,
+    height: 70,
+    borderRadius: 50,
+    marginRight: 12,
+    backgroundColor: '#FFA600',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  companyLogoText: {
+    color: '#FFF',
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+
   companyInfo: {
     flex: 1,
   },
