@@ -64,3 +64,19 @@
   padding: 10px;
   border-radius: 10px;
 }
+
+.stats {
+  background: #f0f4f8;
+  padding: 1rem;
+  border-radius: 10px;
+}
+
+.stats h5 {
+  margin-bottom: 0.5rem;
+}
+
+.stats p {
+  margin: 0.25rem 0;
+  font-size: 0.8rem;
+  color: #686868;
+}

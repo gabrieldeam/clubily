@@ -19,6 +19,9 @@ class CashbackProgram(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
+    max_per_user = Column(Integer, nullable=True)
+    min_cashback_per_user = Column(Numeric(12, 2), nullable=True)
+    
     # Relações
     company = relationship("Company", back_populates="cashback_programs")
     cashbacks = relationship("Cashback", back_populates="program", cascade="all, delete-orphan")

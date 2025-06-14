@@ -20,6 +20,8 @@ export interface CashbackRead extends CashbackBase {
   is_active: boolean;
   created_at: string;    // ISO date string
   program: CashbackProgramRead;
+  company_name: string;
+  company_logo_url?: string;
 }
 
 export interface CashbackSummary {
@@ -38,4 +40,12 @@ export interface PaginatedCashbacks {
   skip: number;
   limit: number;
   items: CashbackRead[];
+}
+
+
+export interface PaginatedCashbackCompanies {
+  total: number;
+  skip: number;
+  limit: number;
+  items: UserCashbackCompany[];
 }

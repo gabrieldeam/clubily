@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { getCashbackSummary } from '@/services/cashbackService';
 import type { CashbackSummary } from '@/types/cashback';
@@ -10,6 +11,13 @@ export default function CashbackSummaryCard() {
   const [summary, setSummary] = useState<CashbackSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+   useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -48,20 +56,26 @@ export default function CashbackSummaryCard() {
     : '—';
 
   return (
-    <div className={styles.card}>
-        <h3 className={styles.title}>Seu Cashback</h3>
-        <div className={styles.balance}>
-          <span className={styles.balanceLabel}>Saldo atual</span>
-          <span className={styles.balanceValue}>{formattedBalance}</span>
-        </div>
-        <div className={styles.expiration}>
-          <span className={styles.expLabel}>Próxima expiração</span>
-          <span className={styles.expValue}>{formattedExpiration}</span>
-        </div>
-        <div className={styles.footer}>
-          <Link href="/profile/cashbacks">
-            <button className={styles.button}>Ver todos os cashbacks</button>
-          </Link>
+    <div className={styles.cardConteiner}>
+        <div className={styles.card}>
+          <div className={styles.balanceConteiner}>
+            <Image src="/icons/reembolso-alt.svg" alt="" width={32} height={32} />
+            <div className={styles.balance}>
+              <span className={styles.balanceLabel}>Cashback</span>
+              <span className={styles.balanceValue}>{formattedBalance}</span>
+           </div>
+          </div>
+          {!isMobile && (
+            <div className={styles.expiration}>
+              <span className={styles.expLabel}>Próxima expiração</span>
+              <span className={styles.expValue}>{formattedExpiration}</span>
+            </div>
+          )}          
+          <div className={styles.footer}>
+            <Link href="/cashbacks">
+              <button className={styles.button}>Ver todos</button>
+            </Link>
+          </div>
         </div>
     </div>
   );

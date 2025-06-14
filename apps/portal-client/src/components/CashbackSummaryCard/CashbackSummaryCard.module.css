@@ -1,3 +1,9 @@
+.cardConteiner {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .card {
   border-radius: 16px;
   display: flex;
@@ -7,28 +13,27 @@
   align-items: center;
 }
 
-.title {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #333;
+.balanceConteiner {
+  display: flex;
+  gap: 10px;
 }
 
 .balance, .expiration {
   display: flex;
+  flex-direction: column;
   justify-content: space-between;
   align-items: baseline;
+  gap: 5px;
 }
 
 .balanceLabel, .expLabel {
-  font-size: 0.9rem;
+  font-size: 0.7rem;
   color: #666;
 }
 
 .balanceValue {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #FFA600;
 }
 
 .expValue {
@@ -42,20 +47,16 @@
 }
 
 .button {
-  background: #FFA600;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 12px 20px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color .2s, transform .1s;
+  font-size: 12px;
+  padding: 5px 10px;
+  background-color: #F0F0F0;
+  border: 1px solid #D9D9D9;
+  border-radius: 50px;
+  white-space: nowrap;
 }
 
 .button:hover {
-  background-color: #e59400;
-  transform: translateY(-1px);
+  background-color: #dfdfdf;
 }
 
 .loading, .error {

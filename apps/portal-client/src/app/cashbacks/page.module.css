@@ -1,0 +1,131 @@
+
+.companiesSection,
+.cashbacksSection {
+  background: #fff;
+  padding: 20px;
+  border-radius: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  margin-top: 10px;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+/* Lista horizontal de empresas */
+.companiesScroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+}
+
+.companyItem {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #f0f0f0;
+  border: 1px solid #d9d9d9;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.companyItem:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.companyItemActive {
+  background: #ffa60022;
+  border-color: #ffa600;
+}
+
+.companyLogo,
+.companyLogoFallback {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #ffa600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: #fff;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.companyName {
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Lista de cashbacks */
+.cashbacksList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 16px;
+}
+
+/* Card de cada cashback */
+.cashbackItem {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: transform 0.1s, box-shadow 0.2s;
+}
+
+.cashbackItem:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Header interno com logo e nome */
+.cashbackCompany {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+}
+
+.companyNameItem {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #333;
+}
+
+/* Detalhes do cashback */
+.cashbackDetails {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  font-size: 0.95rem;
+}
+
+.cashbackDetails strong {
+  color: #555;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

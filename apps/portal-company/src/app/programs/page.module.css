@@ -175,6 +175,16 @@
   color: #b91c1c;
 }
 
+.colActions .view {
+  background: #e4fee2;
+  color: #41b91c;
+  border: none;
+  padding: 0.4rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
 /* ===== CARD VIEW ===== */
 .cardGrid {
   display: grid;
@@ -271,6 +281,16 @@
 .cardActions .delete {
   background: #fee2e2;
   color: #b91c1c;
+}
+
+.cardActions .view {
+  background: #e4fee2;
+  color: #29b91c;
+  border: none;
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
 }
 
 /* ===== VIEW-MODE MODAL ===== */

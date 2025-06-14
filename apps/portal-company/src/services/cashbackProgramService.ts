@@ -3,6 +3,8 @@ import api from './api';
 import type {
   CashbackProgramCreate,
   CashbackProgramRead,
+  PaginatedProgramUsage,
+  UserProgramStats, 
 } from '@/types/cashbackProgram';
 
 /**
@@ -45,3 +47,28 @@ export const updateCashbackProgram = (
  */
 export const deleteCashbackProgram = (programId: string) =>
   api.delete<void>(`/companies/me/cashback-programs/${programId}`);
+
+/**
+ * Uso do programa: métricas + associações paginadas
+ * GET /companies/me/cashback-programs/{program_id}/usage
+ */
+export const getProgramUsage = (
+  programId: string,
+  skip = 0,
+  limit = 10
+) =>
+  api.get<PaginatedProgramUsage>(
+    `/companies/me/cashback-programs/${programId}/usage`,
+    {
+      params: { skip, limit },
+    }
+  );
+
+  /**
+ * Estatísticas de cashback de um usuário
+ * GET /companies/me/cashback-programs/{program_id}/user/{user_id}/stats
+ */
+export const getUserProgramStats = (programId: string, userId: string) =>
+  api.get<UserProgramStats>(
+    `/companies/me/cashback-programs/${programId}/user/${userId}/stats`
+  );

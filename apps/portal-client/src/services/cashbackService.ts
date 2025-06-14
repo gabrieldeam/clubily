@@ -6,6 +6,7 @@ import type {
   CashbackSummary,
   UserCashbackCompany,
   PaginatedCashbacks,
+  PaginatedCashbackCompanies
 } from '@/types/cashback';
 
 
@@ -17,7 +18,7 @@ export const listCashbacks = (
   skip = 0,
   limit = 10
 ) =>
-  api.get<PaginatedCashbacks>(`/cashbacks/cashbacks`, {
+  api.get<PaginatedCashbacks>(`/cashbacks`, {
     params: { skip, limit },
   });
 
@@ -32,23 +33,41 @@ export const getCashbackSummary = () =>
  * Lista as empresas para as quais o usuário tem cashback (paginado).
  * GET /users/{user_id}/cashbacks/companies?skip=&limit=
  */
-export const listCashbackCompanies = (
+export const listCashbackCompanies = async (
   skip = 0,
   limit = 10
-) =>
-  api.get<UserCashbackCompany[]>(`/cashbacks/companies`, {
-    params: { skip, limit },
-  });
+): Promise<{ data: PaginatedCashbackCompanies }> => {
+  // o backend está retornando UserCashbackCompany[]
+  const res = await api.get<UserCashbackCompany[]>(
+    `/cashbacks/companies`,
+    { params: { skip, limit } }
+  );
+  return {
+    data: {
+      items: res.data,
+      total: res.data.length,
+      skip,
+      limit,
+    }
+  };
+};
 
-/**
- * Lista cashbacks do usuário em uma empresa específica (paginado).
- * GET /users/{user_id}/cashbacks/company/{company_id}?skip=&limit=
- */
-export const listCashbacksByCompany = (
+// — cashbacks filtrado por empresa —
+export const listCashbacksByCompany = async (
   companyId: string,
   skip = 0,
   limit = 10
-) =>
-  api.get<CashbackRead[]>(`/cashbacks/company/${companyId}`, {
-    params: { skip, limit },
-  });
+): Promise<{ data: PaginatedCashbacks }> => {
+  const res = await api.get<CashbackRead[]>(
+    `/cashbacks/company/${companyId}`,
+    { params: { skip, limit } }
+  );
+  return {
+    data: {
+      items: res.data,
+      total: res.data.length,
+      skip,
+      limit,
+    },
+  };
+};
