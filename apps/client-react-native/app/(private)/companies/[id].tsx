@@ -130,24 +130,28 @@ export default function CompanyScreen() {
             <View style={styles.whiteBox}>
               <View style={styles.infoMapSection}>
                 <View style={styles.infoColumn}>
-                  {company.logo_url && (() => {
-                    const logoUri = `${imagePublicBaseUrl}${company.logo_url}`;
-                    const isSvg = logoUri.toLowerCase().endsWith('.svg');
+                  {company.logo_url ? (
+                    (() => {
+                      const logoUri = `${imagePublicBaseUrl}${company.logo_url}`;
+                      const isSvg = logoUri.toLowerCase().endsWith('.svg');
+                      return isSvg ? (
+                        <SvgUri uri={logoUri} width={80} height={80} />
+                      ) : (
+                        <Image
+                          source={{ uri: logoUri }}
+                          style={styles.logo}
+                          onError={e => console.warn('Erro ao carregar logo PNG/JPG:', e.nativeEvent.error)}
+                        />
+                      );
+                    })()
+                  ) : (
+                    <View style={styles.companyLogoPlaceholder}>
+                      <Text style={styles.companyLogoText}>
+                        {company.name.charAt(0).toUpperCase()}
+                      </Text>
+                    </View>
+                  )}
 
-                    return isSvg ? (
-                      <SvgUri
-                        uri={logoUri}
-                        width={80}
-                        height={80}
-                      />
-                    ) : (
-                      <Image
-                        source={{ uri: logoUri }}
-                        style={styles.logo}
-                        onError={e => console.warn('Erro ao carregar logo PNG/JPG:', e.nativeEvent.error)}
-                      />
-                    );
-                  })()}
                   <View style={styles.textContainer}>
                     <Text style={styles.name}>{company.name}</Text>
                     {company.description && (
@@ -369,6 +373,21 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     backgroundColor: '#FFA600',
   },
+  companyLogoPlaceholder: {
+  width: 80,           // mesma dimensão do logo
+  height: 80,
+  borderRadius: 40,    // metade do width/height
+  backgroundColor: '#FFA600',
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginBottom: 8,     // ou o espaçamento que preferir
+},
+companyLogoText: {
+  color: '#FFF',
+  fontSize: 32,
+  fontWeight: 'bold',
+},
+
   textContainer: {
     marginLeft: 12,
     flexShrink: 1,

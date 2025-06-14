@@ -53,22 +53,26 @@ def assign_cashback(db: Session, user_id: str, program_id: str, amount_spent: fl
     return cb
 
 
-def get_cashbacks_by_user(db: Session, user_id: str, skip: int = 0, limit: int = 10):
-    # usamos joinedload para já trazer program.company em um único query
-    q = (
+def get_cashbacks_by_user(
+    db: Session, user_id: str, skip: int = 0, limit: int = 10
+) -> list[Cashback]:
+    """
+    Retorna o slice de cashbacks do usuário, já carregando
+    program -> company para que o Pydantic possa ler os @properties.
+    """
+    return (
         db.query(Cashback)
-          .options(joinedload(Cashback.program).joinedload(CashbackProgram.company))
+          .options(
+              # carrega Cashback.program e CashbackProgram.company
+              joinedload(Cashback.program)
+                .joinedload(CashbackProgram.company)
+          )
           .filter(Cashback.user_id == user_id)
           .order_by(Cashback.assigned_at.desc())
           .offset(skip)
           .limit(limit)
+          .all()
     )
-    results = q.all()
-    # preenche os campos extras em cada objeto
-    for cb in results:
-        cb.company_name = cb.program.company.name
-        cb.company_logo_url = cb.program.company.logo_url
-    return results
 
 def get_cashback_summary(db: Session, user_id: str) -> dict:
     q = db.query(Cashback).filter(Cashback.user_id == user_id, Cashback.is_active == True)
@@ -98,9 +102,8 @@ def get_companies_with_cashback(
 
 def get_cashbacks_by_user_and_company(
     db: Session, user_id: str, company_id: str, skip: int = 0, limit: int = 10
-):
-    # 1) Query com joinedload para trazer program → company
-    q = (
+) -> list[Cashback]:
+    return (
         db.query(Cashback)
           .options(
               joinedload(Cashback.program)
@@ -114,13 +117,6 @@ def get_cashbacks_by_user_and_company(
           .order_by(Cashback.assigned_at.desc())
           .offset(skip)
           .limit(limit)
+          .all()
     )
 
-    results = q.all()
-
-    # 2) Preenche os campos extras em cada Cashback
-    for cb in results:
-        cb.company_name = cb.program.company.name
-        cb.company_logo_url = cb.program.company.logo_url
-
-    return results

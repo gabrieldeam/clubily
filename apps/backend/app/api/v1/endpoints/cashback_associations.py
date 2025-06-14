@@ -24,15 +24,24 @@ def create_cashback(
     db: Session = Depends(get_db),
     current_company=Depends(get_current_company),
 ):
+    # 1) valida programa e permissão
     program = db.get(CashbackProgram, payload.program_id)
     if not program or str(program.company_id) != str(current_company.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Programa de cashback não encontrado ou não pertence à sua empresa"
         )
-    
-    return assign_cashback(db, user_id, payload.program_id, payload.amount_spent)
 
+    # 2) tenta atribuir o cashback e capture erros de regra de negócio
+    try:
+        cb = assign_cashback(db, user_id, payload.program_id, payload.amount_spent)
+        return cb
+    except ValueError as e:
+        # retorna 400 com a mensagem exata para o front
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
 
 @router.get(
     "/",

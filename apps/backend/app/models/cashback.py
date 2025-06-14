@@ -21,3 +21,12 @@ class Cashback(Base):
     # Relações
     user = relationship("User", back_populates="cashbacks")
     program = relationship("CashbackProgram", back_populates="cashbacks")
+
+    @property
+    def company_name(self) -> str:
+        # navega program → company
+        return self.program.company.name
+
+    @property
+    def company_logo_url(self) -> str | None:
+        return self.program.company.logo_url

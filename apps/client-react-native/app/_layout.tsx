@@ -13,7 +13,7 @@ function Inner() {
     if (loading) return;
 
     const publicPaths  = ['/'];
-    const privatePaths = ['/home', '/profile', '/companies/[id]', '/companies', '/categories', '/search', '/all-companies'];
+    const privatePaths = ['/home', '/profile', '/companies/[id]', '/companies', '/categories', '/search', '/all-companies', '/cashbacks'];
 
     if (user) {
       // logado mas em rota pública? → manda pra /home

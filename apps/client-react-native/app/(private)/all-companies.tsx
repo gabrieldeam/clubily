@@ -34,9 +34,11 @@ const CompanyListItem = ({
           resizeMode="cover"
         />
       ) : (
-        <Text style={styles.companyLogoFallback}>
-          {item.name?.substring(0, 1).toUpperCase() || 'C'}
-        </Text>
+        <View style={styles.companyLogoPlaceholder}>
+          <Text style={styles.companyLogoText}>
+            {item.name.charAt(0).toUpperCase()}
+          </Text>
+        </View>
       )}
     </View>
 
@@ -237,6 +239,20 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#A0A0A0',
+  },
+    companyLogoPlaceholder: {
+    width: 70,
+    height: 70,
+    borderRadius: 50,
+    marginRight: 12,
+    backgroundColor: '#FFA600',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  companyLogoText: {
+    color: '#FFF',
+    fontSize: 24,
+    fontWeight: 'bold',
   },
   companyInfo: {
     flex: 1,

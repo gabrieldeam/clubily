@@ -138,14 +138,10 @@ export default function CategoryScreen() {
               return (
                 <View key={String(comp.id)} style={styles.companyCard}>
                   {/* Logo da empresa (SVG ou PNG/JPG) */}
-                  {comp.logo_url && (
+                  {comp.logo_url ? (
                     isSvg ? (
                       <View style={styles.companyLogoWrapper}>
-                        <SvgUri
-                          uri={logoUri}
-                          width="100%"
-                          height="100%"
-                        />
+                        <SvgUri uri={logoUri} width="100%" height="100%" />
                       </View>
                     ) : (
                       <Image
@@ -159,7 +155,14 @@ export default function CategoryScreen() {
                         }
                       />
                     )
+                  ) : (
+                    <View style={styles.companyLogoPlaceholder}>
+                      <Text style={styles.companyLogoText}>
+                        {comp.name.charAt(0).toUpperCase()}
+                      </Text>
+                    </View>
                   )}
+
 
                   <View style={styles.companyInfo}>
                     <Text style={styles.companyName}>{comp.name}</Text>
@@ -284,6 +287,21 @@ const styles = StyleSheet.create({
     marginRight: 12,
     backgroundColor: '#FFA600'
   },
+  companyLogoPlaceholder: {
+  width: 70,
+  height: 70,
+  borderRadius: 35,
+  marginRight: 12,
+  backgroundColor: '#FFA600',
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+companyLogoText: {
+  color: '#FFF',
+  fontSize: 24,
+  fontWeight: 'bold',
+},
+
   companyInfo: {
     flex: 1
   },
