@@ -1,13 +1,15 @@
 # backend/app/api/v1/endpoints/cashback_programs.py
 
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Path
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, get_current_company
 from app.schemas.cashback_program import (
     CashbackProgramCreate,
     CashbackProgramRead,
+    PaginatedProgramUsage,
+    UserProgramStats
 )
 from app.services.cashback_program_service import (
     create_program,
@@ -15,7 +17,11 @@ from app.services.cashback_program_service import (
     get_program,
     update_program,
     delete_program,
+    get_program_metrics,
+    get_program_associations_paginated,
+    get_user_program_stats
 )
+from app.models.cashback_program import CashbackProgram
 
 router = APIRouter(tags=["cashback_programs"])
 
@@ -92,3 +98,63 @@ def remove_program(
     if not prog or str(prog.company_id) != str(current_company.id):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Programa não encontrado")
     delete_program(db, prog)
+
+@router.get(
+    "/{program_id}/usage",
+    response_model=PaginatedProgramUsage,
+    summary="Uso de um programa: métricas + associações paginadas",
+)
+def program_usage(
+    program_id: str,
+    skip: int = Query(0, ge=0, description="Quantos registros pular"),
+    limit: int = Query(10, ge=1, le=100, description="Máx. de registros"),
+    db: Session = Depends(get_db),
+    current_company=Depends(get_current_company),
+):
+    # 1) validação de permissão
+    prog = db.get(CashbackProgram, program_id)
+    if not prog or str(prog.company_id) != str(current_company.id):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Programa não encontrado")
+
+    # 2) coleta métricas
+    total_value, usage_count, average_amount = get_program_metrics(db, program_id)
+
+    # 3) coleta associações paginadas
+    total_assocs, associations = get_program_associations_paginated(
+        db, program_id, skip, limit
+    )
+
+    # 4) devolve envelope
+    return PaginatedProgramUsage(
+        total_cashback_value=total_value,
+        usage_count=usage_count,
+        average_amount_spent=average_amount,
+        total_associations=total_assocs,
+        skip=skip,
+        limit=limit,
+        associations=associations,
+    )
+
+@router.get(
+    "/{program_id}/user/{user_id}/stats",
+    response_model=UserProgramStats,
+    summary="Estatísticas de cashback de um usuário: programa específico + empresa inteira",
+)
+def program_user_stats(
+    program_id: str = Path(..., description="UUID do programa de cashback"),
+    user_id: str    = Path(..., description="UUID do usuário alvo"),
+    db: Session     = Depends(get_db),
+    current_company= Depends(get_current_company),
+):
+    # 1) valida que o programa existe e pertence à empresa logada
+    prog = db.get(CashbackProgram, program_id)
+    if not prog or str(prog.company_id) != str(current_company.id):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Programa não encontrado")
+
+    # 2) busca stats
+    return get_user_program_stats(
+        db,
+        company_id=str(current_company.id),
+        program_id=program_id,
+        user_id=user_id
+    )

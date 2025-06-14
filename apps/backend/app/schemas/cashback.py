@@ -3,6 +3,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
 from app.schemas.cashback_program import CashbackProgramRead
+from app.schemas.cashback_program import CashbackProgramRead
 
 class CashbackBase(BaseModel):
     amount_spent: float
@@ -20,6 +21,8 @@ class CashbackRead(CashbackBase):
     is_active: bool
     created_at: datetime
     program: CashbackProgramRead
+    company_name: str
+    company_logo_url: Optional[str]
 
     model_config = ConfigDict(from_attributes=True)
 

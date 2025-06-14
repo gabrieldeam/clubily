@@ -8,6 +8,8 @@ import { getCashbackPrograms } from '@/services/cashbackProgramService';
 import { assignCashback } from '@/services/cashbackService';
 import type { LeadCreate, UserRead } from '@/types/user';
 import type { CashbackProgramRead } from '@/types/cashbackProgram';
+import { getUserProgramStats } from '@/services/cashbackProgramService';
+import type { UserProgramStats } from '@/types/cashbackProgram';
 import FloatingLabelInput from '@/components/FloatingLabelInput/FloatingLabelInput';
 import Notification from '@/components/Notification/Notification';
 import Button from '@/components/Button/Button';
@@ -37,6 +39,9 @@ export default function ClientModal({ onClose }: ClientModalProps) {
   const [selectedProg, setSelectedProg] = useState<string>('');
   const [amount, setAmount] = useState('');
   const [assocNotification, setAssocNotification] = useState<{ type: string; message: string } | null>(null);
+
+  const [userStats, setUserStats] = useState<UserProgramStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
 
   const handlePre = async (e: FormEvent) => {
     e.preventDefault();
@@ -104,6 +109,18 @@ export default function ClientModal({ onClose }: ClientModalProps) {
     }
   };
 
+  useEffect(() => {
+    if (!client?.id || !selectedProg) {
+      setUserStats(null);
+      return;
+    }
+    setStatsLoading(true);
+    getUserProgramStats(selectedProg, client.id)
+      .then(res => setUserStats(res.data))
+      .catch(console.error)
+      .finally(() => setStatsLoading(false));
+  }, [selectedProg, client]);
+
   // Render
   if (!client) {
     return (
@@ -151,6 +168,16 @@ export default function ClientModal({ onClose }: ClientModalProps) {
         <p>Carregando programas...</p>
       ) : (
         <>
+          {statsLoading ? (
+            <p>Carregando estatísticas...</p>
+          ) : userStats ? (
+            <div className={styles.stats}>
+              <h5>Todos os programas</h5>              
+              <p><strong>Usos válidos:</strong> {userStats.company_valid_count}</p>
+              <p><strong>Total cashback:</strong> R$ {userStats.company_total_cashback.toFixed(2)}</p>
+            </div>
+          ) : null}
+
           <label className={styles.label}>Programa</label>
           <select className={styles.select} value={selectedProg} onChange={e => setSelectedProg(e.target.value)}>
             <option value="">-- escolha --</option>
@@ -168,6 +195,15 @@ export default function ClientModal({ onClose }: ClientModalProps) {
             value={amount}
             onChange={e => setAmount(e.target.value)}
           />
+          {statsLoading ? (
+            <p>Carregando estatísticas...</p>
+          ) : userStats ? (
+            <div className={styles.stats}>              
+              <h5>Para esse programa</h5>
+              <p><strong>Usos válidos:</strong> {userStats.program_valid_count}</p>
+              <p><strong>Total cashback:</strong> R$ {userStats.program_total_cashback.toFixed(2)}</p>
+            </div>
+          ) : null}
           <div className={styles.actions}>
             <Button onClick={handleAssociate}>Associar</Button>
             <Button bgColor="#AAA" onClick={onClose}>

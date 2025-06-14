@@ -318,7 +318,7 @@ export default function ProfilePage() {
       </div>
 
       {/* ---------- CÓDIGO DE AFILIADO ---------- */}
- <div className={`${styles.gridSubItemReferral} ${styles.lastGridSubItem}`}>
+      <div className={`${styles.gridSubItemReferral} ${styles.lastGridSubItem}`}>
         <h4 className={styles.title}>Código de Afiliado</h4>
 
         <div className={styles.affiliateWrapper}>

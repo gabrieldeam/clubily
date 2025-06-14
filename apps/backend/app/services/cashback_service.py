@@ -1,6 +1,6 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from datetime import datetime, timedelta
-from typing import Optional, List
+from typing import List
 from app.models.cashback import Cashback
 from app.models.cashback_program import CashbackProgram
 from app.models.company import Company
@@ -9,8 +9,34 @@ from sqlalchemy import func
 def assign_cashback(db: Session, user_id: str, program_id: str, amount_spent: float) -> Cashback:
     program = db.get(CashbackProgram, program_id)
     if not program or not program.is_active:
-        raise ValueError("Programa de cashback inválido ou inativo")
+        raise ValueError("Programa inválido ou inativo")
+
+    # calcula o valor a atribuir
     value = (amount_spent * float(program.percent)) / 100.0
+
+    # 1) limite de contagem
+    if program.max_per_user is not None:
+        used_count = (
+            db.query(Cashback)
+              .filter(Cashback.program_id == program_id, Cashback.user_id == user_id)
+              .count()
+        )
+        if used_count >= program.max_per_user:
+            raise ValueError(f"Você já atingiu o número máximo de usos ({program.max_per_user}) deste programa")
+
+    # 2) limite de valor mínimo
+    if program.min_cashback_per_user is not None:
+        total_so_far = float(
+            db.query(func.coalesce(func.sum(Cashback.cashback_value), 0))
+              .filter(Cashback.program_id == program_id, Cashback.user_id == user_id)
+              .scalar()
+        )
+        if (total_so_far + value) < float(program.min_cashback_per_user):
+            raise ValueError(
+                f"Este uso adicionaria {value:.2f} de cashback, mas o mínimo total exigido é {program.min_cashback_per_user:.2f}"
+            )
+
+    # 3) tudo ok → cria
     expires = datetime.utcnow() + timedelta(days=program.validity_days)
     cb = Cashback(
         user_id=user_id,
@@ -27,17 +53,22 @@ def assign_cashback(db: Session, user_id: str, program_id: str, amount_spent: fl
     return cb
 
 
-def get_cashbacks_by_user(
-    db: Session, user_id: str, skip: int = 0, limit: int = 10
-) -> List[Cashback]:
-    return (
+def get_cashbacks_by_user(db: Session, user_id: str, skip: int = 0, limit: int = 10):
+    # usamos joinedload para já trazer program.company em um único query
+    q = (
         db.query(Cashback)
+          .options(joinedload(Cashback.program).joinedload(CashbackProgram.company))
           .filter(Cashback.user_id == user_id)
           .order_by(Cashback.assigned_at.desc())
           .offset(skip)
           .limit(limit)
-          .all()
     )
+    results = q.all()
+    # preenche os campos extras em cada objeto
+    for cb in results:
+        cb.company_name = cb.program.company.name
+        cb.company_logo_url = cb.program.company.logo_url
+    return results
 
 def get_cashback_summary(db: Session, user_id: str) -> dict:
     q = db.query(Cashback).filter(Cashback.user_id == user_id, Cashback.is_active == True)
@@ -67,9 +98,14 @@ def get_companies_with_cashback(
 
 def get_cashbacks_by_user_and_company(
     db: Session, user_id: str, company_id: str, skip: int = 0, limit: int = 10
-) -> List[Cashback]:
-    return (
+):
+    # 1) Query com joinedload para trazer program → company
+    q = (
         db.query(Cashback)
+          .options(
+              joinedload(Cashback.program)
+                .joinedload(CashbackProgram.company)
+          )
           .join(CashbackProgram, Cashback.program_id == CashbackProgram.id)
           .filter(
               Cashback.user_id == user_id,
@@ -78,5 +114,13 @@ def get_cashbacks_by_user_and_company(
           .order_by(Cashback.assigned_at.desc())
           .offset(skip)
           .limit(limit)
-          .all()
     )
+
+    results = q.all()
+
+    # 2) Preenche os campos extras em cada Cashback
+    for cb in results:
+        cb.company_name = cb.program.company.name
+        cb.company_logo_url = cb.program.company.logo_url
+
+    return results

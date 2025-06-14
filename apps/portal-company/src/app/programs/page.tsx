@@ -2,6 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import Header from '@/components/Header/Header';
 import Modal from '@/components/Modal/Modal';
 import {
@@ -145,6 +146,7 @@ export default function ProgramsPage() {
                     {p.is_visible ? 'Sim' : 'Não'}
                   </div>
                   <div className={styles.colActions}>
+                    <Link href={`/programs/cashback/${p.id}`} className={styles.view}>🔍</Link>
                     <button className={styles.edit} onClick={() => openEdit(p)}>✏️</button>
                     <button className={styles.delete} onClick={() => handleDelete(p.id)}>🗑️</button>
                   </div>
@@ -167,6 +169,7 @@ export default function ProgramsPage() {
                   <p><strong>Visível:</strong> {p.is_visible ? 'Sim' : 'Não'}</p>
                 </div>
                 <div className={styles.cardActions}>
+                  <Link href={`/programs/cashback/${p.id}`} className={styles.view}>🔍 Ver</Link>
                   <button className={styles.edit}>✏️ Editar</button>
                   <button className={styles.delete}>🗑️ Excluir</button>
                 </div>
