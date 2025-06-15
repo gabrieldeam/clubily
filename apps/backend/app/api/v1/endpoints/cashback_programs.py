@@ -19,7 +19,8 @@ from app.services.cashback_program_service import (
     delete_program,
     get_program_metrics,
     get_program_associations_paginated,
-    get_user_program_stats
+    get_user_program_stats,
+    get_public_programs_by_company,
 )
 from app.models.cashback_program import CashbackProgram
 
@@ -158,3 +159,19 @@ def program_user_stats(
         program_id=program_id,
         user_id=user_id
     )
+
+@router.get(
+    "/{company_id}/public",
+    response_model=List[CashbackProgramRead],
+    status_code=status.HTTP_200_OK,
+    summary="Lista os programas públicos e ativos de qualquer empresa",
+)
+def read_public_programs_by_company(
+    company_id: str = Path(..., description="UUID da empresa"),
+    db: Session    = Depends(get_db),
+):
+    """
+    Retorna apenas os programas de cashback com is_active=True e is_visible=True
+    pertencentes à empresa informada na URL.
+    """
+    return get_public_programs_by_company(db, company_id)
