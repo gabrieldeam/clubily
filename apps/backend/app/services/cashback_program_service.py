@@ -129,3 +129,18 @@ def get_user_program_stats(
         company_total_cashback=comp_sum,
         generated_at=now,
     )
+
+def get_public_programs_by_company(db: Session, company_id: str) -> list[CashbackProgram]:
+    """
+    Retorna somente os programas de cashback que estão ativos e visíveis
+    para a empresa informada.
+    """
+    return (
+        db.query(CashbackProgram)
+          .filter(
+              CashbackProgram.company_id == company_id,
+              CashbackProgram.is_active   == True,
+              CashbackProgram.is_visible  == True,
+          )
+          .all()
+    )

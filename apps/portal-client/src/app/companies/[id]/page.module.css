@@ -24,7 +24,8 @@
   color: white;
 }
 
-.sectionTitle { font-size: 18px; font-weight: 600; margin-bottom: 8px; color: #000; margin-top: 20px; }
+.sectionTitle { font-size: 18px; font-weight: 600; margin-bottom: 8px; color: #000; }
+.sectionTitleLocal { font-size: 18px; font-weight: 600; margin-bottom: 8px; color: #000; margin-top: 20px;}
 
 /* LOGO + INFOS */
 .infoMapSection { display: flex; align-items: center; justify-content: space-between; }
@@ -90,4 +91,63 @@
   font-size: 36px;
   color: #FFF;
   font-weight: 600;
+}
+
+/* grid responsivo de programas */
+.programsGrid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  margin-top: 12px;
+}
+
+.programCard {
+  background: #F9F9F9;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.programHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.programName {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.programPercent {
+  background: #FFA600;
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-weight: 700;
+}
+
+.programDesc {
+  font-size: 0.9rem;
+  color: #333;
+  margin: 0;
+  flex: 1;
+}
+
+.programMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: #555;
+}
+
+@media (min-width: 768px) {
+  .programMeta {
+    flex-direction: row;
+    justify-content: space-between;
+  }
 }
