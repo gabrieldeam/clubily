@@ -11,24 +11,28 @@
   justify-content: center;
   align-items: start;
   padding: 2rem;
-  background: #f5f7fa;
+  background: #f0f2f5;
 }
+.formSection,
 .buySection,
 .statusSection {
+  width: 360px;
   background: #fff;
   border-radius: 1rem;
   padding: 2rem;
-  width: 360px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
   text-align: center;
+  margin-top: 1rem;
 }
+.formSection h1,
 .buySection h1,
 .statusSection h1 {
   margin-bottom: 0.5rem;
 }
+.formSection p,
 .buySection p {
   margin-bottom: 1rem;
-  color: #555;
+  color: #666;
 }
 .infoRow {
   display: flex;
@@ -37,9 +41,6 @@
 }
 .infoRow span {
   color: #333;
-}
-.infoRow strong {
-  color: #000;
 }
 .infoRow .paid {
   color: green;
@@ -57,10 +58,9 @@
 .qr {
   width: 200px;
   height: 200px;
-  object-fit: contain;
 }
 .countdown {
   margin-top: 1rem;
   font-size: 0.9rem;
-  color: #666;
+  color: #555;
 }

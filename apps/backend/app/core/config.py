@@ -56,5 +56,6 @@ class Settings(BaseSettings):
     ASAAS_API_KEY: str
     ASAAS_BASE_URL: str
     ASAAS_WEBHOOK_KEY: str
+    ASAAS_WEBHOOK_SECRET: str
 
 settings = Settings()
