@@ -68,3 +68,10 @@ class Company(Base):
     
     # indicações resgatadas por esta empresa
     referrals = relationship("Referral", back_populates="company", cascade="all, delete-orphan")
+
+    payments = relationship(
+        "CompanyPayment",
+        back_populates="company",
+        cascade="all, delete-orphan",
+        lazy="joined",
+    )

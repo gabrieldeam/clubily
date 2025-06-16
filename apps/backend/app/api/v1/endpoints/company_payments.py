@@ -8,7 +8,7 @@ from app.schemas.company_payment import (
     PaginatedPayments, PaymentStatus
 )
 from app.services.company_payment_service import (
-    create_charge, list_payments, get_balance
+    create_charge, list_payments, get_balance, get_charge
 )
 
 router = APIRouter(tags=["company_payments"])
@@ -58,3 +58,26 @@ def read_history(
         db, str(current_company.id), skip, limit, status, date_from, date_to
     )
     return PaginatedPayments(total=total, skip=skip, limit=limit, items=items)
+
+
+@router.get(
+    "/{payment_id}",
+    response_model=CompanyPaymentRead,
+    summary="Recupera o status de uma cobrança PIX pelo ID",
+)
+def read_charge(
+    payment_id: str,
+    db: Session = Depends(get_db),
+    current_company=Depends(get_current_company),
+):
+    """
+    Retorna a cobrança criada pela empresa autenticada
+    para que o front possa verificar se já saiu CONFIRMED, RECEIVED, etc.
+    """
+    charge = get_charge(db, str(current_company.id), payment_id)
+    if not charge:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Cobrança não encontrada"
+        )
+    return charge

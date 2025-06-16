@@ -87,3 +87,22 @@ def get_balance(db: Session, company_id: str) -> float:
           .scalar()
     ) or 0.0
     return float(paid)
+
+
+def get_charge(
+    db: Session,
+    company_id: str,
+    payment_id: str
+) -> CompanyPayment | None:
+    """
+    Retorna a cobrança (CompanyPayment) pelo seu ID, 
+    garantindo que ela pertença à company_id.
+    """
+    return (
+        db.query(CompanyPayment)
+          .filter(
+              CompanyPayment.id       == payment_id,
+              CompanyPayment.company_id == company_id
+          )
+          .first()
+    )
