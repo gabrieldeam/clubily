@@ -53,4 +53,8 @@ class Settings(BaseSettings):
                 f"@{self.POSTGRES_SERVER}/{self.POSTGRES_DB}"
             )
 
+    ASAAS_API_KEY: str
+    ASAAS_BASE_URL: str
+    ASAAS_WEBHOOK_KEY: str
+
 settings = Settings()
