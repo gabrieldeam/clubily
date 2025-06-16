@@ -28,6 +28,7 @@ from app.models.address import Address
 from app.models.referral import Referral
 from app.models.cashback import Cashback
 from app.models.cashback_program import CashbackProgram
+from app.models.company_payment import CompanyPayment, PaymentStatus
 
 
 # ...importe aqui outros models quando criar novos
