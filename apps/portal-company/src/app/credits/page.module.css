@@ -1,0 +1,66 @@
+/* src/app/credits/page.module.css */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+.main {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: start;
+  padding: 2rem;
+  background: #f5f7fa;
+}
+.buySection,
+.statusSection {
+  background: #fff;
+  border-radius: 1rem;
+  padding: 2rem;
+  width: 360px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  text-align: center;
+}
+.buySection h1,
+.statusSection h1 {
+  margin-bottom: 0.5rem;
+}
+.buySection p {
+  margin-bottom: 1rem;
+  color: #555;
+}
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  margin: 0.5rem 0;
+}
+.infoRow span {
+  color: #333;
+}
+.infoRow strong {
+  color: #000;
+}
+.infoRow .paid {
+  color: green;
+}
+.infoRow .pending {
+  color: orange;
+}
+.infoRow .failed,
+.infoRow .cancelled {
+  color: red;
+}
+.qrContainer {
+  margin: 1rem 0;
+}
+.qr {
+  width: 200px;
+  height: 200px;
+  object-fit: contain;
+}
+.countdown {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: #666;
+}
