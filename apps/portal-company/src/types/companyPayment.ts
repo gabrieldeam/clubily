@@ -39,3 +39,23 @@ export interface PaginatedPayments {
   limit: number;
   total: number;
 }
+
+
+export interface AsaasCustomerCreate {
+  /** Nome da empresa */
+  name: string;
+  /** E-mail para cobrança */
+  email: string;
+  /** CPF ou CNPJ */
+  cpfCnpj: string;
+  /** Telefone (opcional) */
+  phone?: string;
+}
+
+/**
+ * Resposta da criação do customer Asaas
+ */
+export interface CompanyAsaasCustomerRead {
+  /** ID do customer criado no Asaas */
+  customer_id: string;
+}

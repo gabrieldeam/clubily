@@ -4,6 +4,8 @@ import type {
   CompanyPaymentCreate,
   CompanyPaymentRead,
   PaginatedPayments,
+  AsaasCustomerCreate,
+  CompanyAsaasCustomerRead,
 } from '@/types/companyPayment';
 
 /**
@@ -35,3 +37,10 @@ export const listPayments = (skip = 0, limit = 10) =>
  */
 export const getBalance = () =>
   api.get<number>('/credits/balance');
+
+/**
+ * Cria o customer Asaas para a empresa logada
+ * POST /companies/me/asaas-customer
+ */
+export const makeAsaasCustomer = (payload: AsaasCustomerCreate) =>
+  api.post<CompanyAsaasCustomerRead>('/companies/me/asaas-customer', payload);

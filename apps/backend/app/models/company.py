@@ -32,7 +32,7 @@ class Company(Base):
     city = Column(String(100), nullable=False)
     state = Column(String(100), nullable=False)
     postal_code = Column(String(20), nullable=False)
-
+    customer_id = Column(String(255), nullable=True, unique=True, index=True)
     # Novo: URL do site e flag “venda apenas online”
     online_url = Column(String(255), nullable=True)     # URL do site (opcional)
     only_online = Column(Boolean, default=False, nullable=False)
