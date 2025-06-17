@@ -18,6 +18,8 @@ class CompanyPaymentRead(BaseModel):
     amount: float
     asaas_id: str
     pix_qr_code: Optional[str]
+    pix_copy_paste_code: Optional[str]
+    pix_expires_at: Optional[datetime]
     status: PaymentStatus
     created_at: datetime
     updated_at: datetime

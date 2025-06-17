@@ -1,66 +1,149 @@
 /* src/app/credits/page.module.css */
 
 .page {
+  min-height: 100vh;
+  height: 100%;
+}
+
+.main {
+  margin-top: 10px;  
+  height: 77%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card {
+  background: #ffffff;
+  border-radius: 1rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  width: 100%;
+  max-width: 400px;
+  padding: 20px;
+}
+
+.title {
+  margin-bottom: 0.5rem;
+  font-size: 1.5rem;
+  color: #333333;
+  text-align: center;
+}
+
+.subtext {
+  margin-bottom: 1.5rem;
+  color: #666666;
+  text-align: center;
+}
+
+.form {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  gap: 1rem;
 }
-.main {
-  flex: 1;
+
+.formGroup {
+  width: 100%;
+}
+
+.success {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.checkIcon {
+  font-size: 3rem;
+}
+
+.goWalletBtn {
+  display: inline-block;
+  margin-top: 1rem;
+  padding: 0.75rem 1.5rem;
+  background-color: #28a745;
+  color: #ffffff;
+  border-radius: 0.5rem;
+  text-decoration: none;
+}
+
+.goWalletBtn:hover {
+  opacity: 0.9;
+}
+
+.status {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  row-gap: 0.75rem;
+  column-gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.infoGrid strong {
+  color: #555555;
+}
+
+.infoGrid div:nth-child(4n) {
+  text-align: right;
+}
+
+.paid    { color: #28a745; }
+.pending { color: #ffc107; }
+.failed, .cancelled { color: #dc3545; }
+
+.qrContainer {
   display: flex;
   justify-content: center;
-  align-items: start;
-  padding: 2rem;
-  background: #f0f2f5;
-}
-.formSection,
-.buySection,
-.statusSection {
-  width: 360px;
-  background: #fff;
-  border-radius: 1rem;
-  padding: 2rem;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-  text-align: center;
-  margin-top: 1rem;
-}
-.formSection h1,
-.buySection h1,
-.statusSection h1 {
-  margin-bottom: 0.5rem;
-}
-.formSection p,
-.buySection p {
-  margin-bottom: 1rem;
-  color: #666;
-}
-.infoRow {
-  display: flex;
-  justify-content: space-between;
-  margin: 0.5rem 0;
-}
-.infoRow span {
-  color: #333;
-}
-.infoRow .paid {
-  color: green;
-}
-.infoRow .pending {
-  color: orange;
-}
-.infoRow .failed,
-.infoRow .cancelled {
-  color: red;
-}
-.qrContainer {
   margin: 1rem 0;
 }
+
 .qr {
   width: 200px;
   height: 200px;
+  object-fit: contain;
+  border: 1px solid #e0e0e0;
+  border-radius: 0.5rem;
 }
-.countdown {
-  margin-top: 1rem;
+
+.copyContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.copyRow {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.copyInput {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid #cccccc;
+  border-radius: 0.5rem;
   font-size: 0.9rem;
-  color: #555;
+}
+
+.copyBtn {
+  padding: 0.5rem 1rem;
+  background: #ffa600;
+  color: #ffffff;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.copyBtn:hover {
+  opacity: 0.9;
+}
+
+.meta {
+  font-size: 0.85rem;
+  color: #666666;
+  text-align: center;
 }

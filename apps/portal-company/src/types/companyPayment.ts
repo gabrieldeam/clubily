@@ -24,7 +24,9 @@ export interface CompanyPaymentRead {
   id: string;
   amount: number;
   asaas_id: string;
-  pix_qr_code?: string;
+  pix_qr_code: string;
+  pix_copy_paste_code: string;
+  pix_expires_at: string;
   status: PaymentStatus;
   created_at: string; // ISO date
   updated_at: string; // ISO date

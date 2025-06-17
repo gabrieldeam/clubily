@@ -1,5 +1,5 @@
-import hmac, hashlib, json
-from fastapi import APIRouter, Request, Depends, Header, HTTPException
+
+from fastapi import APIRouter, Request, Depends, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
@@ -8,30 +8,20 @@ from app.core.config import settings
 
 router = APIRouter(tags=["webhooks"])
 
-@router.post("/asaas", status_code=204)
+
+@router.post("/asaas", status_code=status.HTTP_204_NO_CONTENT)
 async def asaas_webhook(
     request: Request,
-    x_hook_signature: str = Header(..., alias="X-Hook-Signature"),
     db: Session = Depends(get_db),
 ):
-    body_bytes = await request.body()
+    """
+    Recebe qualquer webhook do Asaas (sem validação de HMAC) e só
+    dispara nosso processamento de mudança de status.
+    """
+    payload = await request.json()
 
-    # valida assinatura
-    expected = hmac.new(
-        settings.ASAAS_WEBHOOK_SECRET.encode(),
-        body_bytes,
-        hashlib.sha256
-    ).hexdigest()
-
-    if not hmac.compare_digest(expected, x_hook_signature):
-        raise HTTPException(status_code=403, detail="Invalid signature")
-
-    payload = json.loads(body_bytes)
-
-    # processa eventos relevantes
-    if payload.get("event") == "PAYMENT_CREATED":
-        pass  # opcional — não precisamos fazer nada agora
-    elif payload.get("event") == "PAYMENT_CHANGE_STATUS":
+    event = payload.get("event", "").upper()
+    if event == "PAYMENT_CHANGE_STATUS" or event == "payment.changeStatus":
         asaas_id = payload["payment"]["id"]
         refresh_payment_status(db, asaas_id)
 

@@ -89,7 +89,7 @@ export default function ProgramDetailPage() {
 
   return (
     <div className={styles.page}>
-      <Header onSearch={() => {}} />
+      <Header />
       <main className={styles.main}>
         <section className={styles.header}>
           <h1>{program.name}</h1>
