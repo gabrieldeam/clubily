@@ -1,0 +1,147 @@
+/* src/app/wallet/page.module.css */
+.headerRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.balanceDiv {
+  display: flex;
+  width: 100%;
+  gap: 10px;
+}
+
+.paymentsSection {
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 10px;
+  width: 100%;
+}
+
+.balanceSection {
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+  margin-top: 10px;
+  width: 100%;
+}
+
+.balanceValue {
+  font-size: 30px;
+  font-weight: 800;
+}
+
+/* tabela responsiva */
+.tableWrapper {
+  overflow-x: auto;
+}
+
+/* grid header e linhas */
+.rowHeader,
+.row {
+  display: grid;
+  grid-template-columns: 2fr 2fr 2fr 2fr;
+  align-items: center;
+  padding: 12px 16px;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.rowHeader {
+  background-color: #f3f4f6;
+  border-radius: 8px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.row {
+  background-color: #fff;
+  border-radius: 8px;
+  transition: background-color 0.2s, transform 0.2s;
+  cursor: default;
+}
+
+.row:nth-child(even) {
+  background-color: #fafafa;
+}
+
+.row:hover {
+  background-color: #f0f0f0;
+  transform: translateY(-2px);
+}
+
+/* células */
+.cellName,
+.cellEmail,
+.cellPhone {
+  padding: 0; /* já temos padding na row */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* máscara de status */
+.pending { color: orange; }
+.paid    { color: green; }
+.failed,
+.cancelled { color: red; }
+
+/* paginação igual clients */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* textos de loading / vazio */
+.loading, .emptyText {
+  background-color: #F0F0F0;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.button {
+  font-size: 12px;
+  padding: 5px 10px;
+  background-color: #F0F0F0;
+  border: 1px solid #D9D9D9;
+  border-radius: 50px;
+  white-space: nowrap;
+}
+
+.button:hover {
+  background-color: #dfdfdf;
+}
+
+@media (max-width: 600px) { 
+.balanceSection {
+  flex-direction: column;
+  text-align: center;
+}
+}
