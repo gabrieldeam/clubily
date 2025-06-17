@@ -85,7 +85,7 @@ export default function ClientsPage() {
 
   return (
     <div className={styles.container}>
-      <Header onSearch={() => {}} />
+      <Header />
 
       <main className={styles.main}>
         <div className={styles.headerRow}>

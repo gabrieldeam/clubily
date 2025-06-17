@@ -1,76 +1,77 @@
+/* src/components/Header/Header.module.css */
+
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 20px 50px;
   background-color: #FFA600;
-  border-radius: 0 0 20px 20px;  
+  border-radius: 0 0 20px 20px;
 }
 
 .logo {
   flex: 0 0 auto;
 }
 
-.searchSection {
-  display: flex;
-  align-items: center;
-}
-
-.searchWrapper {
-  position: relative;    
-  display: flex;
-  align-items: center;
-  margin: 0 1rem;
-}
-
-.searchIcon {
-  position: absolute;
-  left: 16px;
-  pointer-events: none;
-}
-
-.searchInput {
-  width: 400px;
-  padding: 12px 40px 12px 40px; 
-  background-color: white;
-  border: 1px solid transparent;
-  border-radius: 50px;
-  font-size: 1rem;
-  outline: none;
-  transition: border-color 0.2s;
-}
-
-.clearButton {
-  position: absolute;
-  right: 16px;
-  background: transparent;
-  border: none;
-  font-size: 0.7rem;
-  cursor: pointer;
-  color: black;
-  background-color: #F0F0F0;
-  border: 1px solid #D9D9D9;
-  padding: 5px;
-  border-radius: 20px;
-}
-
-.clearButton:hover {  
-  border: 1px solid #b4b3b3;
-}
-
-.accountButton {
+/* Nova seção de créditos */
+.creditSection {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: transparent;
+  background: #FF4C00;
   border: none;
   font-size: 1rem;
   color: white;
   cursor: pointer;
   padding: 9px 20px;
-  transition: background-color 0.2s;
   border-radius: 50px;
-  background-color: black;
+  transition: background-color 0.2s;
+}
+
+.creditText {
+  color: white;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.creditLoading {
+  width: 1rem;
+  height: 1rem;
+  background: rgba(255,255,255,0.7);
+  border-radius: 50%;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%,100% { opacity: 0.7 }
+  50% { opacity: 1 }
+}
+
+.buyLink {
+  color: white;
+  font-size: 0.9rem;
+  cursor: pointer;
+  color: #FFA600;
+  font-weight: 800;
+}
+
+.buyLink:hover {
+  opacity: 0.8;
+}
+
+/* Mantém o botão Minha Conta como antes */
+.accountButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: black;
+  border: none;
+  font-size: 1rem;
+  color: white;
+  cursor: pointer;
+  padding: 9px 20px;
+  border-radius: 50px;
+  transition: background-color 0.2s;
 }
 
 .accountButton:hover {
@@ -81,12 +82,18 @@
   background-color: #FF4C00;
 }
 
+.creditProfile {
+  display: flex;
+  gap: 20PX;
+}
+/* Responsivo */
 @media (min-width: 768px) and (max-width: 1024px) {
-
-  .searchInput {
-    width: 200px;
+  .creditText {
+    font-size: 0.9rem;
   }
-
+  .buyLink {
+    font-size: 0.8rem;
+  }
   .accountButton span {
     display: none;
   }
@@ -99,10 +106,12 @@
   .logo {
     width: 100px;
   }
-  .searchInput {
-    width: 150px;
+  .creditText {
+    font-size: 0.8rem;
   }
-
+  .buyLink {
+    font-size: 0.8rem;
+  }
   .accountButton span {
     display: none;
   }

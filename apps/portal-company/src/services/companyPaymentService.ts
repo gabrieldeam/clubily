@@ -27,7 +27,7 @@ export const getCharge = (paymentId: string) =>
  * GET /credits?skip=&limit=
  */
 export const listPayments = (skip = 0, limit = 10) =>
-  api.get<PaginatedPayments>('/credits', {
+  api.get<PaginatedPayments>('/credits/history', {
     params: { skip, limit },
   });
 
