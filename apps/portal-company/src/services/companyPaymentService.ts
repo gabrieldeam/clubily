@@ -32,13 +32,6 @@ export const listPayments = (skip = 0, limit = 10) =>
   });
 
 /**
- * Consulta saldo disponível (se existir)
- * GET /credits/balance
- */
-export const getBalance = () =>
-  api.get<number>('/credits/balance');
-
-/**
  * Cria o customer Asaas para a empresa logada
  * POST /companies/me/asaas-customer
  */

@@ -5,16 +5,25 @@ from app.models.cashback import Cashback
 from app.models.cashback_program import CashbackProgram
 from app.models.company import Company
 from sqlalchemy import func
+from decimal import Decimal
+from app.services.wallet_service import get_wallet_balance, debit_wallet
 
 def assign_cashback(db: Session, user_id: str, program_id: str, amount_spent: float) -> Cashback:
     program = db.get(CashbackProgram, program_id)
     if not program or not program.is_active:
         raise ValueError("Programa inválido ou inativo")
 
-    # calcula o valor a atribuir
-    value = (amount_spent * float(program.percent)) / 100.0
+    # 0) cobra a taxa de R$0,10 por associação
+    fee = Decimal("0.10")
+    balance = get_wallet_balance(db, user_id)
+    if balance < fee:
+        raise ValueError("Saldo insuficiente para associação de cashback (custa R$0,10)")
+    debit_wallet(db, user_id, fee)
 
-    # 1) limite de contagem
+    # 1) calcula o valor a atribuir
+    value = (Decimal(amount_spent) * Decimal(program.percent) / Decimal("100.0")).quantize(Decimal("0.01"))
+
+    # 2) limite de contagem
     if program.max_per_user is not None:
         used_count = (
             db.query(Cashback)
@@ -24,24 +33,22 @@ def assign_cashback(db: Session, user_id: str, program_id: str, amount_spent: fl
         if used_count >= program.max_per_user:
             raise ValueError(f"Você já atingiu o número máximo de usos ({program.max_per_user}) deste programa")
 
-    # 2) limite de valor mínimo
+    # 3) limite de valor mínimo
     if program.min_cashback_per_user is not None:
-        total_so_far = float(
-            db.query(func.coalesce(func.sum(Cashback.cashback_value), 0))
-              .filter(Cashback.program_id == program_id, Cashback.user_id == user_id)
-              .scalar()
-        )
-        if (total_so_far + value) < float(program.min_cashback_per_user):
+        total_so_far = db.query(func.coalesce(func.sum(Cashback.cashback_value), 0)) \
+                         .filter(Cashback.program_id == program_id, Cashback.user_id == user_id) \
+                         .scalar()
+        if (Decimal(total_so_far) + value) < Decimal(program.min_cashback_per_user):
             raise ValueError(
                 f"Este uso adicionaria {value:.2f} de cashback, mas o mínimo total exigido é {program.min_cashback_per_user:.2f}"
             )
 
-    # 3) tudo ok → cria
+    # 4) tudo ok → cria o Cashback
     expires = datetime.utcnow() + timedelta(days=program.validity_days)
     cb = Cashback(
         user_id=user_id,
         program_id=program_id,
-        amount_spent=amount_spent,
+        amount_spent=Decimal(amount_spent).quantize(Decimal("0.01")),
         cashback_value=value,
         assigned_at=datetime.utcnow(),
         expires_at=expires,

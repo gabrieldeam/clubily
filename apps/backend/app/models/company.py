@@ -75,3 +75,5 @@ class Company(Base):
         cascade="all, delete-orphan",
         lazy="joined",
     )
+
+    wallet   = relationship("Wallet", uselist=False, back_populates="company", cascade="all, delete-orphan")

@@ -5,6 +5,8 @@ from app.models.company import Company
 from app.core.config import settings
 from datetime import datetime
 from sqlalchemy import func
+from app.services.wallet_service import credit_wallet
+from decimal import Decimal
 
 logger = logging.getLogger(__name__)
 
@@ -101,8 +103,33 @@ def create_charge(db: Session, company_id: str, amount: float) -> CompanyPayment
     db.commit()
     return payment
 
-def refresh_payment_status(db: Session, asaas_id: str) -> CompanyPayment:
-    # consulta Asaas
+STATUS_MAP = {
+    "PENDING":   PaymentStatus.PENDING,
+    "PAYMENT_PENDING": PaymentStatus.PENDING,
+    "OVERDUE":   PaymentStatus.PENDING,   # ou CANCELED, dependendo do seu negócio
+    "PAYMENT_OVERDUE": PaymentStatus.PENDING,
+
+    # quando o Asaas considerar “valor creditado” para você
+    "RECEIVED":  PaymentStatus.PAID,
+    "PAYMENT_RECEIVED": PaymentStatus.PAID,
+    "CONFIRMED": PaymentStatus.PAID,
+    "PAYMENT_CONFIRMED": PaymentStatus.PAID,
+
+    # negativos, cancelamentos, estornos…
+    "DELETED":   PaymentStatus.CANCELLED,
+    "PAYMENT_DELETED": PaymentStatus.CANCELLED,
+    "REFUNDED":  PaymentStatus.CANCELLED,
+    "PAYMENT_REFUNDED": PaymentStatus.CANCELLED,
+    "REJECTED":  PaymentStatus.FAILED,
+    # adicione o que for necessário…
+}
+
+def refresh_payment_status(db: Session, asaas_id: str) -> CompanyPayment | None:
+    """
+    Reconsulta o status da cobrança no Asaas, atualiza o registro local
+    e, se o status final for PAID, credita o valor na carteira da empresa.
+    """
+    # 1) busca status atual no Asaas
     resp = requests.get(
         f"{settings.ASAAS_BASE_URL}/payments/{asaas_id}",
         headers=HEADERS_GET,
@@ -110,11 +137,28 @@ def refresh_payment_status(db: Session, asaas_id: str) -> CompanyPayment:
     )
     resp.raise_for_status()
     d = resp.json()
-    # atualiza status
+    raw_status = d.get("status", "").upper()
+
+    # 2) converte para nosso enum
+    mapped = STATUS_MAP.get(raw_status)
+    if mapped is None:
+        # status desconhecido: não altera nada
+        return None
+
+    # 3) atualiza o registro local
     payment = db.query(CompanyPayment).filter_by(asaas_id=asaas_id).first()
-    payment.status = PaymentStatus(d["status"])
+    if not payment:
+        return None
+
+    previous = payment.status
+    payment.status = mapped
     db.commit()
     db.refresh(payment)
+
+    # 4) se acabou de virar PAID, credita na carteira
+    if previous != PaymentStatus.PAID and mapped == PaymentStatus.PAID:
+        credit_wallet(db, str(payment.company_id), Decimal(payment.amount))
+
     return payment
 
 def list_payments(
