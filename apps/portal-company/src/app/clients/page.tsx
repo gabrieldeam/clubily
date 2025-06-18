@@ -7,8 +7,12 @@ import { useAuth } from '@/context/AuthContext';
 import Header from '@/components/Header/Header';
 import Modal from '@/components/Modal/Modal';
 import ClientModal from '@/components/ClientModal/ClientModal';
+import ViewClientModal from '@/components/ViewClientModal/ViewClientModal';
+import UserStatsCard from '@/components/UserStatsCard/UserStatsCard';
+import { getCashbackPrograms, getUserProgramStats } from '@/services/cashbackProgramService';
 import { listCompanyClients } from '@/services/companyService';
 import type { UserRead } from '@/types/user';
+import type { CashbackProgramRead, UserProgramStats } from '@/types/cashbackProgram';
 import styles from './page.module.css';
 
 export default function ClientsPage() {
@@ -28,6 +32,13 @@ export default function ClientsPage() {
 
   // modo de visualização: 'list' ou 'card'
   const [viewMode, setViewMode] = useState<'list' | 'card'>('list');
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
+
+  const [programs, setPrograms] = useState<CashbackProgramRead[]>([]);
+  const [progLoading, setProgLoading] = useState(false);
+  const [selectedProg, setSelectedProg] = useState<string>('');
+  const [userStats, setUserStats] = useState<UserProgramStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
 
   // detecta mobile
   const [isMobile, setIsMobile] = useState(false);
@@ -57,6 +68,28 @@ export default function ClientsPage() {
       .catch(console.error)
       .finally(() => setLoadingClients(false));
   }, [user, page]);
+
+  useEffect(() => {
+    if (!selectedClient) return;
+    setProgLoading(true);
+    getCashbackPrograms()
+      .then(r => setPrograms(r.data))
+      .catch(console.error)
+      .finally(() => setProgLoading(false));
+  }, [selectedClient]);
+
+  // when selectedProg changes, fetch stats
+  useEffect(() => {
+    if (!selectedClient?.id || !selectedProg) {
+      setUserStats(null);
+      return;
+    }
+    setStatsLoading(true);
+    getUserProgramStats(selectedProg, selectedClient.id)
+      .then(r => setUserStats(r.data))
+      .catch(console.error)
+      .finally(() => setStatsLoading(false));
+  }, [selectedProg, selectedClient]);
 
   if (loading) return <div className={styles.container}>Carregando perfil...</div>;
   if (!user) return null;
@@ -217,6 +250,48 @@ export default function ClientsPage() {
                 <strong>CPF:</strong> {formatCpfDisplay(selectedClient)}
               </p>
             </div>
+
+            {/* estatísticas do usuário */}
+              {progLoading ? (
+                <p>Carregando programas...</p>
+              ) : (
+                <>
+                  <label htmlFor="stats-program" className={styles.label}>
+                    Selecione o programa
+                  </label>
+                  <select
+                    id="stats-program"
+                    className={styles.select}
+                    value={selectedProg}
+                    onChange={e => setSelectedProg(e.target.value)}
+                  >
+                    <option value="">-- nenhum --</option>
+                    {programs.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  {statsLoading ? (
+                    <p>Carregando estatísticas...</p>
+                  ) : userStats && selectedProg ? (
+                    <>
+                      <UserStatsCard
+                        title="Todos os programas"
+                        validCount={userStats.company_valid_count}
+                        totalCashback={userStats.company_total_cashback}
+                      />
+                      <UserStatsCard
+                        title={`Programa: ${programs.find(p => p.id === selectedProg)?.name}`}
+                        validCount={userStats.program_valid_count}
+                        totalCashback={userStats.program_total_cashback}
+                      />
+                    </>
+                  ) : null}
+                </>
+              )}
+
           </div>
         ) : (
           <ClientModal onClose={() => setOpenModal(false)} />
@@ -246,6 +321,15 @@ export default function ClientsPage() {
             </button>
           </div>
         </div>
+      </Modal>
+
+      <Modal open={openModal} onClose={() => setOpenModal(false)}>
+        {selectedClient && (
+          <ViewClientModal
+            client={selectedClient}
+            onClose={() => setOpenModal(false)}
+          />
+        )}
       </Modal>
     </div>
   );

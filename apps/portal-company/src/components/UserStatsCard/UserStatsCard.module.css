@@ -1,0 +1,17 @@
+/* src/components/UserStatsCard/UserStatsCard.module.css */
+.card {
+  background: #f0f4f8;
+  padding: 1rem;
+  border-radius: 10px;
+  margin-top: 1rem;
+}
+.title {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  color: #333;
+}
+.card p {
+  margin: 0.25rem 0;
+  font-size: 0.875rem;
+  color: #555;
+}

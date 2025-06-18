@@ -13,14 +13,7 @@ def assign_cashback(db: Session, user_id: str, program_id: str, amount_spent: fl
     if not program or not program.is_active:
         raise ValueError("Programa inválido ou inativo")
 
-    # 0) cobra a taxa de R$0,10 por associação
-    fee = Decimal("0.10")
-    balance = get_wallet_balance(db, user_id)
-    if balance < fee:
-        raise ValueError("Saldo insuficiente para associação de cashback (custa R$0,10)")
-    debit_wallet(db, user_id, fee)
-
-    # 1) calcula o valor a atribuir
+    # 1) calcula o valor de cashback
     value = (Decimal(amount_spent) * Decimal(program.percent) / Decimal("100.0")).quantize(Decimal("0.01"))
 
     # 2) limite de contagem
@@ -43,16 +36,26 @@ def assign_cashback(db: Session, user_id: str, program_id: str, amount_spent: fl
                 f"Este uso adicionaria {value:.2f} de cashback, mas o mínimo total exigido é {program.min_cashback_per_user:.2f}"
             )
 
-    # 4) tudo ok → cria o Cashback
+    # —————— todas as validações passaram ——————
+
+    # 4) agora sim cobra R$ 0,10 da carteira da empresa dona do programa
+    company_id = str(program.company_id)
+    fee = Decimal("0.10")
+    balance = get_wallet_balance(db, company_id)
+    if balance < fee:
+        raise ValueError("Saldo insuficiente na carteira da empresa para associação de cashback (custa R$0,10)")
+    debit_wallet(db, company_id, fee)
+
+    # 5) cria o cashback
     expires = datetime.utcnow() + timedelta(days=program.validity_days)
     cb = Cashback(
-        user_id=user_id,
-        program_id=program_id,
-        amount_spent=Decimal(amount_spent).quantize(Decimal("0.01")),
-        cashback_value=value,
-        assigned_at=datetime.utcnow(),
-        expires_at=expires,
-        is_active=True,
+        user_id        = user_id,
+        program_id     = program_id,
+        amount_spent   = Decimal(amount_spent).quantize(Decimal("0.01")),
+        cashback_value = value,
+        assigned_at    = datetime.utcnow(),
+        expires_at     = expires,
+        is_active      = True,
     )
     db.add(cb)
     db.commit()
