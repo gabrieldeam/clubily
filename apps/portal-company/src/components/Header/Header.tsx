@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { getBalance } from '@/services/companyPaymentService';
+import { getWallet } from '@/services/walletService';
 import styles from './Header.module.css';
 
 interface HeaderProps {
@@ -22,8 +22,8 @@ export default function Header({
   const isProfile = pathname === '/profile';
 
   useEffect(() => {
-    getBalance()
-      .then(res => setBalance(res.data))
+    getWallet()
+      .then(res => setBalance(Number(res.data.balance)))
       .catch(() => setBalance(0))
       .finally(() => setLoading(false));
   }, []);

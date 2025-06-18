@@ -9,20 +9,24 @@ from app.core.config import settings
 router = APIRouter(tags=["webhooks"])
 
 
+
 @router.post("/asaas", status_code=status.HTTP_204_NO_CONTENT)
 async def asaas_webhook(
     request: Request,
     db: Session = Depends(get_db),
 ):
     """
-    Recebe qualquer webhook do Asaas (sem validação de HMAC) e só
-    dispara nosso processamento de mudança de status.
+    Recebe todos os webhooks do Asaas e, para qualquer evento
+    de cobrança (qualquer event que comece com PAYMENT_), atualiza
+    o status da nossa CompanyPayment.
     """
     payload = await request.json()
-
     event = payload.get("event", "").upper()
-    if event == "PAYMENT_CHANGE_STATUS" or event == "payment.changeStatus":
+
+    # Se for qualquer coisa como "PAYMENT_*", puxa o id e atualiza
+    if event.startswith("PAYMENT_") and "payment" in payload:
         asaas_id = payload["payment"]["id"]
         refresh_payment_status(db, asaas_id)
 
-    return  # 204 No Content
+    # sempre devolve 204 para o Asaas (ele só reenvia se não for 2XX)
+    return

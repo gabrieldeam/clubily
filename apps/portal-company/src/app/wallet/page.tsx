@@ -3,10 +3,9 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useAuth } from '@/context/AuthContext';
 import Header from '@/components/Header/Header';
-import Button from '@/components/Button/Button';
-import { getBalance, listPayments } from '@/services/companyPaymentService';
+import { listPayments } from '@/services/companyPaymentService';
+import { getWallet } from '@/services/walletService';
 import type { CompanyPaymentRead, PaginatedPayments } from '@/types/companyPayment';
 import styles from './page.module.css';
 
@@ -24,8 +23,8 @@ export default function WalletPage() {
   const [totalPayments, setTotalPayments] = useState(0);
 
   useEffect(() => {
-    getBalance()
-      .then(res => setBalance(res.data))
+    getWallet()
+      .then(res => setBalance(Number(res.data.balance)))
       .catch(() => setBalance(0))
       .finally(() => setLoadingBalance(false));
   }, []);
