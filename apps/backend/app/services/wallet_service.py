@@ -64,8 +64,14 @@ def get_or_create_user_wallet(
     return w
 
 def deposit_to_user_wallet(
-    db: Session, user_id: str, company_id: str, amount: float | Decimal
+    db: Session,
+    user_id: str,
+    company_id: str,
+    amount: float | Decimal
 ) -> UserCashbackWallet:
+    """
+    Credita `amount` na carteira de cashback do usuário (para aquela empresa).
+    """
     # 1) garante que a carteira existe
     w = get_or_create_user_wallet(db, user_id, company_id)
 
@@ -73,18 +79,8 @@ def deposit_to_user_wallet(
     if not isinstance(amount, Decimal):
         amount = Decimal(str(amount))
 
-    # 3) expira créditos vencidos (se você tiver essa função)
-    # expire_overdue_cashbacks(db)
-
-    # 4) verifica saldo
-    if w.balance < amount:
-        raise ValueError(f"Saldo insuficiente: {w.balance:.2f} disponível, exigido {amount:.2f}")
-
-    # 5) debita normalmente
-    if w.balance < amount:
-        w.balance = Decimal("0.00")
-    else:
-        w.balance -= amount
+    # 3) adiciona ao saldo
+    w.balance += amount
 
     db.commit()
     db.refresh(w)

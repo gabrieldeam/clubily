@@ -7,28 +7,29 @@ from app.models.company import Company
 from sqlalchemy import func
 from decimal import Decimal
 from app.services.wallet_service import get_wallet_balance, debit_wallet
-from app.services.wallet_service import deposit_to_user_wallet
+from app.services.wallet_service import deposit_to_user_wallet, withdraw_user_wallet
 
 def expire_overdue_cashbacks(db: Session) -> int:
     """
-    Marca todos os cashbacks que já passaram de expires_at e ainda estão is_active=True
-    como is_active=False e debita o valor da carteira correspondente.
-    Retorna o número de cashbacks expirados.
+    Marca todos os cashbacks vencidos como is_active=False
+    e debita esse valor da carteira de cashback do usuário.
     """
     now = datetime.utcnow()
-    # 1) busca todos que expiraram mas continuam ativos
-    expired_list = (
+    expired = (
         db.query(Cashback)
           .filter(Cashback.expires_at < now, Cashback.is_active == True)
           .all()
     )
     count = 0
-    for cb in expired_list:
-        # inativa o cashback
+    for cb in expired:
         cb.is_active = False
-        # debita o valor daquela carteira (user_id, company_id)
-        company_id = str(cb.program.company_id)
-        debit_wallet(db, cb.user_id, company_id, float(cb.cashback_value))
+        # retira o valor vencido da carteira do usuário
+        withdraw_user_wallet(
+            db,
+            user_id=str(cb.user_id),
+            company_id=str(cb.program.company_id),
+            amount=cb.cashback_value
+        )
         count += 1
 
     if count:
