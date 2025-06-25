@@ -43,3 +43,13 @@ class WalletWithdraw(BaseModel):
     amount: Decimal = Field(..., gt=0, description="Valor a debitar da carteira do usuário")
 
     model_config = ConfigDict()
+
+
+class WalletTransactionRead(BaseModel):
+    id: UUID
+    company_id: UUID
+    user_id: UUID
+    amount: Decimal
+    created_at: datetime 
+
+    model_config = ConfigDict(from_attributes=True)
