@@ -4,28 +4,29 @@ import type {
   MonthlyCharts,
   ProgramMetrics,
   CompanyMetrics
-} from '@/types/cashbackMetrics.ts';
-
+} from '@/types/cashbackMetrics';
 
 /**
- * Dados para os gráficos diários do mês atual.
- * GET /companies/me/metrics/monthly-charts
+ * Dados diários para um intervalo (default: mês atual).
+ * GET /companies/me/metrics/charts?start_date=&end_date=
  */
-export const getMonthlyCharts = () =>
-  api.get<MonthlyCharts>('/cashback-metrics/monthly-charts');
-
+export const getMonthlyCharts = (startDate?: string, endDate?: string) =>
+  api.get<MonthlyCharts>('/cashback-metrics/charts', {
+    params: { start_date: startDate, end_date: endDate }
+  });
 
 /**
- * Métricas de todos os programas de cashback da empresa logada
- * GET /companies/me/cashback-programs/metrics
+ * Métricas de TODOS os programas de cashback da empresa logada.
+ * GET /companies/me/metrics/
  */
 export const getAllProgramsMetrics = () =>
-  api.get<ProgramMetrics[]>('/cashback-metrics')
-
+  api.get<ProgramMetrics[]>('/cashback-metrics');
 
 /**
- * Resumo consolidado de TODOS os cashbacks da empresa logada.
- * GET /companies/me/metrics/summary
+ * Resumo consolidado de TODOS os cashbacks da empresa (opcionalmente filtrado por intervalo).
+ * GET /companies/me/metrics/summary?start_date=&end_date=
  */
-export const getCompanyMetrics = () =>
-  api.get<CompanyMetrics>('/cashback-metrics/summary')
+export const getCompanyMetrics = (startDate?: string, endDate?: string) =>
+  api.get<CompanyMetrics>('/cashback-metrics/summary', {
+    params: { start_date: startDate, end_date: endDate }
+  });

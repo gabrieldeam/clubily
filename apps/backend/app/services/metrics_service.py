@@ -1,91 +1,92 @@
+# backend/app/services/metrics_service.py
+
 from sqlalchemy import func, cast, Numeric, distinct
-from datetime import datetime, date
 from sqlalchemy.orm import Session
+from datetime import date, datetime, timedelta
+from calendar import monthrange
+import statistics
+
 from app.models.cashback import Cashback
 from app.models.cashback_program import CashbackProgram
 from app.models.user import User
-import statistics
 
-def _days_in_month(year: int, month: int):
-    # retorna lista de date(year,month,1)...até último dia
-    from calendar import monthrange
-    last = monthrange(year, month)[1]
-    return [date(year, month, d) for d in range(1, last+1)]
+def _date_list(start: date, end: date):
+    days = []
+    d = start
+    while d <= end:
+        days.append(d)
+        d += timedelta(days=1)
+    return days
 
-def get_daily_spend(db: Session, company_id: str, year: int, month: int):
-    # sum(amount_spent) grouped by day
+def get_daily_spend_range(db: Session, company_id: str, start: date, end: date):
     q = (
         db.query(
             func.date_trunc('day', Cashback.assigned_at).label('day'),
-            func.coalesce(func.sum(Cashback.amount_spent), 0).label('value')
+            func.coalesce(func.sum(Cashback.amount_spent), 0).label('value'),
         )
-        .join(CashbackProgram, Cashback.program_id == CashbackProgram.id)
+        .join(CashbackProgram, Cashback.program_id==CashbackProgram.id)
         .filter(
-            CashbackProgram.company_id == company_id,
-            func.extract('year', Cashback.assigned_at) == year,
-            func.extract('month', Cashback.assigned_at) == month,
+            CashbackProgram.company_id==company_id,
+            Cashback.assigned_at >= datetime.combine(start, datetime.min.time()),
+            Cashback.assigned_at <= datetime.combine(end,   datetime.max.time()),
         )
         .group_by('day')
         .order_by('day')
     )
-    data = {row.day.date(): float(row.value) for row in q}
-    # preencher dias sem dados
-    return [{"day": d, "value": data.get(d, 0.0)} for d in _days_in_month(year, month)]
+    data = {r.day.date(): float(r.value) for r in q}
+    return [{"day": d, "value": data.get(d, 0.0)} for d in _date_list(start, end)]
 
-def get_daily_cashback_value(db: Session, company_id: str, year: int, month: int):
-    # sum(cashback_value)
+def get_daily_cashback_value_range(db: Session, company_id: str, start: date, end: date):
     q = (
         db.query(
             func.date_trunc('day', Cashback.assigned_at).label('day'),
-            func.coalesce(func.sum(Cashback.cashback_value), 0).label('value')
+            func.coalesce(func.sum(Cashback.cashback_value), 0).label('value'),
         )
-        .join(CashbackProgram, Cashback.program_id == CashbackProgram.id)
+        .join(CashbackProgram, Cashback.program_id==CashbackProgram.id)
         .filter(
-            CashbackProgram.company_id == company_id,
-            func.extract('year', Cashback.assigned_at) == year,
-            func.extract('month', Cashback.assigned_at) == month,
+            CashbackProgram.company_id==company_id,
+            Cashback.assigned_at >= datetime.combine(start, datetime.min.time()),
+            Cashback.assigned_at <= datetime.combine(end,   datetime.max.time()),
         )
         .group_by('day')
         .order_by('day')
     )
-    data = {row.day.date(): float(row.value) for row in q}
-    return [{"day": d, "value": data.get(d, 0.0)} for d in _days_in_month(year, month)]
+    data = {r.day.date(): float(r.value) for r in q}
+    return [{"day": d, "value": data.get(d, 0.0)} for d in _date_list(start, end)]
 
-def get_daily_cashback_count(db: Session, company_id: str, year: int, month: int):
-    # count(*) as value
+def get_daily_cashback_count_range(db: Session, company_id: str, start: date, end: date):
     q = (
         db.query(
             func.date_trunc('day', Cashback.assigned_at).label('day'),
-            func.count(Cashback.id).label('value')
+            func.count(Cashback.id).label('value'),
         )
-        .join(CashbackProgram, Cashback.program_id == CashbackProgram.id)
+        .join(CashbackProgram, Cashback.program_id==CashbackProgram.id)
         .filter(
-            CashbackProgram.company_id == company_id,
-            func.extract('year', Cashback.assigned_at) == year,
-            func.extract('month', Cashback.assigned_at) == month,
+            CashbackProgram.company_id==company_id,
+            Cashback.assigned_at >= datetime.combine(start, datetime.min.time()),
+            Cashback.assigned_at <= datetime.combine(end,   datetime.max.time()),
         )
         .group_by('day')
         .order_by('day')
     )
-    data = {row.day.date(): int(row.value) for row in q}
-    return [{"day": d, "value": data.get(d, 0)} for d in _days_in_month(year, month)]
+    data = {r.day.date(): int(r.value) for r in q}
+    return [{"day": d, "value": data.get(d, 0)} for d in _date_list(start, end)]
 
-def get_daily_new_users(db: Session, year: int, month: int):
-    # count(*) from users.created_at
+def get_daily_new_users_range(db: Session, start: date, end: date):
     q = (
         db.query(
             func.date_trunc('day', User.created_at).label('day'),
-            func.count(User.id).label('value')
+            func.count(User.id).label('value'),
         )
         .filter(
-            func.extract('year', User.created_at) == year,
-            func.extract('month', User.created_at) == month,
+            User.created_at >= datetime.combine(start, datetime.min.time()),
+            User.created_at <= datetime.combine(end,   datetime.max.time()),
         )
         .group_by('day')
         .order_by('day')
     )
-    data = {row.day.date(): int(row.value) for row in q}
-    return [{"day": d, "value": data.get(d, 0)} for d in _days_in_month(year, month)]
+    data = {r.day.date(): int(r.value) for r in q}
+    return [{"day": d, "value": data.get(d, 0)} for d in _date_list(start, end)]
 
 def collect_program_metrics(db: Session, program_id: str):
     # 1) Agregados básicos
@@ -185,30 +186,31 @@ def get_all_programs_metrics(db: Session, company_id: str) -> list[dict]:
         })
     return result
 
-def get_company_metrics(db: Session, company_id: str) -> dict:
-    # 1) query base: todos os cashbacks de quaisquer programas da empresa
+def get_company_metrics_range(db: Session, company_id: str, start: date, end: date):
     q = (
         db.query(Cashback)
-          .join(CashbackProgram, Cashback.program_id == CashbackProgram.id)
-          .filter(CashbackProgram.company_id == company_id)
+          .join(CashbackProgram, Cashback.program_id==CashbackProgram.id)
+          .filter(
+              CashbackProgram.company_id==company_id,
+              Cashback.assigned_at >= datetime.combine(start, datetime.min.time()),
+              Cashback.assigned_at <= datetime.combine(end,   datetime.max.time()),
+          )
     )
-    # totais
     total_cb = float(q.with_entities(func.coalesce(func.sum(Cashback.cashback_value), 0)).scalar() or 0)
     total_spent = float(q.with_entities(func.coalesce(func.sum(Cashback.amount_spent), 0)).scalar() or 0)
     count = q.with_entities(func.count(Cashback.id)).scalar() or 0
-    uniq_users = q.with_entities(func.count(distinct(Cashback.user_id))).scalar() or 0
+    uniq = q.with_entities(func.count(distinct(Cashback.user_id))).scalar() or 0
 
-    avg_spent_per_use = (total_spent / count) if count else 0.0
-    avg_uses_per_user = (count / uniq_users) if uniq_users else 0.0
+    avg_spent_per_use = (total_spent/count) if count else 0.0
+    avg_uses_per_user = (count/uniq) if uniq else 0.0
 
     return {
         "company_id": company_id,
         "total_cashback_value": total_cb,
         "total_amount_spent": total_spent,
         "usage_count": count,
-        "unique_user_count": uniq_users,
+        "unique_user_count": uniq,
         "average_amount_spent_per_use": avg_spent_per_use,
         "average_uses_per_user": avg_uses_per_user,
         "generated_at": datetime.utcnow(),
     }
-

@@ -1,10 +1,12 @@
 # backend/app/api/v1/endpoints/wallet.py
 
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, Path, status
+from fastapi import APIRouter, Depends, HTTPException, Path, status, Query
 from sqlalchemy.orm import Session
+from typing import List
+from decimal import Decimal
 from app.api.deps import get_db, get_current_company, get_current_user
-from app.schemas.wallet import WalletRead, UserCashbackWalletRead, WalletSummary, UserWalletRead, WalletWithdraw, UserWalletRead
+from app.schemas.wallet import WalletRead, UserCashbackWalletRead, WalletSummary, UserWalletRead, WalletWithdraw, UserWalletRead, WalletTransactionRead
 from app.services.wallet_service import (
     get_or_create_wallet,
     list_user_wallets,
@@ -17,6 +19,8 @@ from uuid import UUID
 from app.services.cashback_service import (
     expire_overdue_cashbacks
 )
+from app.models.wallet_transaction import WalletTransaction
+
 
 router = APIRouter(tags=["wallet"])
 
@@ -61,6 +65,49 @@ def read_wallets_summary(
     # 2) retorna total + count
     user_id = str(current_user.id)
     return get_user_wallet_summary(db, user_id)
+
+
+@router.get(
+    "/debits",
+    response_model=List[WalletTransactionRead],
+    summary="Lista apenas os débitos da carteira do usuário logado para uma empresa"
+)
+def read_wallet_debits(
+    company_id: str = Query(..., description="UUID da empresa para filtrar débitos"),
+    skip: int = Query(0, ge=0, description="Quantos registros pular"),
+    limit: int = Query(50, ge=1, le=200, description="Máximo de registros"),
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user),
+):
+    # 1) busca só os lançamentos negativos (débitos)
+    q = (
+        db.query(WalletTransaction)
+          .filter(
+              WalletTransaction.user_id    == current_user.id,
+              WalletTransaction.company_id == company_id,
+              WalletTransaction.amount     < Decimal("0.00")
+          )
+    )
+
+    # 2) aplica paginação e ordenação por data decrescente
+    transactions = (
+        q.order_by(WalletTransaction.created_at.desc())
+         .offset(skip)
+         .limit(limit)
+         .all()
+    )
+
+    return transactions
+
+@router.get(
+    "/summary",
+    summary="Resumo de todas as carteiras do usuário logado",
+)
+def wallet_summary(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    return get_user_wallet_summary(db, str(current_user.id))
 
 @router.get(
     "/cashback-wallets/{company_id}",

@@ -1,42 +1,55 @@
-// src/components/MonthlyCharts/MonthlyCharts.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
 import {
-  LineChart, Line,
-  BarChart, Bar,
-  XAxis, YAxis, CartesianGrid,
-  Tooltip, Legend,
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
   ResponsiveContainer,
 } from 'recharts';
 import { getMonthlyCharts } from '@/services/cashbackMetricsService';
 import type { MonthlyCharts as MC, DataPoint } from '@/types/cashbackMetrics';
 import styles from './MonthlyCharts.module.css';
 
-export default function MonthlyCharts() {
+interface MonthlyChartsProps {
+  startDate?: Date | null;
+  endDate?: Date | null;
+}
+
+export default function MonthlyCharts({ startDate, endDate }: MonthlyChartsProps) {
   const [data, setData] = useState<MC | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getMonthlyCharts()
-      .then(r => setData(r.data))
+    const sd = startDate ? startDate.toISOString().slice(0, 10) : undefined;
+    const ed = endDate ? endDate.toISOString().slice(0, 10) : undefined;
+    setLoading(true);
+    setError(null);
+
+    getMonthlyCharts(sd, ed)
+      .then((res) => setData(res.data))
       .catch(() => setError('Não foi possível carregar os gráficos.'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [startDate, endDate]);
 
   if (loading) return <p className={styles.message}>Carregando gráficos…</p>;
-  if (error)   return <p className={styles.messageError}>{error}</p>;
-  if (!data)   return null;
+  if (error) return <p className={styles.messageError}>{error}</p>;
+  if (!data) return null;
 
   const fmt = (arr: DataPoint[]) =>
-    arr.map(p => ({ day: p.day.slice(-2), value: p.value }));
+    arr.map((p) => ({ day: p.day.toString().slice(-2), value: p.value }));
 
   return (
     <div className={styles.container}>
-      <h3 className={styles.title}>Indicadores Diários (Mês Atual)</h3>
+      <h3 className={styles.title}>Indicadores Diários</h3>
       <div className={styles.grid}>
-
         {/* Gastos por Dia */}
         <div className={styles.chartBox}>
           <h5>Gastos por Dia</h5>
@@ -47,8 +60,8 @@ export default function MonthlyCharts() {
             >
               <defs>
                 <linearGradient id="grad-spend" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#4e79a7" stopOpacity={0.8}/>
-                  <stop offset="100%" stopColor="#4e79a7" stopOpacity={0.2}/>
+                  <stop offset="0%" stopColor="#4e79a7" stopOpacity={0.8} />
+                  <stop offset="100%" stopColor="#4e79a7" stopOpacity={0.2} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--clr-border)" />
@@ -64,7 +77,12 @@ export default function MonthlyCharts() {
                 tickLine={false}
               />
               <Tooltip
-                formatter={v => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                formatter={(v) =>
+                  (v as number).toLocaleString('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL',
+                  })
+                }
                 contentStyle={{ borderRadius: 8, borderColor: '#ccc' }}
               />
               <Legend verticalAlign="top" align="right" iconType="circle" />
@@ -89,8 +107,8 @@ export default function MonthlyCharts() {
             >
               <defs>
                 <linearGradient id="grad-cashback" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#f28e2b" stopOpacity={0.8}/>
-                  <stop offset="100%" stopColor="#f28e2b" stopOpacity={0.2}/>
+                  <stop offset="0%" stopColor="#f28e2b" stopOpacity={0.8} />
+                  <stop offset="100%" stopColor="#f28e2b" stopOpacity={0.2} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--clr-border)" />
@@ -106,7 +124,12 @@ export default function MonthlyCharts() {
                 tickLine={false}
               />
               <Tooltip
-                formatter={v => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                formatter={(v) =>
+                  (v as number).toLocaleString('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL',
+                  })
+                }
                 contentStyle={{ borderRadius: 8, borderColor: '#ccc' }}
               />
               <Legend verticalAlign="top" align="right" iconType="circle" />
@@ -134,8 +157,8 @@ export default function MonthlyCharts() {
             >
               <defs>
                 <linearGradient id="grad-count" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#e15759" stopOpacity={0.8}/>
-                  <stop offset="100%" stopColor="#e15759" stopOpacity={0.2}/>
+                  <stop offset="0%" stopColor="#e15759" stopOpacity={0.8} />
+                  <stop offset="100%" stopColor="#e15759" stopOpacity={0.2} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--clr-border)" />
@@ -172,8 +195,8 @@ export default function MonthlyCharts() {
             >
               <defs>
                 <linearGradient id="grad-users" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#76b7b2" stopOpacity={0.8}/>
-                  <stop offset="100%" stopColor="#76b7b2" stopOpacity={0.2}/>
+                  <stop offset="0%" stopColor="#76b7b2" stopOpacity={0.8} />
+                  <stop offset="100%" stopColor="#76b7b2" stopOpacity={0.2} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--clr-border)" />
@@ -203,7 +226,6 @@ export default function MonthlyCharts() {
             </LineChart>
           </ResponsiveContainer>
         </div>
-
       </div>
     </div>
   );

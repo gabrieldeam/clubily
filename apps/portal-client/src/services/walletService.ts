@@ -3,7 +3,8 @@
 import api from './api';
 import type {
   UserCashbackWalletRead,
-  WalletSummary
+  WalletSummary,
+  WalletTransactionRead
 } from '@/types/wallet';
 
 /**
@@ -26,3 +27,16 @@ export const getMyCompanyWallet = (companyId: string) =>
  */
 export const getWalletsSummary = () =>
   api.get<WalletSummary>('/wallet/cashback-wallets/summary');
+
+/**
+ * Lista apenas os débitos da carteira do usuário logado para uma empresa.
+ * GET /wallet/debits?company_id=&skip=&limit=
+ */
+export const listWalletDebits = (
+  companyId: string,
+  skip = 0,
+  limit = 50
+) =>
+  api.get<WalletTransactionRead[]>('/wallet/debits', {
+    params: { company_id: companyId, skip, limit },
+  });
