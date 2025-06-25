@@ -45,6 +45,10 @@ class PaginatedProgramUsage(BaseModel):
     usage_count: int
     average_amount_spent: float
 
+    unique_user_count: int
+    average_uses_per_user: float
+    average_interval_days: Optional[float] = None
+
     total_associations: int
     skip: int
     limit: int

@@ -11,6 +11,7 @@ import {
   listCashbacks,
   listCashbacksByCompany,
 } from '@/services/cashbackService';
+import { getMyCompanyWallet } from '@/services/walletService';
 import type {
   UserCashbackCompany,
   CashbackRead,
@@ -22,8 +23,7 @@ import styles from './page.module.css';
 
 export default function CashbacksPage() {
   const router = useRouter();
-  const baseUrl =
-    process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL ?? '';
+  const baseUrl = process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL ?? '';
 
   // estados das empresas (infinite scroll)
   const [companies, setCompanies] = useState<UserCashbackCompany[]>([]);
@@ -34,14 +34,16 @@ export default function CashbacksPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const didLoadRef = useRef(false);
 
+  // estados dos saldos por empresa
+  const [wallets, setWallets] = useState<Record<string, number>>({});
+  const [loadingWallets, setLoadingWallets] = useState<Record<string, boolean>>({});
+
   // estados dos cashbacks (paginação)
-  const [cashbacks, setCashbacks] =
-    useState<PaginatedCashbacks | null>(null);
+  const [cashbacks, setCashbacks] = useState<PaginatedCashbacks | null>(null);
   const [page, setPage] = useState(1);
   const cbLimit = 10;
   const [loadingCashbacks, setLoadingCashbacks] = useState(false);
-  const [selectedCompany, setSelectedCompany] =
-    useState<string | null>(null);
+  const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
 
   // carrega empresas (append sem duplicação)
   const loadMoreCompanies = async () => {
@@ -54,12 +56,11 @@ export default function CashbacksPage() {
       const newItems = res.data.items;
 
       setCompTotal(res.data.total);
-      setCompSkip((prev) => prev + compLimit);
+      setCompSkip(prev => prev + compLimit);
 
-      setCompanies((prev) => {
+      setCompanies(prev => {
         const filtered = newItems.filter(
-          (item) =>
-            !prev.some((p) => p.company_id === item.company_id)
+          item => !prev.some(p => p.company_id === item.company_id)
         );
         return [...prev, ...filtered];
       });
@@ -100,11 +101,7 @@ export default function CashbacksPage() {
     try {
       let res: { data: PaginatedCashbacks };
       if (selectedCompany) {
-        res = await listCashbacksByCompany(
-          selectedCompany,
-          skip,
-          cbLimit
-        );
+        res = await listCashbacksByCompany(selectedCompany, skip, cbLimit);
       } else {
         res = await listCashbacks(skip, cbLimit);
       }
@@ -129,55 +126,75 @@ export default function CashbacksPage() {
     setCashbacks(null);
   };
 
+  // carrega saldo de cada empresa conforme forem aparecendo
+  useEffect(() => {
+    companies.forEach(c => {
+      if (!(c.company_id in wallets) && !loadingWallets[c.company_id]) {
+        setLoadingWallets(prev => ({ ...prev, [c.company_id]: true }));
+        getMyCompanyWallet(c.company_id)
+          .then(res => {
+            setWallets(prev => ({ ...prev, [c.company_id]: res.data.balance }));
+          })
+          .catch(err => {
+            console.error(`Erro ao buscar carteira da empresa ${c.company_id}`, err);
+            setWallets(prev => ({ ...prev, [c.company_id]: 0 }));
+          })
+          .finally(() => {
+            setLoadingWallets(prev => ({ ...prev, [c.company_id]: false }));
+          });
+      }
+    });
+  }, [companies, wallets, loadingWallets]);
+
   const hasMore =
     cashbacks != null &&
     cashbacks.skip + cashbacks.limit < cashbacks.total;
 
   return (
-    <div className={styles.container}>
-      <Header
-        onSearch={(q) =>
-          router.push(`/search?name=${encodeURIComponent(q)}`)
-        }
-      />
+    <>
+      <Header onSearch={q => router.push(`/search?name=${encodeURIComponent(q)}`)} />
+    <div className={styles.container}>    
 
       {/* Empresas (infinite scroll) */}
       <section className={styles.companiesSection}>
         {loadingCompanies && companies.length === 0 ? (
           <p>Carregando empresas…</p>
         ) : (
-          <div
-            className={styles.companiesScroll}
-            ref={scrollRef}
-          >
-            {companies.map((c) => (
-              <button
-                key={c.company_id}
-                className={`${styles.companyItem} ${
-                  selectedCompany === c.company_id
-                    ? styles.companyItemActive
-                    : ''
-                }`}
-                onClick={() => handleCompanyClick(c.company_id)}
-              >
-                {c.logo_url ? (
-                  <Image
-                    src={`${baseUrl}${c.logo_url}`}
-                    alt={c.name}
-                    width={40}
-                    height={40}
-                    className={styles.companyLogo}
-                  />
-                ) : (
-                  <div className={styles.companyLogoFallback}>
-                    {c.name[0]?.toUpperCase()}
-                  </div>
-                )}
-                <span className={styles.companyName}>
-                  {c.name}
-                </span>
-              </button>
-            ))}
+          <div className={styles.companiesScroll} ref={scrollRef}>
+            {companies.map(c => {
+              const balance = wallets[c.company_id];
+              const loadingBal = loadingWallets[c.company_id];
+              const formattedBal = typeof balance === 'number'
+                ? balance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                : '—';
+              return (
+                <button
+                  key={c.company_id}
+                  className={`${styles.companyItem} ${
+                    selectedCompany === c.company_id ? styles.companyItemActive : ''
+                  }`}
+                  onClick={() => handleCompanyClick(c.company_id)}
+                >
+                  {c.logo_url ? (
+                    <Image
+                      src={`${baseUrl}${c.logo_url}`}
+                      alt={c.name}
+                      width={40}
+                      height={40}
+                      className={styles.companyLogo}
+                    />
+                  ) : (
+                    <div className={styles.companyLogoFallback}>
+                      {c.name[0]?.toUpperCase()}
+                    </div>
+                  )}
+                  <span className={styles.companyName}>{c.name}</span>
+                  <span className={styles.companyBalance}>
+                    {loadingBal ? '…' : formattedBal}
+                  </span>
+                </button>
+              );
+            })}
             {loadingCompanies && <span>…</span>}
           </div>
         )}
@@ -193,10 +210,7 @@ export default function CashbacksPage() {
           <>
             <ul className={styles.cashbacksList}>
               {cashbacks.items.map((cb: CashbackRead) => (
-                <li
-                  key={cb.id}
-                  className={styles.cashbackItem}
-                >
+                <li key={cb.id} className={styles.cashbackItem}>
                   <Link
                     href={`/companies/${cb.program.company_id}`}
                     className={styles.cashbackCompany}
@@ -221,25 +235,18 @@ export default function CashbacksPage() {
                   <div className={styles.cashbackDetails}>
                     <div>
                       <strong>Valor:</strong>{' '}
-                      {cb.cashback_value.toLocaleString(
-                        'pt-BR',
-                        {
-                          style: 'currency',
-                          currency: 'BRL',
-                        }
-                      )}
+                      {cb.cashback_value.toLocaleString('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL',
+                      })}
                     </div>
                     <div>
                       <strong>Recebido em:</strong>{' '}
-                      {new Date(
-                        cb.assigned_at
-                      ).toLocaleDateString('pt-BR')}
+                      {new Date(cb.assigned_at).toLocaleDateString('pt-BR')}
                     </div>
                     <div>
                       <strong>Expira em:</strong>{' '}
-                      {new Date(
-                        cb.expires_at
-                      ).toLocaleDateString('pt-BR')}
+                      {new Date(cb.expires_at).toLocaleDateString('pt-BR')}
                     </div>
                   </div>
                 </li>
@@ -247,17 +254,11 @@ export default function CashbacksPage() {
             </ul>
 
             <div className={styles.pagination}>
-              <button
-                disabled={page === 1}
-                onClick={() => setPage((p) => p - 1)}
-              >
+              <button disabled={page === 1} onClick={() => setPage(p => p - 1)}>
                 Anterior
               </button>
               <span>Página {page}</span>
-              <button
-                disabled={!hasMore}
-                onClick={() => setPage((p) => p + 1)}
-              >
+              <button disabled={!hasMore} onClick={() => setPage(p => p + 1)}>
                 Próxima
               </button>
             </div>
@@ -265,5 +266,6 @@ export default function CashbacksPage() {
         )}
       </section>
     </div>
+    </>
   );
 }

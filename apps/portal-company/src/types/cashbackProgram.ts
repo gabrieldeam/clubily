@@ -37,6 +37,11 @@ export interface PaginatedProgramUsage {
   usage_count: number;
   average_amount_spent: number;
 
+
+  unique_user_count: number;
+  average_uses_per_user: number;
+  average_interval_days: number;
+
   total_associations: number;
   skip: number;
   limit: number;

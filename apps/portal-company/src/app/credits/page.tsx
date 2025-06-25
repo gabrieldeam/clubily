@@ -70,8 +70,9 @@ export default function CreditsPage() {
     : '';
 
   return (
+    <>
+    <Header />
     <div className={styles.page}>
-      <Header />
       <main className={styles.main}>
         <div className={styles.card}>
           {!payment ? (
@@ -153,5 +154,6 @@ export default function CreditsPage() {
         </div>
       </main>
     </div>
+    </>
   );
 }

@@ -7,13 +7,19 @@
   padding: 20px 50px;
   background-color: #FFA600;
   border-radius: 0 0 20px 20px;
+  position: fixed;
+  width: 100%;
+  z-index: 10000;
 }
 
 .logo {
   flex: 0 0 auto;
 }
 
+
 /* Nova seção de créditos */
+
+
 .creditSection {
   display: flex;
   align-items: center;
@@ -22,10 +28,11 @@
   border: none;
   font-size: 1rem;
   color: white;
-  cursor: pointer;
+  cursor: pointer;  
   padding: 9px 20px;
   border-radius: 50px;
   transition: background-color 0.2s;
+  min-height: 100%;
 }
 
 .creditText {
@@ -84,7 +91,7 @@
 
 .creditProfile {
   display: flex;
-  gap: 20PX;
+  gap: 20px;
 }
 /* Responsivo */
 @media (min-width: 768px) and (max-width: 1024px) {
@@ -95,6 +102,10 @@
     font-size: 0.8rem;
   }
   .accountButton span {
+    display: none;
+  }
+
+  .buyLink {
     display: none;
   }
 }
@@ -114,5 +125,12 @@
   }
   .accountButton span {
     display: none;
+  }
+  .buyLink {
+    display: none;
+  }
+
+  .creditProfile {
+    gap: 5px;
   }
 }

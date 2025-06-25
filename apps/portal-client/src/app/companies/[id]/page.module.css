@@ -1,9 +1,11 @@
+
 .pageWrapper {
   display: flex;
   flex-direction: column;
   gap: 10px;
   background: #000;
-  margin-bottom: 140px;
+  margin-top: 92px;
+  margin-bottom: 120px;
 }
 
 .whiteBox {

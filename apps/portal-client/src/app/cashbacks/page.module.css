@@ -1,4 +1,7 @@
-
+.container {
+  margin-top: 92px;
+  margin-bottom: 120px;
+}
 .companiesSection,
 .cashbacksSection {
   background: #fff;
@@ -35,8 +38,15 @@
   transition: background 0.2s, transform 0.1s;
 }
 
+.companyBalance {
+  margin-left: auto;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #333;
+}
+
 .companyItem:hover {
-  background: rgba(0, 0, 0, 0.05);
+  opacity: 0.8;
 }
 
 .companyItemActive {
@@ -85,11 +95,6 @@
   flex-direction: column;
   gap: 12px;
   transition: transform 0.1s, box-shadow 0.2s;
-}
-
-.cashbackItem:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 /* Header interno com logo e nome */

@@ -154,9 +154,9 @@ export default function CompanyPage() {
   );
 
   return (
-    <div className={styles.pageWrapper}>
-      <Header onSearch={q => router.push(`/search?name=${encodeURIComponent(q)}`)} />
-
+    <>
+    <Header onSearch={q => router.push(`/search?name=${encodeURIComponent(q)}`)} />
+    <div className={styles.pageWrapper}> 
       {showBanner && (
         <div className={styles.whiteBoxAlert}>
           <button
@@ -380,5 +380,6 @@ export default function CompanyPage() {
         )}
       </div>
     </div>
+    </>
   );
 }

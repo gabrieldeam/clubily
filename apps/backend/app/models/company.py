@@ -77,3 +77,7 @@ class Company(Base):
     )
 
     wallet   = relationship("Wallet", uselist=False, back_populates="company", cascade="all, delete-orphan")
+
+    user_cashback_wallets = relationship(
+        "UserCashbackWallet", back_populates="company", cascade="all, delete-orphan"
+    )

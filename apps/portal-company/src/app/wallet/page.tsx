@@ -47,8 +47,9 @@ export default function WalletPage() {
   const totalPages = Math.ceil(totalPayments / LIMIT);
 
   return (
-    <div className={styles.page}>
-      <Header />
+    <>
+    <Header />
+    <div className={styles.page}>      
       <main className={styles.main}>
         {/* Saldo */}
         <div className={styles.balanceDiv}>
@@ -133,5 +134,6 @@ export default function WalletPage() {
         </section>
       </main>
     </div>
+    </>    
   );
 }

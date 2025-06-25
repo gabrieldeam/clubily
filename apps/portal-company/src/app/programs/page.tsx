@@ -76,8 +76,11 @@ export default function ProgramsPage() {
   };
 
   return (
+    <>
+    <Header />
+    
     <div className={styles.container}>
-      <Header />
+      
 
       <main className={styles.main}>
         <div className={styles.topBar}>
@@ -91,18 +94,18 @@ export default function ProgramsPage() {
               </>
             )}
           </div>
-          <div className={styles.actionsHeader}>
+          <div className={styles.actionsHeader}>            
+            <button className={styles.addBtn} onClick={openCreate}>
+              + Novo Programa
+            </button>
             {!isMobile && (
               <button
                 className={styles.viewToggleBtn}
                 onClick={() => setViewModalOpen(true)}
               >
-                Mudar Visualização
+                ⋮
               </button>
             )}
-            <button className={styles.addBtn} onClick={openCreate}>
-              + Novo Programa
-            </button>
           </div>
         </div>
 
@@ -211,5 +214,6 @@ export default function ProgramsPage() {
         </div>
       </Modal>
     </div>
+    </>    
   );
 }

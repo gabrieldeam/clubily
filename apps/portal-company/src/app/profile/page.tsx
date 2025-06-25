@@ -102,9 +102,9 @@ export default function ProfilePage() {
   };
 
   return (
+    <>
+    <Header/>
     <div className={styles.container}>
-      <Header/>
-
       <main className={styles.gridContainer}>
         {/* 1º card: perfil */}
         <div className={styles.gridItem}>
@@ -306,5 +306,6 @@ export default function ProfilePage() {
         />
       </Modal>
     </div>
+    </>
   );
 }

@@ -119,8 +119,9 @@ export default function Dashboard() {
   // 8) Sem categorais: mostrar mensagem e botão para trocar
   if (cats.length === 0) {
     return (
-      <div>
-        <Header onSearch={q => router.push(`/search?name=${encodeURIComponent(q)}`)} />
+      <>
+      <Header onSearch={q => router.push(`/search?name=${encodeURIComponent(q)}`)} />
+      <div className={styles.container}>
         <section className={styles.gridItemNoData}>
           <p>Infelizmente não temos empresas parceiras na sua região.</p>
           <button
@@ -131,14 +132,15 @@ export default function Dashboard() {
           </button>
         </section>
       </div>
+      </>
     );
   }
 
   // 9) Render normal com categorias + empresas
   return (
-    <div>
-      <Header onSearch={q => router.push(`/search?name=${encodeURIComponent(q)}`)} />
-
+    <>
+    <Header onSearch={q => router.push(`/search?name=${encodeURIComponent(q)}`)} />
+    <div className={styles.container}> 
       <section className={styles.gridItem}>
         <CashbackSummaryCard />
       </section>
@@ -218,5 +220,6 @@ export default function Dashboard() {
         )}
       </section>
     </div>
+    </>
   );
 }

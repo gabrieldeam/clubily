@@ -1,5 +1,9 @@
 /* src/app/programs/page.module.css */
 
+.container {
+  margin-top: 92px;
+}
+
 .main {
   background: #fff;
   padding: 20px;
@@ -20,15 +24,19 @@
 .summary {
   display: flex;
   gap: 1.5rem;
-  font-size: 1rem;
 }
 
 .summary div {
-  background: #f0f0f0;
+  background: #f0f4f8;
   padding: 5px 10px;
   border-radius: 5px;
   display: flex;
   gap: 5px;
+  font-size: 0.8rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
 }
 
 .actionsHeader {
@@ -38,7 +46,7 @@
 
 .viewToggleBtn {
   padding: 8px 12px;
-  background: #e5e7eb;
+  background: #f8f8f8;
   border: none;
   border-radius: 4px;
   cursor: pointer;
@@ -242,8 +250,9 @@
 }
 
 .cardDetails {
-  display: grid;
-  gap: 0.35rem;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
   font-size: 0.9rem;
   color: #374151;
   margin-bottom: 1.2rem;
@@ -256,8 +265,8 @@
 
 .cardActions {
   display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
+  justify-content: space-between;
+  gap: 5px;
 }
 
 .cardActions button {
@@ -267,6 +276,7 @@
   border-radius: 8px;
   cursor: pointer;
   transition: background 0.2s;
+  width: 100%;
 }
 
 .cardActions button:hover {
@@ -291,6 +301,7 @@
   border-radius: 8px;
   cursor: pointer;
   transition: background 0.2s;
+  white-space: nowrap;
 }
 
 /* ===== VIEW-MODE MODAL ===== */

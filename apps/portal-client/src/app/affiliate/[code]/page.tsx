@@ -31,6 +31,8 @@ export default function AffiliatePage() {
     <>
       <Header onSearch={q => router.push(`/search?name=${encodeURIComponent(q)}`)} />
 
+      <div className={styles.container}>
+      
       <div className={styles.gridItem}>
         <h2 className={styles.name}>Empresas indicadas por “{code}”</h2>
         <Link href="/" className={styles.categories}>Voltar</Link>
@@ -75,6 +77,7 @@ export default function AffiliatePage() {
           )
         )}
       </section>
+      </div>
     </>
   );
 }

@@ -66,17 +66,20 @@
 }
 
 .stats {
-  background: #f0f4f8;
+  background: #ffe9c0;
   padding: 1rem;
   border-radius: 10px;
+  margin-top: 10px;
 }
 
-.stats h5 {
-  margin-bottom: 0.5rem;
+.titleStats {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  color: #333;
 }
 
 .stats p {
   margin: 0.25rem 0;
-  font-size: 0.8rem;
-  color: #686868;
+  font-size: 0.875rem;
+  color: #555;
 }

@@ -1,10 +1,11 @@
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func, cast, Numeric
+from sqlalchemy import func, cast, Numeric, distinct
 from app.models.cashback import Cashback
 from datetime import datetime
 from app.models.cashback_program import CashbackProgram
 from ..schemas.cashback_program import CashbackProgramCreate, ProgramUsageAssociation
 from app.schemas.cashback_program import UserProgramStats
+import statistics
 
 def create_program(db: Session, company_id: str, obj_in: CashbackProgramCreate) -> CashbackProgram:
     program = CashbackProgram(
@@ -44,17 +45,71 @@ def delete_program(db: Session, program: CashbackProgram):
     db.delete(program)
     db.commit()
 
-def get_program_metrics(db: Session, program_id: str):
-    total = db.query(func.coalesce(func.sum(Cashback.cashback_value), 0))\
-              .filter(Cashback.program_id == program_id).scalar() or 0.0
+def collect_program_metrics(db: Session, program_id: str):
+    # 1) Agregados básicos
+    total_value = float(
+        db.query(func.coalesce(func.sum(Cashback.cashback_value), 0))
+          .filter(Cashback.program_id == program_id)
+          .scalar()
+    )
+    usage_count = db.query(func.count(Cashback.id))\
+                    .filter(Cashback.program_id == program_id)\
+                    .scalar() or 0
+    avg_amount = float(
+        db.query(func.coalesce(func.avg(cast(Cashback.amount_spent, Numeric)), 0))
+          .filter(Cashback.program_id == program_id)
+          .scalar()
+    )
 
-    count = db.query(func.count(Cashback.id))\
-              .filter(Cashback.program_id == program_id).scalar() or 0
+    # 2) Usuários únicos
+    unique_users = db.query(func.count(distinct(Cashback.user_id)))\
+                     .filter(Cashback.program_id == program_id)\
+                     .scalar() or 0
 
-    avg = db.query(func.coalesce(func.avg(cast(Cashback.amount_spent, Numeric)), 0))\
-            .filter(Cashback.program_id == program_id).scalar() or 0.0
+    # 3) Média de usos por usuário
+    avg_uses = (usage_count / unique_users) if unique_users else 0.0
 
-    return float(total), int(count), float(avg)
+    # 4) Tempo médio entre usos
+    #    buscamos todos os timestamps, agrupados por usuário
+    intervals = []
+    subq = (
+        db.query(Cashback.user_id, Cashback.assigned_at)
+          .filter(Cashback.program_id == program_id)
+          .order_by(Cashback.user_id, Cashback.assigned_at)
+          .all()
+    )
+    # organiza por user
+    from collections import defaultdict
+    by_user = defaultdict(list)
+    for user_id, ts in subq:
+        by_user[user_id].append(ts)
+    for lst in by_user.values():
+        if len(lst) >= 2:
+            # diffs em dias
+            days = [
+                ( (lst[i] - lst[i-1]).total_seconds() / 86400 )
+                for i in range(1, len(lst))
+            ]
+            intervals.extend(days)
+    avg_interval = statistics.mean(intervals) if intervals else None
+
+    # 5) ROI aproximado
+    total_spent = float(
+        db.query(func.coalesce(func.sum(Cashback.amount_spent), 0))
+          .filter(Cashback.program_id == program_id)
+          .scalar()
+    )
+    roi = (total_spent / total_value) if total_value else None
+
+    return {
+        "total_value": total_value,
+        "usage_count": usage_count,
+        "avg_amount": avg_amount,
+        "unique_users": unique_users,
+        "avg_uses": avg_uses,
+        "avg_interval": avg_interval,
+        "roi": roi,
+    }
 
 def get_program_associations_paginated(
     db: Session,
@@ -86,6 +141,7 @@ def get_program_associations_paginated(
         ))
 
     return total_assocs, associations
+
 
 def get_user_program_stats(
     db: Session,

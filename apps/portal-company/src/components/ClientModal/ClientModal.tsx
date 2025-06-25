@@ -6,8 +6,10 @@ import { useAuth } from '@/context/AuthContext';
 import { preRegister, checkPreRegistered } from '@/services/userService';
 import { getCashbackPrograms } from '@/services/cashbackProgramService';
 import { assignCashback } from '@/services/cashbackService';
+import { getUserWallet } from '@/services/walletService';
 import type { LeadCreate, UserRead } from '@/types/user';
 import type { CashbackProgramRead } from '@/types/cashbackProgram';
+import type { UserWalletRead } from '@/types/wallet';
 import { getUserProgramStats } from '@/services/cashbackProgramService';
 import type { UserProgramStats } from '@/types/cashbackProgram';
 import FloatingLabelInput from '@/components/FloatingLabelInput/FloatingLabelInput';
@@ -40,8 +42,13 @@ export default function ClientModal({ onClose }: ClientModalProps) {
   const [amount, setAmount] = useState('');
   const [assocNotification, setAssocNotification] = useState<{ type: string; message: string } | null>(null);
 
+  // Estatísticas
   const [userStats, setUserStats] = useState<UserProgramStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
+
+  // Carteira do usuário
+  const [userWallet, setUserWallet] = useState<UserWalletRead | null>(null);
+  const [walletLoading, setWalletLoading] = useState(false);
 
   const handlePre = async (e: FormEvent) => {
     e.preventDefault();
@@ -94,7 +101,32 @@ export default function ClientModal({ onClose }: ClientModalProps) {
       .finally(() => setProgLoading(false));
   }, [client]);
 
-  // 3) associar cashback
+  // 3) buscar estatísticas e carteira
+  useEffect(() => {
+    if (!client?.id) {
+      setUserStats(null);
+      setUserWallet(null);
+      return;
+    }
+    // stats do programa
+    if (selectedProg) {
+      setStatsLoading(true);
+      getUserProgramStats(selectedProg, client.id)
+        .then(res => setUserStats(res.data))
+        .catch(console.error)
+        .finally(() => setStatsLoading(false));
+    } else {
+      setUserStats(null);
+    }
+
+    // carteira do usuário
+    setWalletLoading(true);
+    getUserWallet(client.id)
+      .then(res => setUserWallet(res.data))
+      .catch(console.error)
+      .finally(() => setWalletLoading(false));
+  }, [client, selectedProg]);
+
   const handleAssociate = async () => {
     setAssocNotification(null);
     if (!client?.id || !selectedProg || !amount) {
@@ -108,18 +140,6 @@ export default function ClientModal({ onClose }: ClientModalProps) {
       setAssocNotification({ type: 'error', message: err.response?.data?.detail || 'Erro ao associar.' });
     }
   };
-
-  useEffect(() => {
-    if (!client?.id || !selectedProg) {
-      setUserStats(null);
-      return;
-    }
-    setStatsLoading(true);
-    getUserProgramStats(selectedProg, client.id)
-      .then(res => setUserStats(res.data))
-      .catch(console.error)
-      .finally(() => setStatsLoading(false));
-  }, [selectedProg, client]);
 
   // Render
   if (!client) {
@@ -160,24 +180,23 @@ export default function ClientModal({ onClose }: ClientModalProps) {
 
   return (
     <div className={styles.form}>
-      <h2 className={styles.title}>Associar Cashback</h2>
+      <h2 className={styles.title}>Visão do Cliente</h2>
       {assocNotification && (
         <Notification type={assocNotification.type as any} message={assocNotification.message} onClose={() => setAssocNotification(null)} />
       )}
+
+      <div className={styles.userInfo}>
+        <p><strong>Nome:</strong> {client.name}</p>
+        <p><strong>E-mail:</strong> {client.email}</p>
+        <p><strong>Telefone:</strong> {client.phone || '—'}</p>
+        <p><strong>CPF:</strong> {client.cpf}</p>
+      </div>
+
+      {/* estatísticas e carteira */}
       {progLoading ? (
         <p>Carregando programas...</p>
       ) : (
         <>
-          {statsLoading ? (
-            <p>Carregando estatísticas...</p>
-          ) : userStats ? (
-            <div className={styles.stats}>
-              <h5>Todos os programas</h5>              
-              <p><strong>Usos válidos:</strong> {userStats.company_valid_count}</p>
-              <p><strong>Total cashback:</strong> R$ {userStats.company_total_cashback.toFixed(2)}</p>
-            </div>
-          ) : null}
-
           <label className={styles.label}>Programa</label>
           <select className={styles.select} value={selectedProg} onChange={e => setSelectedProg(e.target.value)}>
             <option value="">-- escolha --</option>
@@ -187,31 +206,37 @@ export default function ClientModal({ onClose }: ClientModalProps) {
               </option>
             ))}
           </select>
-          <FloatingLabelInput
-            id="amount"
-            name="amount"
-            label="Valor gasto"
-            type="number"
-            value={amount}
-            onChange={e => setAmount(e.target.value)}
-          />
+
           {statsLoading ? (
             <p>Carregando estatísticas...</p>
           ) : userStats ? (
-            <div className={styles.stats}>              
+            <div className={styles.stats}>
+              <h5>Todos os programas</h5>
+              <p><strong>Usos válidos:</strong> {userStats.company_valid_count}</p>
+              <p><strong>Total cashback:</strong> R$ {userStats.company_total_cashback.toFixed(2)}</p>
+            </div>
+          ) : null}
+
+          {statsLoading ? null : userStats ? (
+            <div className={styles.stats}>
               <h5>Para esse programa</h5>
               <p><strong>Usos válidos:</strong> {userStats.program_valid_count}</p>
               <p><strong>Total cashback:</strong> R$ {userStats.program_total_cashback.toFixed(2)}</p>
             </div>
           ) : null}
-          <div className={styles.actions}>
-            <Button onClick={handleAssociate}>Associar</Button>
-            <Button bgColor="#AAA" onClick={onClose}>
-              Fechar
-            </Button>
-          </div>
+
+          {walletLoading ? (
+            <p>Carregando carteira...</p>
+          ) : userWallet ? (
+            <div className={styles.stats}>
+              <h5 className={styles.titleStats}>Saldo do Cliente</h5>
+              <p><strong>R$ {Number(userWallet.balance).toFixed(2)}</strong></p>
+            </div>
+          ) : null}
         </>
       )}
+
+
     </div>
   );
 }

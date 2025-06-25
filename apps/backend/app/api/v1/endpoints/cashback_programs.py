@@ -9,7 +9,7 @@ from app.schemas.cashback_program import (
     CashbackProgramCreate,
     CashbackProgramRead,
     PaginatedProgramUsage,
-    UserProgramStats
+    UserProgramStats,
 )
 from app.services.cashback_program_service import (
     create_program,
@@ -17,10 +17,10 @@ from app.services.cashback_program_service import (
     get_program,
     update_program,
     delete_program,
-    get_program_metrics,
     get_program_associations_paginated,
     get_user_program_stats,
     get_public_programs_by_company,
+    collect_program_metrics,
 )
 from app.models.cashback_program import CashbackProgram
 
@@ -107,34 +107,35 @@ def remove_program(
 )
 def program_usage(
     program_id: str,
-    skip: int = Query(0, ge=0, description="Quantos registros pular"),
-    limit: int = Query(10, ge=1, le=100, description="Máx. de registros"),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
     db: Session = Depends(get_db),
     current_company=Depends(get_current_company),
 ):
-    # 1) validação de permissão
+    # valida permissão...
     prog = db.get(CashbackProgram, program_id)
     if not prog or str(prog.company_id) != str(current_company.id):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Programa não encontrado")
 
-    # 2) coleta métricas
-    total_value, usage_count, average_amount = get_program_metrics(db, program_id)
+    # coleta todas as métricas
+    m = collect_program_metrics(db, program_id)
 
-    # 3) coleta associações paginadas
-    total_assocs, associations = get_program_associations_paginated(
-        db, program_id, skip, limit
-    )
+    # associações paginadas
+    total_assocs, associations = get_program_associations_paginated(db, program_id, skip, limit)
 
-    # 4) devolve envelope
     return PaginatedProgramUsage(
-        total_cashback_value=total_value,
-        usage_count=usage_count,
-        average_amount_spent=average_amount,
-        total_associations=total_assocs,
-        skip=skip,
-        limit=limit,
-        associations=associations,
+        total_cashback_value   = m["total_value"],
+        usage_count            = m["usage_count"],
+        average_amount_spent   = m["avg_amount"],
+        unique_user_count      = m["unique_users"],
+        average_uses_per_user  = m["avg_uses"],
+        average_interval_days  = m["avg_interval"],
+        total_associations     = total_assocs,
+        skip                   = skip,
+        limit                  = limit,
+        associations           = associations,
     )
+
 
 @router.get(
     "/{program_id}/user/{user_id}/stats",
