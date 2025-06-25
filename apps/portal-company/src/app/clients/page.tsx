@@ -12,7 +12,7 @@ import type { CheckPreRegisteredParams } from '@/types/user';
 import UserStatsCard from '@/components/UserStatsCard/UserStatsCard';
 import { getCashbackPrograms, getUserProgramStats } from '@/services/cashbackProgramService';
 import { listCompanyClients } from '@/services/companyService';
-import { getUserWallet } from '@/services/walletService';
+import { getUserWallet, withdrawUserWallet } from '@/services/walletService';
 import type { UserRead } from '@/types/user';
 import type { UserWalletRead } from '@/types/wallet';
 import type { CashbackProgramRead, UserProgramStats } from '@/types/cashbackProgram';
@@ -51,6 +51,9 @@ export default function ClientsPage() {
   // carteira do usuário
   const [userWallet, setUserWallet] = useState<UserWalletRead | null>(null);
   const [walletLoading, setWalletLoading] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [withdrawLoading, setWithdrawLoading] = useState(false);
+  const [withdrawError, setWithdrawError] = useState<string | null>(null);
 
   // detecta mobile
   const [isMobile, setIsMobile] = useState(false);
@@ -111,6 +114,12 @@ export default function ClientsPage() {
       .finally(() => setStatsLoading(false));
   }, [selectedProg, selectedClient]);
 
+  useEffect(() => {
+    if (programs.length > 0 && !selectedProg) {
+      setSelectedProg(programs[0].id);
+    }
+  }, [programs, selectedProg]);
+
   const handleSearch = async (e: FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -143,6 +152,27 @@ export default function ClientsPage() {
       }
     } finally {
       setSearchLoading(false);
+    }
+  };
+
+    // saque da carteira do usuário
+  const handleWithdraw = async () => {
+    if (!selectedClient) return;
+    const amt = parseFloat(withdrawAmount.replace(',', '.'));
+    if (isNaN(amt) || amt <= 0) {
+      setWithdrawError('Informe um valor válido.');
+      return;
+    }
+    setWithdrawLoading(true);
+    setWithdrawError(null);
+    try {
+      const res = await withdrawUserWallet(selectedClient.id, { amount: amt });
+      setUserWallet(res.data);     // já vem o novo saldo
+      setWithdrawAmount('');
+    } catch (err: any) {
+      setWithdrawError(err.response?.data?.detail || 'Erro ao debitar.');
+    } finally {
+      setWithdrawLoading(false);
     }
   };
 
@@ -384,20 +414,43 @@ export default function ClientsPage() {
                         title={`Programa: ${programs.find(p => p.id === selectedProg)?.name}`}
                         validCount={userStats.program_valid_count}
                         totalCashback={userStats.program_total_cashback}
-                      />
-
-                      {/* saldo da carteira */}
-                      {walletLoading ? (
-                        <p>Carregando saldo do cliente…</p>
-                      ) : userWallet ? (
-                        <div className={styles.stats}>
-                          <h5 className={styles.titleStats}>Saldo na carteira</h5>
-                          <p><strong>R$ {Number(userWallet.balance).toFixed(2)}</strong></p>
-
-                        </div>
-                      ) : null}
+                      />                      
                     </>
                   ) : null}
+
+                  {/* saldo da carteira */}
+                  <div className={styles.walletCard}>
+                    {walletLoading ? (
+                      <p className={styles.loadingText}>Carregando saldo do cliente…</p>
+                    ) : userWallet ? (
+                      <>
+                        <div className={styles.header}>
+                          <h5 className={styles.titleWallet}>Saldo na carteira</h5>
+                          <span className={styles.balance}>R$ {Number(userWallet.balance).toFixed(2)}</span>
+                        </div>
+
+                        <div className={styles.withdrawSection}>
+                          <input
+                            type="number"
+                            placeholder="Valor a debitar"
+                            value={withdrawAmount}
+                            onChange={e => setWithdrawAmount(e.target.value)}
+                            className={styles.withdrawInput}
+                            disabled={withdrawLoading}
+                          />
+                          <button
+                            onClick={handleWithdraw}
+                            disabled={withdrawLoading}
+                            className={styles.withdrawBtn}
+                          >
+                            {withdrawLoading ? 'Processando…' : 'Debitar'}
+                          </button>
+                        </div>
+
+                        {withdrawError && <p className={styles.errorText}>{withdrawError}</p>}
+                      </>
+                    ) : null}
+                  </div>
                 </>
               )}
             </div>

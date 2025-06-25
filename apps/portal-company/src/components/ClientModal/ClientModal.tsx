@@ -6,7 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { preRegister, checkPreRegistered } from '@/services/userService';
 import { getCashbackPrograms } from '@/services/cashbackProgramService';
 import { assignCashback } from '@/services/cashbackService';
-import { getUserWallet } from '@/services/walletService';
+import { getUserWallet, withdrawUserWallet } from '@/services/walletService';
 import type { LeadCreate, UserRead } from '@/types/user';
 import type { CashbackProgramRead } from '@/types/cashbackProgram';
 import type { UserWalletRead } from '@/types/wallet';
@@ -25,35 +25,37 @@ export default function ClientModal({ onClose }: ClientModalProps) {
   const { user: company } = useAuth();
   const companyId = company?.id ?? '';
 
-  // Passo 1: pré-cadastro
+  // estado de pré-cadastro
   const [phone, setPhone] = useState('');
   const [cpf, setCpf] = useState('');
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState<{ type: string; message: string } | null>(null);
-
   const [client, setClient] = useState<UserRead | null>(null);
 
-  // Passo 2: listagem programas
+  // programas
   const [programs, setPrograms] = useState<CashbackProgramRead[]>([]);
   const [progLoading, setProgLoading] = useState(false);
-
-  // Passo 3: associação
   const [selectedProg, setSelectedProg] = useState<string>('');
-  const [amount, setAmount] = useState('');
+
+  // associações
+  const [assocAmount, setAssocAmount] = useState('');
   const [assocNotification, setAssocNotification] = useState<{ type: string; message: string } | null>(null);
 
-  // Estatísticas
+  // estatísticas
   const [userStats, setUserStats] = useState<UserProgramStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
 
-  // Carteira do usuário
+  // carteira
   const [userWallet, setUserWallet] = useState<UserWalletRead | null>(null);
   const [walletLoading, setWalletLoading] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [withdrawLoading, setWithdrawLoading] = useState(false);
+  const [withdrawError, setWithdrawError] = useState<string | null>(null);
 
+  // 1) Pré-cadastro
   const handlePre = async (e: FormEvent) => {
     e.preventDefault();
     setNotification(null);
-
     if (!companyId) {
       setNotification({ type: 'error', message: 'Empresa não autenticada.' });
       return;
@@ -64,24 +66,16 @@ export default function ClientModal({ onClose }: ClientModalProps) {
       setNotification({ type: 'error', message: 'Informe Telefone ou CPF.' });
       return;
     }
-
     setLoading(true);
-    const params: LeadCreate = {
-      company_id: companyId,
-      phone: rawPhone || undefined,
-      cpf: rawCpf || undefined,
-    };
-
+    const params: LeadCreate = { company_id: companyId, phone: rawPhone || undefined, cpf: rawCpf || undefined };
     try {
-      // tenta verificar pré-cadastro existente
-      const resCheck = await checkPreRegistered(params);
-      setClient(resCheck.data);
+      const res = await checkPreRegistered(params);
+      setClient(res.data);
       setNotification({ type: 'info', message: 'Cliente pré-registrado encontrado.' });
     } catch (err: any) {
       if (err.response?.status === 404) {
-        // não existe: cria novo lead
-        const resPre = await preRegister(params);
-        setClient(resPre.data);
+        const res = await preRegister(params);
+        setClient(res.data);
         setNotification({ type: 'success', message: 'Cliente pré-registrado com sucesso!' });
       } else {
         setNotification({ type: 'error', message: err.response?.data?.detail || 'Erro no pré-cadastro.' });
@@ -91,53 +85,82 @@ export default function ClientModal({ onClose }: ClientModalProps) {
     }
   };
 
-  // 2) buscar programas
+  // 2) Quando cliente é definido, busca programas e carteira
   useEffect(() => {
     if (!client) return;
+    // programas
     setProgLoading(true);
     getCashbackPrograms()
       .then(r => setPrograms(r.data))
       .catch(console.error)
       .finally(() => setProgLoading(false));
+
+    // carteira
+    setWalletLoading(true);
+    getUserWallet(client.id)
+      .then(r => setUserWallet(r.data))
+      .catch(console.error)
+      .finally(() => setWalletLoading(false));
   }, [client]);
 
-  // 3) buscar estatísticas e carteira
+  // auto-seleciona o primeiro programa
+  useEffect(() => {
+    if (programs.length > 0 && !selectedProg) {
+      setSelectedProg(programs[0].id);
+    }
+  }, [programs, selectedProg]);
+
+  // 3) Quando muda o programa ou cliente, busca estatísticas
   useEffect(() => {
     if (!client?.id) {
       setUserStats(null);
-      setUserWallet(null);
       return;
     }
-    // stats do programa
     if (selectedProg) {
       setStatsLoading(true);
       getUserProgramStats(selectedProg, client.id)
-        .then(res => setUserStats(res.data))
+        .then(r => setUserStats(r.data))
         .catch(console.error)
         .finally(() => setStatsLoading(false));
-    } else {
-      setUserStats(null);
     }
-
-    // carteira do usuário
-    setWalletLoading(true);
-    getUserWallet(client.id)
-      .then(res => setUserWallet(res.data))
-      .catch(console.error)
-      .finally(() => setWalletLoading(false));
   }, [client, selectedProg]);
 
+  // 4) Associar cashback
   const handleAssociate = async () => {
     setAssocNotification(null);
-    if (!client?.id || !selectedProg || !amount) {
-      setAssocNotification({ type: 'error', message: 'Escolha programa e informe valor gasto.' });
+    const value = parseFloat(assocAmount.replace(',', '.'));
+    if (!client?.id || !selectedProg || isNaN(value) || value <= 0) {
+      setAssocNotification({ type: 'error', message: 'Informe um valor de gasto válido e programa.' });
       return;
     }
     try {
-      await assignCashback(client.id, { program_id: selectedProg, amount_spent: parseFloat(amount) });
-      setAssocNotification({ type: 'success', message: 'Cashback associado com sucesso!' });
+      await assignCashback(client.id, { program_id: selectedProg, amount_spent: value });
+      setAssocNotification({ type: 'success', message: 'Cashback associado!' });
+      setAssocAmount('');
+      // opcional: re-fetch de estatísticas ou carteira aqui...
     } catch (err: any) {
       setAssocNotification({ type: 'error', message: err.response?.data?.detail || 'Erro ao associar.' });
+    }
+  };
+
+  // 5) Debitar da carteira
+  const handleWithdraw = async () => {
+    if (!client) return;
+    const value = parseFloat(withdrawAmount.replace(',', '.'));
+    if (isNaN(value) || value <= 0) {
+      setWithdrawError('Informe um valor válido.');
+      return;
+    }
+    setWithdrawLoading(true);
+    setWithdrawError(null);
+    try {
+      const res = await withdrawUserWallet(client.id, { amount: value });
+      setUserWallet(res.data);
+      setWithdrawAmount('');
+    } catch (err: any) {
+      setWithdrawError(err.response?.data?.detail || 'Erro ao debitar.');
+    } finally {
+      setWithdrawLoading(false);
     }
   };
 
@@ -146,33 +169,13 @@ export default function ClientModal({ onClose }: ClientModalProps) {
     return (
       <form className={styles.form} onSubmit={handlePre}>
         <h2 className={styles.title}>Pré-cadastrar Cliente</h2>
-        {notification && (
-          <Notification type={notification.type as any} message={notification.message} onClose={() => setNotification(null)} />
-        )}
-        <FloatingLabelInput
-          id="client-phone"
-          name="phone"
-          label="Telefone"
-          type="text"
-          value={phone}
-          onChange={e => setPhone(e.target.value)}
-        />
+        {notification && <Notification type={notification.type as any} message={notification.message} onClose={() => setNotification(null)} />}
+        <FloatingLabelInput id="client-phone" name="phone" label="Telefone" type="text" value={phone} onChange={e => setPhone(e.target.value)} />
         <div className={styles.separator}>e/ou</div>
-        <FloatingLabelInput
-          id="client-cpf"
-          name="cpf"
-          label="CPF"
-          type="text"
-          value={cpf}
-          onChange={e => setCpf(e.target.value)}
-        />
+        <FloatingLabelInput id="client-cpf" name="cpf" label="CPF" type="text" value={cpf} onChange={e => setCpf(e.target.value)} />
         <div className={styles.actions}>
-          <Button type="submit" disabled={loading}>
-            {loading ? 'Processando...' : 'OK'}
-          </Button>
-          <Button bgColor="#AAA" onClick={onClose}>
-            Cancelar
-          </Button>
+          <Button type="submit" disabled={loading}>{loading ? 'Processando…' : 'OK'}</Button>
+          <Button bgColor="#AAA" onClick={onClose}>Cancelar</Button>
         </div>
       </form>
     );
@@ -181,9 +184,6 @@ export default function ClientModal({ onClose }: ClientModalProps) {
   return (
     <div className={styles.form}>
       <h2 className={styles.title}>Visão do Cliente</h2>
-      {assocNotification && (
-        <Notification type={assocNotification.type as any} message={assocNotification.message} onClose={() => setAssocNotification(null)} />
-      )}
 
       <div className={styles.userInfo}>
         <p><strong>Nome:</strong> {client.name}</p>
@@ -192,51 +192,74 @@ export default function ClientModal({ onClose }: ClientModalProps) {
         <p><strong>CPF:</strong> {client.cpf}</p>
       </div>
 
-      {/* estatísticas e carteira */}
-      {progLoading ? (
-        <p>Carregando programas...</p>
-      ) : (
-        <>
-          <label className={styles.label}>Programa</label>
-          <select className={styles.select} value={selectedProg} onChange={e => setSelectedProg(e.target.value)}>
-            <option value="">-- escolha --</option>
-            {programs.map(p => (
-              <option key={p.id} value={p.id}>
-                {p.name} ({p.percent}%)
-              </option>
-            ))}
-          </select>
+      {/* === Associação de Cashback === */}
+      <div className={styles.section}>
+        <h3 className={styles.sectionTitle}>Associar Cashback</h3>
 
-          {statsLoading ? (
-            <p>Carregando estatísticas...</p>
-          ) : userStats ? (
-            <div className={styles.stats}>
-              <h5>Todos os programas</h5>
-              <p><strong>Usos válidos:</strong> {userStats.company_valid_count}</p>
-              <p><strong>Total cashback:</strong> R$ {userStats.company_total_cashback.toFixed(2)}</p>
+        {progLoading ? (
+          <p>Carregando programas…</p>
+        ) : (
+          <>
+            <label className={styles.label}>Programa</label>
+            <select className={styles.select} value={selectedProg} onChange={e => setSelectedProg(e.target.value)}>
+              {programs.map(p => (
+                <option key={p.id} value={p.id}>{p.name} ({p.percent}%)</option>
+              ))}
+            </select>
+
+            <FloatingLabelInput
+              id="assoc-amount"
+              name="assocAmount"
+              label="Valor gasto"
+              type="number"
+              value={assocAmount}
+              onChange={e => setAssocAmount(e.target.value)}
+            />
+
+            <div className={styles.actions}>
+              <Button onClick={handleAssociate}>Associar Cashback</Button>
             </div>
-          ) : null}
+            {assocNotification && <Notification type={assocNotification.type as any} message={assocNotification.message} onClose={() => setAssocNotification(null)} />}
+          </>
+        )}
+      </div>
 
-          {statsLoading ? null : userStats ? (
-            <div className={styles.stats}>
-              <h5>Para esse programa</h5>
-              <p><strong>Usos válidos:</strong> {userStats.program_valid_count}</p>
-              <p><strong>Total cashback:</strong> R$ {userStats.program_total_cashback.toFixed(2)}</p>
+      {/* === Carteira do Usuário === */}
+      <div className={styles.walletCard}>
+        <h3 className={styles.sectionTitle}>Carteira</h3>
+
+        {walletLoading ? (
+          <p>Carregando saldo…</p>
+        ) : userWallet ? (
+          <>
+            <div className={styles.balanceRow}>
+              <span>Saldo Atual:</span>
+              <strong>R$ {Number(userWallet.balance).toFixed(2)}</strong>
             </div>
-          ) : null}
 
-          {walletLoading ? (
-            <p>Carregando carteira...</p>
-          ) : userWallet ? (
-            <div className={styles.stats}>
-              <h5 className={styles.titleStats}>Saldo do Cliente</h5>
-              <p><strong>R$ {Number(userWallet.balance).toFixed(2)}</strong></p>
+            <FloatingLabelInput
+              id="withdraw-amount"
+              name="withdrawAmount"
+              label="Valor a debitar"
+              type="number"
+              value={withdrawAmount}
+              onChange={e => setWithdrawAmount(e.target.value)}
+              disabled={withdrawLoading}
+            />
+
+            <div className={styles.actions}>
+              <Button onClick={handleWithdraw} disabled={withdrawLoading}>
+                {withdrawLoading ? 'Processando…' : 'Debitar'}
+              </Button>
             </div>
-          ) : null}
-        </>
-      )}
+            {withdrawError && <Notification type="error" message={withdrawError} onClose={() => setWithdrawError(null)} />}
+          </>
+        ) : null}
+      </div>
 
-
+      <div className={styles.actions}>
+        <Button bgColor="#AAA" onClick={onClose}>Fechar</Button>
+      </div>
     </div>
   );
 }
