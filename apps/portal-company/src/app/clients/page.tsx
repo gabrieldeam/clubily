@@ -1,17 +1,20 @@
 // src/app/clients/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import Header from '@/components/Header/Header';
 import Modal from '@/components/Modal/Modal';
 import ClientModal from '@/components/ClientModal/ClientModal';
-import ViewClientModal from '@/components/ViewClientModal/ViewClientModal';
+import { checkPreRegistered } from '@/services/userService';
+import type { CheckPreRegisteredParams } from '@/types/user';
 import UserStatsCard from '@/components/UserStatsCard/UserStatsCard';
 import { getCashbackPrograms, getUserProgramStats } from '@/services/cashbackProgramService';
 import { listCompanyClients } from '@/services/companyService';
+import { getUserWallet } from '@/services/walletService';
 import type { UserRead } from '@/types/user';
+import type { UserWalletRead } from '@/types/wallet';
 import type { CashbackProgramRead, UserProgramStats } from '@/types/cashbackProgram';
 import styles from './page.module.css';
 
@@ -32,13 +35,22 @@ export default function ClientsPage() {
 
   // modo de visualização: 'list' ou 'card'
   const [viewMode, setViewMode] = useState<'list' | 'card'>('list');
-  const [searchModalOpen, setSearchModalOpen] = useState(false);
 
   const [programs, setPrograms] = useState<CashbackProgramRead[]>([]);
   const [progLoading, setProgLoading] = useState(false);
   const [selectedProg, setSelectedProg] = useState<string>('');
   const [userStats, setUserStats] = useState<UserProgramStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
+
+  // ** pesquisa **
+  const [searchBy, setSearchBy] = useState<'cpf' | 'phone'>('cpf');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+
+  // carteira do usuário
+  const [userWallet, setUserWallet] = useState<UserWalletRead | null>(null);
+  const [walletLoading, setWalletLoading] = useState(false);
 
   // detecta mobile
   const [isMobile, setIsMobile] = useState(false);
@@ -71,11 +83,19 @@ export default function ClientsPage() {
 
   useEffect(() => {
     if (!selectedClient) return;
+    // programas
     setProgLoading(true);
     getCashbackPrograms()
       .then(r => setPrograms(r.data))
       .catch(console.error)
       .finally(() => setProgLoading(false));
+
+    // carteira
+    setWalletLoading(true);
+    getUserWallet(selectedClient.id)
+      .then(r => setUserWallet(r.data))
+      .catch(console.error)
+      .finally(() => setWalletLoading(false));
   }, [selectedClient]);
 
   // when selectedProg changes, fetch stats
@@ -90,6 +110,41 @@ export default function ClientsPage() {
       .catch(console.error)
       .finally(() => setStatsLoading(false));
   }, [selectedProg, selectedClient]);
+
+  const handleSearch = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    const raw = searchTerm.replace(/\D/g, '');
+    if (!raw) {
+      setSearchError(`Informe um ${searchBy === 'phone' ? 'telefone' : 'CPF'}.`);
+      return;
+    }
+
+    setSearchLoading(true);
+    setSearchError(null);
+
+    // use a interface correta aqui
+    const params: CheckPreRegisteredParams = {
+      company_id: user.id,
+      // preencha apenas o campo correspondente
+      ...(searchBy === 'phone' ? { phone: raw } : { cpf: raw }),
+    };
+
+    try {
+      const res = await checkPreRegistered(params);
+      setSelectedClient(res.data);
+      setOpenModal(true);
+    } catch (err: any) {
+      if (err.response?.status === 404) {
+        setSearchError('Cliente não encontrado.');
+      } else {
+        setSearchError('Erro ao buscar cliente.');
+      }
+    } finally {
+      setSearchLoading(false);
+    }
+  };
 
   if (loading) return <div className={styles.container}>Carregando perfil...</div>;
   if (!user) return null;
@@ -117,26 +172,81 @@ export default function ClientsPage() {
   };
 
   return (
-    <div className={styles.container}>
-      <Header />
+    <>
+    <Header />
+    <div className={styles.container}>     
 
       <main className={styles.main}>
         <div className={styles.headerRow}>
           <h2>Meus Clientes</h2>
-          <div className={styles.actionsHeader}>
+          <div className={styles.actionsHeader}>            
+            {!isMobile && (
+              <form onSubmit={handleSearch}>
+              <div className={styles.searchGroup}>
+                <select
+                  value={searchBy}
+                  onChange={e => setSearchBy(e.target.value as 'phone' | 'cpf')}
+                  className={styles.searchSelect}
+                >
+                  <option value="phone">Telefone</option>
+                  <option value="cpf">CPF</option>
+                </select>
+                <input
+                  type="text"
+                  placeholder={searchBy === 'phone' ? 'Digite o telefone' : 'Digite o CPF'}
+                  className={styles.searchInput}
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                />
+                <button type="submit" disabled={searchLoading} className={styles.searchBtn}>
+                  Buscar
+                </button>
+              </div>
+              {searchLoading && <div className={styles.loadingOverlay}>Buscando…</div>}
+              {searchError && <p className={styles.searchError}>{searchError}</p>}
+            </form>
+            )}
+
+            <button className={styles.addBtn} onClick={openAddModal}>
+              Adicionar Cliente
+            </button>
             {!isMobile && (
               <button
                 className={styles.viewToggleBtn}
                 onClick={() => setViewModalOpen(true)}
               >
-                Mudar Visualização
+                ⋮
               </button>
             )}
-            <button className={styles.addBtn} onClick={openAddModal}>
-              Adicionar Cliente
-            </button>
           </div>
         </div>
+
+        {isMobile && (
+          <form onSubmit={handleSearch}>
+            <div className={styles.searchGroup}>
+              <select
+                value={searchBy}
+                onChange={e => setSearchBy(e.target.value as 'phone' | 'cpf')}
+                className={styles.searchSelect}
+              >
+                <option value="phone">Telefone</option>
+                <option value="cpf">CPF</option>
+              </select>
+              <input
+                type="text"
+                placeholder={searchBy === 'phone' ? 'Digite o telefone' : 'Digite o CPF'}
+                className={styles.searchInput}
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+              />
+              <button type="submit" disabled={searchLoading} className={styles.searchBtn}>
+                Buscar
+              </button>
+            </div>
+            {searchLoading && <div className={styles.loadingOverlay}>Buscando…</div>}
+            {searchError && <p className={styles.searchError}>{searchError}</p>}
+          </form>
+        )}
 
         {loadingClients ? (
           <p className={styles.loading}>Carregando clientes...</p>
@@ -230,30 +340,20 @@ export default function ClientsPage() {
       </main>
 
       {/* Modal de detalhes / edição */}
-      <Modal open={openModal} onClose={() => setOpenModal(false)}>
-        {selectedClient ? (
-          <div className={styles.modalContent}>
-            <h2 className={styles.title}>Dados do Cliente</h2>
-            <div className={styles.userInfo}>
-              <p>
-                <strong>Nome:</strong>{' '}
-                {selectedClient.pre_registered ? '*****' : selectedClient.name}
-              </p>
-              <p>
-                <strong>E-mail:</strong>{' '}
-                {selectedClient.pre_registered ? '*****' : selectedClient.email}
-              </p>
-              <p>
-                <strong>Telefone:</strong> {formatPhoneDisplay(selectedClient)}
-              </p>
-              <p>
-                <strong>CPF:</strong> {formatCpfDisplay(selectedClient)}
-              </p>
-            </div>
+        <Modal open={openModal} onClose={() => setOpenModal(false)}>
+          {selectedClient ? (
+            <div className={styles.modalContent}>
+              <h2 className={styles.title}>Dados do Cliente</h2>
+              <div className={styles.userInfo}>
+                <p><strong>Nome:</strong> {selectedClient.pre_registered ? '*****' : selectedClient.name}</p>
+                <p><strong>E-mail:</strong> {selectedClient.pre_registered ? '*****' : selectedClient.email}</p>
+                <p><strong>Telefone:</strong> {formatPhoneDisplay(selectedClient)}</p>
+                <p><strong>CPF:</strong> {formatCpfDisplay(selectedClient)}</p>
+              </div>
 
-            {/* estatísticas do usuário */}
+              {/* estatísticas */}
               {progLoading ? (
-                <p>Carregando programas...</p>
+                <p>Carregando programas…</p>
               ) : (
                 <>
                   <label htmlFor="stats-program" className={styles.label}>
@@ -267,14 +367,12 @@ export default function ClientsPage() {
                   >
                     <option value="">-- nenhum --</option>
                     {programs.map(p => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
+                      <option key={p.id} value={p.id}>{p.name}</option>
                     ))}
                   </select>
 
                   {statsLoading ? (
-                    <p>Carregando estatísticas...</p>
+                    <p>Carregando estatísticas…</p>
                   ) : userStats && selectedProg ? (
                     <>
                       <UserStatsCard
@@ -287,16 +385,26 @@ export default function ClientsPage() {
                         validCount={userStats.program_valid_count}
                         totalCashback={userStats.program_total_cashback}
                       />
+
+                      {/* saldo da carteira */}
+                      {walletLoading ? (
+                        <p>Carregando saldo do cliente…</p>
+                      ) : userWallet ? (
+                        <div className={styles.stats}>
+                          <h5 className={styles.titleStats}>Saldo na carteira</h5>
+                          <p><strong>R$ {Number(userWallet.balance).toFixed(2)}</strong></p>
+
+                        </div>
+                      ) : null}
                     </>
                   ) : null}
                 </>
               )}
-
-          </div>
-        ) : (
-          <ClientModal onClose={() => setOpenModal(false)} />
-        )}
-      </Modal>
+            </div>
+          ) : (
+            <ClientModal onClose={() => setOpenModal(false)} />
+          )}
+        </Modal>
 
       {/* Modal de escolha de visualização */}
       <Modal open={viewModalOpen} onClose={() => setViewModalOpen(false)}>
@@ -323,14 +431,8 @@ export default function ClientsPage() {
         </div>
       </Modal>
 
-      <Modal open={openModal} onClose={() => setOpenModal(false)}>
-        {selectedClient && (
-          <ViewClientModal
-            client={selectedClient}
-            onClose={() => setOpenModal(false)}
-          />
-        )}
-      </Modal>
     </div>
+    </>
+    
   );
 }

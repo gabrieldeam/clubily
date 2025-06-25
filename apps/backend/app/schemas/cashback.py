@@ -26,11 +26,6 @@ class CashbackRead(CashbackBase):
 
     model_config = ConfigDict(from_attributes=True)
 
-class CashbackSummary(BaseModel):
-    total_balance: float
-    next_expiration: Optional[datetime] = None
-
-    model_config = ConfigDict()
 
 class UserCashbackCompany(BaseModel):
     company_id: UUID

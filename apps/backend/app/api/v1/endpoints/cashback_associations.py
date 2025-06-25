@@ -5,8 +5,8 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, Path
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.api.deps import get_db, get_current_company, get_current_user
-from app.schemas.cashback import CashbackCreate, CashbackRead, CashbackSummary, UserCashbackCompany, PaginatedCashbacks
-from app.services.cashback_service import assign_cashback, get_cashbacks_by_user, get_cashbacks_by_user, get_cashback_summary, get_companies_with_cashback, get_cashbacks_by_user_and_company
+from app.schemas.cashback import CashbackCreate, CashbackRead, UserCashbackCompany, PaginatedCashbacks
+from app.services.cashback_service import assign_cashback, get_cashbacks_by_user, get_companies_with_cashback, get_cashbacks_by_user_and_company
 from app.models.cashback_program import CashbackProgram
 from app.models.cashback import Cashback
 
@@ -66,19 +66,6 @@ def read_cashbacks(
         limit=limit,
         items=items,
     )
-
-
-@router.get(
-    "/summary",
-    response_model=CashbackSummary,
-    summary="Resumo de todos os cashbacks: total e próxima expiração"
-)
-def read_cashback_summary(
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
-):
-    user_id = str(current_user.id)
-    return get_cashback_summary(db, user_id)
 
 
 @router.get(

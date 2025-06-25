@@ -4,7 +4,6 @@
  * Parâmetros para criar uma cobrança
  */
 export interface CompanyPaymentCreate {
-  /** Valor da cobrança (>= 25) */
   amount: number;
 }
 
@@ -28,8 +27,8 @@ export interface CompanyPaymentRead {
   pix_copy_paste_code: string;
   pix_expires_at: string;
   status: PaymentStatus;
-  created_at: string; // ISO date
-  updated_at: string; // ISO date
+  created_at: string;
+  updated_at: string;
 }
 
 /**
@@ -44,13 +43,9 @@ export interface PaginatedPayments {
 
 
 export interface AsaasCustomerCreate {
-  /** Nome da empresa */
   name: string;
-  /** E-mail para cobrança */
   email: string;
-  /** CPF ou CNPJ */
   cpfCnpj: string;
-  /** Telefone (opcional) */
   phone?: string;
 }
 
@@ -58,6 +53,5 @@ export interface AsaasCustomerCreate {
  * Resposta da criação do customer Asaas
  */
 export interface CompanyAsaasCustomerRead {
-  /** ID do customer criado no Asaas */
   customer_id: string;
 }

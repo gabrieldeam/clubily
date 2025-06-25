@@ -111,9 +111,9 @@ export default function CategoryPage() {
   if (!cat) return <p>Categoria não encontrada.</p>;
 
   return (
-    <div>
-      <Header onSearch={q => router.push(`/search?name=${encodeURIComponent(q)}`)} />
-
+    <>
+    <Header onSearch={q => router.push(`/search?name=${encodeURIComponent(q)}`)} />
+    <div className={styles.container}>
       {/* Cabeçalho da categoria */}
       <div className={styles.gridItem}>
         <div>
@@ -165,5 +165,6 @@ export default function CategoryPage() {
         </div>
       </section>
     </div>
+    </>
   );
 }

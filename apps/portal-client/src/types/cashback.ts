@@ -24,11 +24,6 @@ export interface CashbackRead extends CashbackBase {
   company_logo_url?: string;
 }
 
-export interface CashbackSummary {
-  total_balance: number;
-  next_expiration?: string; // ISO date string ou undefined
-}
-
 export interface UserCashbackCompany {
   company_id: string;
   name: string;

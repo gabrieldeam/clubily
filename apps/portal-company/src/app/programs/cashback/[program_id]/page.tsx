@@ -88,32 +88,45 @@ export default function ProgramDetailPage() {
   }
 
   return (
-    <div className={styles.page}>
-      <Header />
+    <>
+    <Header />
+    <div className={styles.container}>
       <main className={styles.main}>
         <section className={styles.header}>
           <h1>{program.name}</h1>
           <div className={styles.metrics}>
             <div>
-              <span>Total Cashback:</span>
+              <span>Total Cashback</span>
               <strong>R$ {usage.total_cashback_value.toFixed(2)}</strong>
             </div>
             <div>
-              <span>Uso:</span>
+              <span>Uso</span>
               <strong>{usage.usage_count}</strong>
             </div>
             <div>
-              <span>Média Gasto:</span>
+              <span>Média Gasto</span>
               <strong>R$ {usage.average_amount_spent.toFixed(2)}</strong>
+            </div>
+            <div>
+              <span>Usuários Únicos</span>
+              <strong>{usage.unique_user_count.toFixed(2)}</strong>
+            </div>
+            <div>
+              <span>Média Uso por Usuário</span>
+              <strong>{usage.average_uses_per_user.toFixed(2)}</strong>
+            </div>
+            <div>
+              <span>Médias em Dias de Intervalo</span>
+              <strong>{usage.average_interval_days.toFixed(2)}</strong>
             </div>
           </div>
           <div className={styles.props}>
-            <div><strong>Percentual:</strong> {program.percent}%</div>
+            <div><strong>Percentual</strong> {program.percent}%</div>
             <div>
-              <strong>Validade:</strong> {program.validity_days} dia{program.validity_days > 1 ? 's' : ''}
+              <strong>Validade</strong> {program.validity_days} dia{program.validity_days > 1 ? 's' : ''}
             </div>
-            <div><strong>Status:</strong> {program.is_active ? 'Ativo' : 'Inativo'}</div>
-            <div><strong>Visível:</strong> {program.is_visible ? 'Sim' : 'Não'}</div>
+            <div><strong>Status</strong> {program.is_active ? 'Ativo' : 'Inativo'}</div>
+            <div><strong>Visível</strong> {program.is_visible ? 'Sim' : 'Não'}</div>
           </div>
         </section>
 
@@ -126,7 +139,7 @@ export default function ProgramDetailPage() {
                 className={styles.viewToggleBtn}
                 onClick={() => setViewModalOpen(true)}
               >
-                Mudar Visualização
+                ⋮
               </button>
             )}
           </div>
@@ -197,5 +210,6 @@ export default function ProgramDetailPage() {
         </Modal>
       </main>
     </div>
+    </>    
   );
 }

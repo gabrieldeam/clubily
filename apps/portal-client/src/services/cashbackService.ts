@@ -3,7 +3,6 @@
 import api from './api';
 import type {
   CashbackRead,
-  CashbackSummary,
   UserCashbackCompany,
   PaginatedCashbacks,
   PaginatedCashbackCompanies
@@ -21,13 +20,6 @@ export const listCashbacks = (
   api.get<PaginatedCashbacks>(`/cashbacks`, {
     params: { skip, limit },
   });
-
-/**
- * Resumo de saldo de cashback do usuário.
- * GET /users/{user_id}/cashbacks/summary
- */
-export const getCashbackSummary = () =>
-  api.get<CashbackSummary>(`/cashbacks/summary`);
 
 /**
  * Lista as empresas para as quais o usuário tem cashback (paginado).

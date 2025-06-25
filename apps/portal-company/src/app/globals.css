@@ -73,3 +73,12 @@ video {
   max-width: 100%;
   height: auto;
 }
+
+
+:root {
+  --clr-bg: #ffffff;
+  --clr-panel: #f5f7fa;
+  --clr-border: #e0e3e8;
+  --clr-text: #333333;
+  --clr-text-light: #666666;
+}

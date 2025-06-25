@@ -62,3 +62,7 @@ class User(Base):
     referral_code = Column(String(10), unique=True, nullable=True, index=True)
     # indicações resgatadas a partir deste usuário
     referrals = relationship("Referral", back_populates="user", cascade="all, delete-orphan")
+
+    cashback_wallets = relationship(
+        "UserCashbackWallet", back_populates="user", cascade="all, delete-orphan"
+    )

@@ -41,47 +41,50 @@ export default function Header({
         </Link>
       </div>
 
-      <div className={styles.creditProfile}>
-        {/* Seção de Créditos + Comprar */}
-      <div className={styles.creditSection}>
-        {loading ? (
-          <span className={styles.creditLoading}>...</span>
-        ) : (
-          <span className={styles.creditText}>
-            Créditos: R$ {balance.toFixed(2)}
-          </span>
-        )}
-        <Link href="/credits" className={styles.buyLink}>
-          Comprar
-        </Link>
-      </div>
 
-      {/* Botão Minha Conta */}
-      {onAccountClick ? (
-        <button
-          type="button"
-          className={accountButtonClass}
-          onClick={onAccountClick}
-        >
-          <Image
-            src="/user.svg"
-            alt="Minha conta"
-            width={24}
-            height={24}
-          />
-          <span>Minha Conta</span>
-        </button>
-      ) : (
-        <Link href="/profile" className={accountButtonClass}>
-          <Image
-            src="/user.svg"
-            alt="Minha conta"
-            width={24}
-            height={24}
-          />
-          <span>Minha Conta</span>
-        </Link>
-      )}
+      <div className={styles.creditProfile}>
+
+        <Link href="/credits">
+          <div className={styles.creditSection}>
+            {loading ? (
+              <span className={styles.creditLoading}>...</span>
+            ) : (
+              <span className={styles.creditText}>
+                Créditos: R$ {balance.toFixed(2)}
+              </span>
+            )}
+            <button className={styles.buyLink}>
+              Comprar
+            </button>
+          </div>
+        </Link>        
+
+        {/* Botão Minha Conta */}
+        {onAccountClick ? (
+          <button
+            type="button"
+            className={accountButtonClass}
+            onClick={onAccountClick}
+          >
+            <Image
+              src="/user.svg"
+              alt="Minha conta"
+              width={24}
+              height={24}
+            />
+            <span>Minha Conta</span>
+          </button>
+        ) : (
+          <Link href="/profile" className={accountButtonClass}>
+            <Image
+              src="/user.svg"
+              alt="Minha conta"
+              width={24}
+              height={24}
+            />
+            <span>Minha Conta</span>
+          </Link>
+        )}
       </div>
     </header>
   );

@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import Header from '@/components/Header/Header';
@@ -92,9 +92,9 @@ export default function CategoriesPage() {
   const baseUrl = process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL ?? '';
 
   return (
+    <>
+    <Header onSearch={q => router.push(`/search?name=${encodeURIComponent(q)}`)} />
     <div className={styles.container}>
-      <Header onSearch={q => router.push(`/search?name=${encodeURIComponent(q)}`)} />
-
       <main className={styles.gridContainer}>
         {cats.map(cat => (
           <div key={cat.id} className={styles.gridItem}>
@@ -117,5 +117,6 @@ export default function CategoriesPage() {
         ))}
       </main>
     </div>
+    </>
   );
 }
