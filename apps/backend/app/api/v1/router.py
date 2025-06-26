@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 from .endpoints import auth, cashback_metrics, users
-from .endpoints import auth, users, companies, categories, addresses, cashback_associations, cashback_programs, asaas_webhook, company_payments, admin_payments, asaas_customer, wallet
+from .endpoints import auth, users, companies, categories, addresses, cashback_associations, cashback_programs, asaas_webhook, company_payments, admin_payments, asaas_customer, wallet, fee_settings
 
 router = APIRouter()
 router.include_router(auth.router, prefix="/auth", tags=["auth"])
@@ -18,3 +18,4 @@ router.include_router(admin_payments.router, prefix="/admin", tags=["admin_payme
 router.include_router(asaas_customer.router, tags=["asaas_customer"])
 router.include_router(wallet.router, prefix="/wallet", tags=["wallet"])
 router.include_router(cashback_metrics.router, prefix="/cashback-metrics", tags=["metrics"])
+router.include_router(fee_settings.router, prefix="/admin/fee-settings", tags=["fee_settings"])

@@ -3,30 +3,20 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { getWallet } from '@/services/walletService';
+import { useWallet } from '@/context/WalletContext';
 import styles from './Header.module.css';
 
 interface HeaderProps {
-  /** Callback opcional para clique em 'Minha Conta' */
   onAccountClick?: () => void;
 }
 
 export default function Header({
   onAccountClick,
 }: HeaderProps) {
-  const [balance, setBalance] = useState<number>(0);
-  const [loading, setLoading] = useState(true);
   const pathname = usePathname();
   const isProfile = pathname === '/profile';
-
-  useEffect(() => {
-    getWallet()
-      .then(res => setBalance(Number(res.data.balance)))
-      .catch(() => setBalance(0))
-      .finally(() => setLoading(false));
-  }, []);
+  const { balance, loading } = useWallet();
 
   const accountButtonClass = isProfile
     ? `${styles.accountButton} ${styles.accountButtonActive}`

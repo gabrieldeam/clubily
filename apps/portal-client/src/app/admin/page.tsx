@@ -1,53 +1,64 @@
+// app/admin/page.tsx
 'use client';
 
 import { useEffect } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import styles from './page.module.css';
+import {
+  Store,
+  Tag,
+  User,
+  ShoppingCart,
+  LifeBuoy,
+  CreditCard,
+  Award,
+  Gift,
+  UserCheck,
+} from 'lucide-react';
 
-export default function AdminPage() {
+const navItems = [
+  { label: 'Empresas', href: '/admin/companies', icon: Store },
+  { label: 'Categorias', href: '/admin/categories', icon: Tag },
+  { label: 'Usuários', href: '/admin/usuarios', icon: User },
+  { label: 'Compras', href: '/admin/compras', icon: ShoppingCart },
+  { label: 'Suportes', href: '/admin/suportes', icon: LifeBuoy },
+  { label: 'Cashback', href: '/admin/programas/cashback', icon: CreditCard },
+  { label: 'Pontos', href: '/admin/programas/pontos', icon: Award },
+  { label: 'Cartão Fidelidade', href: '/admin/programas/cartao-fidelidade', icon: Gift },
+  { label: 'Representantes', href: '/admin/representantes', icon: UserCheck },
+];
+
+export default function AdminWelcomePage() {
   const { user, loading, isAdmin } = useAuth();
   const router = useRouter();
 
-  // Se já carregou e não é admin, redireciona pra home
   useEffect(() => {
     if (!loading && !isAdmin) {
       router.replace('/');
     }
   }, [loading, isAdmin, router]);
 
-  if (loading) {
-    return <p className={styles.loading}>Carregando...</p>;
-  }
-
-  if (!isAdmin) {
-    // enquanto faz o replace não renderiza nada
-    return null;
-  }
-
- const goToCategories = async () => {
-  await router.push('/admin/categories');
-};
-
- const goToCompanies = async () => {
-  await router.push('/admin/companies');
-};
+  if (loading) return <p className={styles.loading}>Carregando...</p>;
+  if (!isAdmin) return null;
 
   return (
-    <div className={styles.container}>        
-        <h1>Painel de Administração</h1>
-        <p>Bem‐vindo, <strong>{user?.name}</strong>! Aqui você pode gerenciar o sistema.</p>
-      
+    <div className={styles.container}>
+      <h1>Painel de Administração</h1>
+      <p>
+        Bem‐vindo, <strong>{user?.name}</strong>! Aqui você pode gerenciar o sistema.
+      </p>
       <main className={styles.main}>
-        <div className={styles.gridItem} onClick={() => goToCategories()}>    
-            <Image src="/icons/categoria.svg" alt="Editar perfil" width={40} height={40} />
-            <span>Categorias</span>   
-        </div>
-        <div className={styles.gridItem} onClick={() => goToCompanies()}>
-            <Image src="/icons/categoria.svg" alt="Editar perfil" width={40} height={40} />
-            <span>Empresas</span>  
-        </div>
+        {navItems.map(({ label, href, icon: Icon }) => (
+          <div
+            key={href}
+            className={styles.gridItem}
+            onClick={() => router.push(href)}
+          >
+            <Icon size={40} className={styles.icon} />
+            <span>{label}</span>
+          </div>
+        ))}
       </main>
     </div>
   );

@@ -3,11 +3,13 @@ from datetime import datetime, timedelta
 from typing import List
 from app.models.cashback import Cashback
 from app.models.cashback_program import CashbackProgram
+from app.models.fee_setting import SettingTypeEnum
 from app.models.company import Company
 from sqlalchemy import func
 from decimal import Decimal
 from app.services.wallet_service import get_wallet_balance, debit_wallet
 from app.services.wallet_service import deposit_to_user_wallet, withdraw_user_wallet
+from app.services.fee_setting_service import get_effective_fee
 
 def expire_overdue_cashbacks(db: Session) -> int:
     """
@@ -78,7 +80,7 @@ def assign_cashback(db: Session, user_id: str, program_id: str, amount_spent: fl
 
     # 4) agora sim cobra R$ 0,10 da carteira da empresa dona do programa
     company_id = str(program.company_id)
-    fee = Decimal("0.10")
+    fee = Decimal(str(get_effective_fee(db, company_id, SettingTypeEnum.cashback)))
     balance = get_wallet_balance(db, company_id)
     if balance < fee:
         raise ValueError("Saldo insuficiente na carteira da empresa para associação de cashback (custa R$0,10)")

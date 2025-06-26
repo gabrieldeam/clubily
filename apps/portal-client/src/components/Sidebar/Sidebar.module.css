@@ -1,0 +1,124 @@
+/* Sidebar.module.css */
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 16rem;
+  background: #000000;
+  color: #f9fafb;
+  display: flex;
+  flex-direction: column;
+  z-index: 10000;
+  transform: translateX(-100%);
+  transition: transform 0.2s ease-in-out, width 0.2s ease-in-out;
+}
+
+.open {
+  transform: translateX(0);
+}
+
+.collapsed {
+  width: 4rem;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  border-bottom: 1px solid #374151;
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.closeBtn,
+.collapseBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #f9fafb;
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+  transition: background 0.2s;
+}
+
+.closeBtn:hover,
+.collapseBtn:hover {
+  background: #374151;
+}
+
+.nav {
+  flex: 1;
+  overflow-y: auto;
+  padding-top: 0.5rem;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  color: #d1d5db;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background 0.2s, color 0.2s;
+}
+
+.navItem:hover {
+  background: #374151;
+  color: #f9fafb;
+}
+
+.hamburger {
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  z-index: 50;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 30;
+}
+
+/* Desktop: always expanded, hide mobile overlays */
+@media (min-width: 768px) {
+  .sidebar {
+    transform: none;
+    position: static;
+    box-shadow: none;
+  }
+  .hamburger,
+  .overlay,
+  .closeBtn {
+    display: none;
+  }
+}
+
+/* Mobile: hide collapse arrows and keep full width */
+@media (max-width: 767px) {
+  .collapseBtn {
+    display: none;
+  }
+  .collapsed {
+    width: 16rem !important;
+  }
+}

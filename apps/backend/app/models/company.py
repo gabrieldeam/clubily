@@ -81,3 +81,10 @@ class Company(Base):
     user_cashback_wallets = relationship(
         "UserCashbackWallet", back_populates="company", cascade="all, delete-orphan"
     )
+
+    fee_settings = relationship(
+        "FeeSetting",
+        back_populates="company",
+        cascade="all, delete-orphan",
+        lazy="joined",
+    )

@@ -1,0 +1,104 @@
+// Sidebar.tsx
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import {
+  Store,
+  Tag,
+  User,
+  ShoppingCart,
+  LifeBuoy,
+  CreditCard,
+  Award,
+  Gift,
+  UserCheck,
+  Menu,
+  X,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react';
+import styles from './Sidebar.module.css';
+
+const navItems = [
+  { label: 'Empresas', href: '/admin/companies', icon: Store },
+  { label: 'Categorias', href: '/admin/categories', icon: Tag },
+  { label: 'Usuários', href: '/admin/usuarios', icon: User },
+  { label: 'Compras', href: '/admin/compras', icon: ShoppingCart },
+  { label: 'Suportes', href: '/admin/suportes', icon: LifeBuoy },
+  { label: 'Cashback', href: '/admin/programas/cashback', icon: CreditCard },
+  { label: 'Pontos', href: '/admin/programas/pontos', icon: Award },
+  { label: 'Cartão Fidelidade', href: '/admin/programas/cartao-fidelidade', icon: Gift },
+  { label: 'Representantes', href: '/admin/representantes', icon: UserCheck },
+];
+
+export default function Sidebar() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+
+  const toggleCollapse = () => setCollapsed(prev => !prev);
+
+  return (
+    <>
+      {/* Hamburger for mobile */}
+      <button
+        className={styles.hamburger}
+        onClick={() => setIsOpen(true)}
+        aria-label="Abrir menu"
+      >
+        <Menu size={24} color="#fff" />
+      </button>
+
+      {/* Overlay */}
+      {isOpen && <div className={styles.overlay} onClick={() => setIsOpen(false)} />}
+
+      {/* Sidebar */}
+      <aside
+        className={`${styles.sidebar} ${isOpen ? styles.open : ''} ${
+          collapsed ? styles.collapsed : ''
+        }`}
+      >
+        <div className={styles.header}>
+          {!collapsed &&           
+          <Link href="/admin">
+            <Image src="/logo.svg" alt="Logo" width={85} height={22} />
+          </Link>}
+          <div className={styles.controls}>
+            {/* Collapse toggle (desktop only) */}
+            <button
+              className={styles.collapseBtn}
+              onClick={toggleCollapse}
+              aria-label={collapsed ? 'Expandir menu' : 'Colapsar menu'}
+            >
+              {collapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+            </button>
+            {/* Close on mobile */}
+            <button
+              className={styles.closeBtn}
+              onClick={() => setIsOpen(false)}
+              aria-label="Fechar menu"
+            >
+              <X size={24} />
+            </button>
+          </div>
+        </div>
+
+        <nav className={styles.nav}>
+          {navItems.map(({ label, href, icon: Icon }) => (
+            <Link
+              key={href}
+              href={href}
+              className={styles.navItem}
+              onClick={() => setIsOpen(false)}
+              title={collapsed ? label : undefined}
+            >
+              <Icon size={20} />
+              {!collapsed && <span>{label}</span>}
+            </Link>
+          ))}
+        </nav>
+      </aside>
+    </>
+  );
+}

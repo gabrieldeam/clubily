@@ -6,6 +6,9 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import Header from '@/components/Header/Header';
 import Modal from '@/components/Modal/Modal';
+import FloatingLabelInput from '@/components/FloatingLabelInput/FloatingLabelInput';
+import Notification from '@/components/Notification/Notification';
+import Button from '@/components/Button/Button';
 import ClientModal from '@/components/ClientModal/ClientModal';
 import { checkPreRegistered } from '@/services/userService';
 import type { CheckPreRegisteredParams } from '@/types/user';
@@ -418,39 +421,17 @@ export default function ClientsPage() {
                     </>
                   ) : null}
 
-                  {/* saldo da carteira */}
                   <div className={styles.walletCard}>
-                    {walletLoading ? (
-                      <p className={styles.loadingText}>Carregando saldo do cliente…</p>
-                    ) : userWallet ? (
-                      <>
-                        <div className={styles.header}>
-                          <h5 className={styles.titleWallet}>Saldo na carteira</h5>
-                          <span className={styles.balance}>R$ {Number(userWallet.balance).toFixed(2)}</span>
-                        </div>
-
-                        <div className={styles.withdrawSection}>
-                          <input
-                            type="number"
-                            placeholder="Valor a debitar"
-                            value={withdrawAmount}
-                            onChange={e => setWithdrawAmount(e.target.value)}
-                            className={styles.withdrawInput}
-                            disabled={withdrawLoading}
-                          />
-                          <button
-                            onClick={handleWithdraw}
-                            disabled={withdrawLoading}
-                            className={styles.withdrawBtn}
-                          >
-                            {withdrawLoading ? 'Processando…' : 'Debitar'}
-                          </button>
-                        </div>
-
-                        {withdrawError && <p className={styles.errorText}>{withdrawError}</p>}
-                      </>
-                    ) : null}
-                  </div>
+                  <h3 className={styles.sectionTitle}>Carteira</h3>
+                  {walletLoading ? <p>Carregando saldo…</p> : userWallet ? (
+                    <>
+                      <div className={styles.balanceRow}><span>Saldo Atual:</span><strong>R$ {Number(userWallet.balance).toFixed(2)}</strong></div>
+                      <FloatingLabelInput id="withdraw-amount" name="withdrawAmount" label="Valor a debitar" type="number" value={withdrawAmount} onChange={e => setWithdrawAmount(e.target.value)} disabled={withdrawLoading} />
+                      <div className={styles.actions}><Button onClick={handleWithdraw} disabled={withdrawLoading}>{withdrawLoading ? 'Processando…' : 'Debitar'}</Button></div>
+                      {withdrawError && <Notification type="error" message={withdrawError} onClose={() => setWithdrawError(null)} />}
+                    </>
+                  ) : null}
+                </div>
                 </>
               )}
             </div>
