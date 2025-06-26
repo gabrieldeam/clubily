@@ -34,20 +34,33 @@
   margin-top: -10px;
 }
 
+
+
+
+
 .optionGroup {
   display: flex;
-  gap: 5px;
+  gap: 0.5rem;
 }
+
 .option {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: 0.95rem;
-  cursor: pointer;
-  background: #F0F0F0;
-  padding: 5px;
+  flex: 1;
+  padding: 0.5rem 1rem;
+  background: #ffe0d3;
+  border: 2px solid transparent;
   border-radius: 10px;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.2s, background-color 0.2s;
 }
-.inputGroup {
-  margin-bottom: 1rem;
+
+.option:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(223, 124, 58, 0.5);
 }
+
+.optionSelected {
+  border-color: #FF4C00;     /* cor de destaque */
+  background-color: #ffe0d3; /* leve mudança de fundo */
+}
+

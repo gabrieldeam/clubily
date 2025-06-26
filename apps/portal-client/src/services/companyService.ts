@@ -5,6 +5,8 @@ import type {
   CompanyRead,
   CompanyFilter,
   CompanyReadWithService,
+  PaginationParams,
+  Page
 } from '@/types/company';
 
 // … outros imports e métodos já existentes …
@@ -29,8 +31,9 @@ export const searchCompanies = (filters: CompanyFilter = {}) =>
  * Busca empresas por localização (city/state/postal_code)
  * GET /companies/search
  */
-export const searchCompaniesAdmin = (filters: CompanyFilter = {}) =>
-  api.get<CompanyRead[]>('/companies/searchAdmin', { params: filters });
+export const searchCompaniesAdmin = (
+  params: CompanyFilter & PaginationParams = {}
+) => api.get<Page<CompanyRead>>('/companies/searchAdmin', { params });
 
 /**
  * Busca empresas por categoria e localização

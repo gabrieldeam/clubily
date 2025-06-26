@@ -1,4 +1,3 @@
-// src/components/CashbackProgramModal/CashbackProgramModal.tsx
 'use client';
 
 import { FormEvent, useState, useEffect } from 'react';
@@ -28,15 +27,12 @@ export default function CashbackProgramModal({
   const [validityDays, setValidityDays] = useState(1);
   const [isActive, setIsActive] = useState(true);
   const [isVisible, setIsVisible] = useState(true);
-  const [notification, setNotification] = useState<{type:string;message:string}|null>(null);
-
-  // opção: 'max' | 'min'
-  const [mode, setMode] = useState<'max'|'min'>('max');
-  const [maxPerUser, setMaxPerUser] = useState<number>(1);
-  const [minCashbackPerUser, setMinCashbackPerUser] = useState<number>(0);
-
-  // contador
+  // 'max' = limit, 'min' = minimum, 'none' = neither
+  const [mode, setMode] = useState<'max' | 'min' | 'none'>('none');
+  const [maxPerUser, setMaxPerUser] = useState(1);
+  const [minCashbackPerUser, setMinCashbackPerUser] = useState(0);
   const [descCount, setDescCount] = useState(0);
+  const [notification, setNotification] = useState<{ type: string; message: string } | null>(null);
 
   useEffect(() => {
     if (program) {
@@ -46,10 +42,31 @@ export default function CashbackProgramModal({
       setValidityDays(program.validity_days);
       setIsActive(program.is_active);
       setIsVisible(program.is_visible);
-      setMode(program.max_per_user != null ? 'max' : 'min');
-      setMaxPerUser(program.max_per_user ?? 1);
-      setMinCashbackPerUser(program.min_cashback_per_user ?? 0);
       setDescCount(program.description.length);
+      if (program.max_per_user != null) {
+        setMode('max');
+        setMaxPerUser(program.max_per_user);
+      } else if (program.min_cashback_per_user != null) {
+        setMode('min');
+        setMinCashbackPerUser(program.min_cashback_per_user);
+      } else {
+        setMode('none');
+        setMaxPerUser(1);
+        setMinCashbackPerUser(0);
+      }
+    } else {
+      // reset defaults
+      setName('');
+      setDescription('');
+      setPercent(0);
+      setValidityDays(1);
+      setIsActive(true);
+      setIsVisible(true);
+      setMode('none');
+      setMaxPerUser(1);
+      setMinCashbackPerUser(0);
+      setDescCount(0);
+      setNotification(null);
     }
   }, [program]);
 
@@ -63,16 +80,18 @@ export default function CashbackProgramModal({
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
+    // validation
     if (
       !name ||
       !description ||
       percent < 0 || percent > 100 ||
       validityDays < 1 ||
-      (mode === 'max' ? maxPerUser < 1 : minCashbackPerUser < 0)
+      (mode === 'max' ? maxPerUser < 1 : mode === 'min' ? minCashbackPerUser < 0 : false)
     ) {
-      setNotification({ type:'error', message:'Preencha todos os campos corretamente' });
+      setNotification({ type: 'error', message: 'Preencha todos os campos corretamente' });
       return;
     }
+
     const payload: CashbackProgramCreate = {
       name,
       description,
@@ -80,9 +99,10 @@ export default function CashbackProgramModal({
       validity_days: validityDays,
       is_active: isActive,
       is_visible: isVisible,
-      max_per_user: mode === 'max' ? maxPerUser : undefined,
-      min_cashback_per_user: mode === 'min' ? minCashbackPerUser : undefined,
+      ...(mode === 'max' && { max_per_user: maxPerUser }),
+      ...(mode === 'min' && { min_cashback_per_user: minCashbackPerUser }),
     };
+
     onSave(payload, program?.id);
   };
 
@@ -91,6 +111,7 @@ export default function CashbackProgramModal({
       <h2 className={styles.title}>
         {program ? 'Editar Programa' : 'Novo Programa'}
       </h2>
+
       {notification && (
         <Notification
           type={notification.type as 'error'}
@@ -142,36 +163,45 @@ export default function CashbackProgramModal({
             type="checkbox"
             checked={isActive}
             onChange={e => setIsActive(e.target.checked)}
-          /> Ativo
+          />{' '}
+          Ativo
         </label>
         <label>
           <input
             type="checkbox"
             checked={isVisible}
             onChange={e => setIsVisible(e.target.checked)}
-          /> Visível
+          />{' '}
+          Visível
         </label>
       </div>
 
-      <div className={styles.optionGroup}>
-        <label className={styles.option}>
-          <input
-            type="radio"
-            checked={mode === 'max'}
-            onChange={() => setMode('max')}
-          /> Máximo de usos por usuário
-        </label>
-        <label className={styles.option}>
-          <input
-            type="radio"
-            checked={mode === 'min'}
-            onChange={() => setMode('min')}
-          /> Mínimo de cashback por usuário
-        </label>
-      </div>
+{/* dentro do seu JSX, substitua o bloco antigo por isso: */}
+<div className={styles.optionGroup} role="radiogroup" aria-label="Modo de limite">
+  <button
+    type="button"
+    role="radio"
+    aria-checked={mode === 'max'}
+    className={`${styles.option} ${mode === 'max' ? styles.optionSelected : ''}`}
+    onClick={() => setMode(mode === 'max' ? 'none' : 'max')}
+  >
+    Máximo de usos por usuário
+  </button>
+
+  <button
+    type="button"
+    role="radio"
+    aria-checked={mode === 'min'}
+    className={`${styles.option} ${mode === 'min' ? styles.optionSelected : ''}`}
+    onClick={() => setMode(mode === 'min' ? 'none' : 'min')}
+  >
+    Mínimo de cashback por usuário
+  </button>
+</div>
+
 
       <div className={styles.inputGroup}>
-        {mode === 'max' ? (
+        {mode === 'max' && (
           <FloatingLabelInput
             id="prog-max"
             name="max_per_user"
@@ -181,7 +211,9 @@ export default function CashbackProgramModal({
             onChange={e => setMaxPerUser(Number(e.target.value))}
             min={1}
           />
-        ) : (
+        )}
+
+        {mode === 'min' && (
           <FloatingLabelInput
             id="prog-min"
             name="min_cashback_per_user"

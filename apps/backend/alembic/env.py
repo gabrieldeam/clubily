@@ -31,6 +31,7 @@ from app.models.cashback_program import CashbackProgram
 from app.models.company_payment import CompanyPayment, PaymentStatus
 from app.models.wallet import Wallet, UserCashbackWallet
 from app.models.wallet_transaction import WalletTransaction
+from app.models.fee_setting import SettingTypeEnum, FeeSetting
 
 
 # ...importe aqui outros models quando criar novos

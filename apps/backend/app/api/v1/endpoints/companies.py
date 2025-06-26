@@ -3,6 +3,8 @@
 from typing import List, Optional
 import os, uuid
 from fastapi import APIRouter, Depends, Response, BackgroundTasks, HTTPException, status, UploadFile, File, Query
+from fastapi_pagination import Page, Params
+from fastapi_pagination.ext.sqlalchemy import paginate as sqlalchemy_paginate
 from app.db.session import SessionLocal
 from sqlalchemy.orm import Session
 from sqlalchemy import select
@@ -306,16 +308,17 @@ async def upload_company_logo(
 
     return {"logo_url": public_url}
 
-@router.get("/searchAdmin", response_model=List[CompanyRead])
+@router.get("/searchAdmin", response_model=Page[CompanyRead])
 def search_companies(
     city: Optional[str] = Query(None),
     state: Optional[str] = Query(None),
     postal_code: Optional[str] = Query(None),
+    params: Params = Depends(),          # 👈 injeta page & size
     db: Session = Depends(get_db),
 ):
     """
     Filtra empresas pela combinação de city, state e/ou postal_code.
-    Se nenhum parâmetro for passado, retorna todas.
+    Se nenhum parâmetro for passado, retorna todas, paginadas.
     """
     q = db.query(Company)
     if city:
@@ -324,7 +327,9 @@ def search_companies(
         q = q.filter(Company.state.ilike(f"%{state}%"))
     if postal_code:
         q = q.filter(Company.postal_code == postal_code)
-    return q.all()
+
+    # passa o params para inicializar a paginação corretamente
+    return sqlalchemy_paginate(q, params)
 
 @router.get("/search", response_model=List[CompanyRead])
 def search_companies(

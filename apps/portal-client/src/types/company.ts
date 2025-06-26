@@ -7,6 +7,19 @@ export interface CompanyFilter {
   street?: string;
 }
 
+export interface PaginationParams {
+  page?: number;
+  size?: number;  
+}
+
+export interface Page<T> {
+  items: T[];
+  total: number;
+  page: number;
+  size: number;
+}
+
+
 export interface CompanyRead {
   id: string;
   name: string;
