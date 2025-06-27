@@ -18,6 +18,7 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  DollarSign
 } from 'lucide-react';
 import styles from './Sidebar.module.css';
 
@@ -31,6 +32,7 @@ const navItems = [
   { label: 'Pontos', href: '/admin/programas/pontos', icon: Award },
   { label: 'Cartão Fidelidade', href: '/admin/programas/cartao-fidelidade', icon: Gift },
   { label: 'Representantes', href: '/admin/representantes', icon: UserCheck },
+  { label: 'Comissões', href: '/admin/commissions', icon: DollarSign }
 ];
 
 export default function Sidebar() {
