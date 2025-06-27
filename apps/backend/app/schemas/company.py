@@ -38,9 +38,11 @@ class CompanyBase(BaseModel):
     @field_validator("online_url", mode="before")
     @classmethod
     def empty_str_to_none(cls, v):
-        # se vier string vazia, trate como None
-        if isinstance(v, str) and not v.strip():
-            return None
+        # converte "" ou "None" (ou "null") para Python None
+        if isinstance(v, str):
+            vv = v.strip().lower()
+            if vv in ("", "none", "null"):
+                return None
         return v
 
     @field_validator("cnpj", mode="before")

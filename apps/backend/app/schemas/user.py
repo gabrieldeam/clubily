@@ -89,3 +89,10 @@ class UserUpdate(BaseModel):
         return v
 
     model_config = ConfigDict(from_attributes=True)
+
+class UserBasicRead(BaseModel):
+    id: UUID
+    name: str
+    email: EmailStr
+
+    model_config = ConfigDict(from_attributes=True)
