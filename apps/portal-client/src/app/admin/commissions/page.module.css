@@ -1,0 +1,155 @@
+/* src/app/admin/commissions/page.module.css */
+
+.container {
+  padding: 2rem;
+  background: #f3f4f6;  
+  min-height: 100%;
+}
+
+.header {
+  margin-bottom: 1rem;
+}
+.header h1 {
+  font-size: 1.75rem;
+  color: #111827;
+}
+
+/* Tabela */
+.tableContainer {
+  overflow-x: auto;
+  background: #fff;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.table th,
+.table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+}
+.table th {
+  background: #f3f4f6;
+  font-weight: 600;
+  color: #374151;
+}
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Badges de status */
+.badgeSuccess {
+  background: #10b981;
+  color: #fff;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+}
+.badgeError {
+  background: #ef4444;
+  color: #fff;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+}
+.badgePending {
+  background: #f59e0b;
+  color: #fff;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+}
+
+/* Botões de ação */
+.btnApprove,
+.btnReject {
+  border: none;
+  border-radius: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btnApprove {
+  background: #10b981;
+  color: #fff;
+}
+.btnApprove:hover:not(:disabled) {
+  background: #059669;
+}
+.btnReject {
+  background: #ef4444;
+  color: #fff;
+}
+.btnReject:hover:not(:disabled) {
+  background: #dc2626;
+}
+.btnApprove:disabled,
+.btnReject:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Célula de ações */
+.actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Paginação */
+.pagination {
+  margin-top: 1rem;
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  align-items: center;
+}
+.pagination button {
+  padding: 0.5rem 1rem;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.pagination button:not(:disabled):hover {
+  background: #f3f4f6;
+}
+
+/* Responsivo: tabela vira lista no mobile */
+@media (max-width: 768px) {
+  .table thead { display: none; }
+  .table, .table tbody, .table tr, .table td {
+    display: block;
+    width: 100%;
+  }
+  .table tr {
+    margin-bottom: 0.75rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    background: #fff;
+  }
+  .table td {
+    position: relative;
+    padding: 0.75rem 1rem 0.75rem 50%;
+  }
+  .table td::before {
+    content: attr(data-label);
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-weight: 600;
+    color: #374151;
+  }
+  .actions {
+    flex-direction: column;
+  }
+}
