@@ -1,6 +1,7 @@
 import requests, re, logging
 from sqlalchemy.orm import Session
 from app.models.company_payment import CompanyPayment, PaymentStatus
+from app.services.commission_service import credit_for_payment
 from app.models.company import Company
 from app.core.config import settings
 from datetime import datetime
@@ -24,18 +25,26 @@ def ensure_customer_exists(db: Session, company: Company) -> None:
         return
 
     payload = {
-        "name":    company.name,
-        "email":   company.email,
-        "cpfCnpj": re.sub(r"\D", "", company.document or ""),
-        "phone":   re.sub(r"\D", "", company.phone or ""),
+        "name":        company.name,
+        "email":       company.email,
+        "cpfCnpj":     re.sub(r"\D", "", company.cnpj or ""),
     }
-    resp = requests.post(
-        f"{settings.ASAAS_BASE_URL}/customers",
-        headers=HEADERS_POST,
-        json=payload,
-        timeout=10,
-    )
-    resp.raise_for_status()
+
+    try:
+        resp = requests.post(
+            f"{settings.ASAAS_BASE_URL}/customers",
+            headers=HEADERS_POST,
+            json=payload,
+            timeout=10,
+        )
+        resp.raise_for_status()
+    except requests.HTTPError:
+        logger.error(
+            "Falha ao criar customer Asaas (%s): %s → payload: %s",
+            resp.status_code, resp.text, payload
+        )
+        raise
+
     company.customer_id = resp.json()["id"]
     db.commit()
     db.refresh(company)
@@ -158,6 +167,7 @@ def refresh_payment_status(db: Session, asaas_id: str) -> CompanyPayment | None:
     # 4) se acabou de virar PAID, credita na carteira
     if previous != PaymentStatus.PAID and mapped == PaymentStatus.PAID:
         credit_wallet(db, str(payment.company_id), Decimal(payment.amount))
+        credit_for_payment(db, payment)
 
     return payment
 

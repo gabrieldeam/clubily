@@ -70,5 +70,20 @@ class User(Base):
     wallet_transactions = relationship(
        "WalletTransaction",
        back_populates="user",
-       cascade="all, delete-orphan"
+       cascade="all, delete-orphan",
+       overlaps="wallet_transactions,wallet",
+    )
+
+    transfer_methods = relationship(
+        "TransferMethod",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        lazy="joined",
+    )
+
+    commission_wallet = relationship(
+        "CommissionWallet",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
     )

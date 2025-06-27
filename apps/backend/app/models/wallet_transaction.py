@@ -31,7 +31,7 @@ class WalletTransaction(Base):
     )
 
     # navega de volta para o User, agora que há FK simples
-    user = relationship("User", back_populates="wallet_transactions")
+    user = relationship("User", back_populates="wallet_transactions", overlaps="wallet_transactions",)
 
     # relacionamento para a própria carteira composta
     wallet = relationship(
@@ -43,4 +43,5 @@ class WalletTransaction(Base):
             "foreign(WalletTransaction.company_id)==UserCashbackWallet.company_id"
             ")"
         ),
+        overlaps="wallet_transactions,user",
     )

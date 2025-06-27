@@ -51,4 +51,5 @@ class UserCashbackWallet(Base):
         "WalletTransaction",
         back_populates="wallet",
         cascade="all, delete-orphan",
+        overlaps="wallet_transactions,user",
     )

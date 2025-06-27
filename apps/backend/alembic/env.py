@@ -32,7 +32,8 @@ from app.models.company_payment import CompanyPayment, PaymentStatus
 from app.models.wallet import Wallet, UserCashbackWallet
 from app.models.wallet_transaction import WalletTransaction
 from app.models.fee_setting import SettingTypeEnum, FeeSetting
-
+from app.models.commission import CommissionTransactionType, CommissionWithdrawalStatus, CommissionWallet, CommissionTransaction, CommissionWithdrawal 
+from app.models.transfer_method import PixKeyType, TransferMethod
 
 # ...importe aqui outros models quando criar novos
 

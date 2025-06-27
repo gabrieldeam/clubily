@@ -1,0 +1,184 @@
+/* src/components/CommissionWithdrawalModal/CommissionWithdrawalModal.module.css */
+.content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 20px;
+}
+.title {
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+  text-align: center;
+}
+.error {
+  color: #c00;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+.bannerCreate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem;
+  background: #f9f9f9;
+  border-radius: 12px;
+}
+.primaryBtn {
+  padding: 0.75rem 1.5rem;
+  background-color: #0070f3;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.secondaryBtn {
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.smallBtn {
+  padding: 0.25rem 0.75rem;
+  background-color: #0070f3;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.subtitleRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 1.5rem 0 1rem;
+}
+.subtitle {
+  font-size: 1.25rem;
+  margin: 0;
+}
+.methodGrid {
+  display: flex;               
+  gap: 1rem;                  
+  overflow-x: auto;            
+  padding: 0.5rem 0.2rem;    
+  scrollbar-height: 6px;       
+}
+
+.methodGrid::-webkit-scrollbar { 
+  height: 6px;                 /* Chrome, Safari e Edge */
+}
+
+.methodGrid::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.methodGrid::-webkit-scrollbar-thumb {
+  background-color: rgba(0,0,0,0.2);
+  border-radius: 3px;
+}
+.methodCard {
+  position: relative;
+  padding: 1rem;
+  background: #f0f0f0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 0.1s;
+  display: flex;
+  min-width: 120px;
+  flex: 0 0 auto;
+}
+.methodCard div{
+  display: flex;
+  flex-direction: column;
+}
+.methodCard:hover {
+  transform: translateY(-2px);
+}
+.selectedCard {
+  outline: 2px solid #0070f3;
+}
+.deleteBtn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: transparent;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+}
+.balance {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+.hint {
+  font-size: 0.875rem;
+  color: #666;
+  margin-top: 1rem;
+  text-align: center;
+}
+.createForm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  background-color: white;
+  padding: 2rem;
+  border-radius: 10px;
+}
+.actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+  gap: 10px;
+}
+
+
+/* Label acima do select, com espaçamento */
+.label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+/* Select com largura total e padding confortável */
+.select {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+  line-height: 1.4;
+  color: #333;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  appearance: none; /* remove seta nativa em alguns navegadores */
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+/* Efeito de foco no select */
+.select:focus {
+  outline: none;
+  border-color: #0070f3;
+  box-shadow: 0 0 0 2px rgba(0, 112, 243, 0.2);
+}
+
+
+.button {
+  background-color: #FFA600;
+  border-radius: 50px;
+  height: 25px;
+  width: 25px;
+}
+
+.withdrawSection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+}

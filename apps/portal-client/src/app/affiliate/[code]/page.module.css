@@ -93,21 +93,133 @@
   border-radius: 50px;
   text-decoration: none;
   color: #000;
+  border: 1px solid #D9D9D9;
 }
 .companyButton:hover {
   background-color: #dfdfdf;
 }
 
 .loading {
-  background-color: #f0f0f0;
-  padding: 30px;
   text-align: center;
-  border-radius: 10px;
+  border-radius: 10px;  
+  margin-top: 5px;
 }
+
+
+
 
 /* responsividade */
 @media (max-width: 767px) {
   .companiesList {
     grid-template-columns: 1fr;
   }
+}
+
+
+
+
+
+
+
+
+
+
+/* ... já existente ... */
+
+.historySection {
+  background: #fff;
+  padding: 20px;
+  border-radius: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  margin-top: 10px;
+}
+
+.balanceSection {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.name {
+  font-size: 18px;
+}
+
+
+.balanceValue {
+  font-size: 1.6rem;
+  font-weight: bold;
+  margin-top: 5px;
+}
+
+.historyList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.historyItem {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.historyItem:last-child {
+  border-bottom: none;
+}
+
+.txDate {
+  flex: 1;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.txDesc {
+  flex: 2;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.txAmount {
+  flex: 1;
+  text-align: right;
+  font-weight: 500;
+}
+
+.historyFooter {
+  margin-top: 12px;
+  text-align: center;
+}
+
+.loadMoreBtn {
+  background: #FFA600;
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.loadMoreBtn:hover {
+  background: #e59400;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+}
+
+.pagination button {
+  padding: 6px 12px;
+  border: 1px solid #d9d9d9;
+  background: #f0f0f0;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
