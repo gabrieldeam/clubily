@@ -11,7 +11,9 @@ import type {
   MsgResponse,
   LoginCredentials,
   ReferralCode,
-  PaginatedUsers
+  PaginatedUsers,
+  ReferralDetail,
+  PaginatedReferralCompanies
 } from '@/types/user';
 
 import type { CompanyRead } from '@/types/company';
@@ -124,3 +126,28 @@ export const listUsers = (
 ) => api.get<PaginatedUsers>('/users/admin', {
   params: { skip, limit }
 });
+
+
+/**
+ * Lista todas as indicações (admin) com paginação
+ * @param skip Quantos registros pular
+ * @param limit Quantos retornar
+ */
+export const listReferrals = (
+  skip = 0,
+  limit = 50
+) => api.get<ReferralDetail[]>('/users/admin/referrals', {
+  params: { skip, limit }
+});
+
+/**
+ * Lista empresas indicadas por um código (admin, paginado)
+ */
+export const listReferralCompanies = (
+  code: string,
+  skip = 0,
+  limit = 10
+) => api.get<PaginatedReferralCompanies>(
+  `/users/admin/${code}/companies`,
+  { params: { skip, limit } }
+);

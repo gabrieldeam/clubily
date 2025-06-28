@@ -9,7 +9,6 @@ import {
   Store,
   Tag,
   User,
-  ShoppingCart,
   LifeBuoy,
   CreditCard,
   Award,
@@ -22,12 +21,12 @@ const navItems = [
   { label: 'Empresas', href: '/admin/companies', icon: Store },
   { label: 'Categorias', href: '/admin/categories', icon: Tag },
   { label: 'Usuários', href: '/admin/users', icon: User },
-  { label: 'Compras', href: '/admin/compras', icon: ShoppingCart },
+  { label: 'Pagamentos', href: '/admin/payments', icon: CreditCard },
   { label: 'Suportes', href: '/admin/suportes', icon: LifeBuoy },
-  { label: 'Cashback', href: '/admin/programas/cashback', icon: CreditCard },
+  { label: 'Cashback', href: '/admin/cashback-programs', icon: CreditCard },
   { label: 'Pontos', href: '/admin/programas/pontos', icon: Award },
   { label: 'Cartão Fidelidade', href: '/admin/programas/cartao-fidelidade', icon: Gift },
-  { label: 'Representantes', href: '/admin/representantes', icon: UserCheck },
+  { label: 'Representantes', href: '/admin/referrals', icon: UserCheck },
   { label: 'Comissões', href: '/admin/commissions', icon: DollarSign }
 ];
 

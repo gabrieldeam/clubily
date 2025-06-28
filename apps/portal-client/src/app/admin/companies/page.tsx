@@ -319,6 +319,7 @@ async function handleFsSave(type: SettingTypeEnum) {
                 <h3>Contato</h3>
                 <p><strong>Email:</strong> {selectedCompany.email}</p>
                 <p><strong>Telefone:</strong> {selectedCompany.phone}</p>
+                <p><strong>ID:</strong> {selectedCompany.id}</p>
               </section>
             </div>
             <div className={styles.detailRight}>

@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from typing import List
 from app.models.cashback import Cashback
 from app.models.cashback_program import CashbackProgram
+from ..schemas.cashback_program import ProgramUsageAssociation
 from app.models.fee_setting import SettingTypeEnum
 from app.models.company import Company
 from sqlalchemy import func
@@ -165,3 +166,43 @@ def get_cashbacks_by_user_and_company(
           .all()
     )
 
+def list_programs_simple(db: Session, skip: int, limit: int):
+    q = (
+        db.query(CashbackProgram)
+          .options(
+              # carrega só a relação company, sem tocar em cashbacks
+              joinedload(CashbackProgram.company)
+          )
+          .order_by(CashbackProgram.created_at.desc())
+    )
+    total = q.count()
+    items = q.offset(skip).limit(limit).all()
+    return total, items
+
+def get_program_associations_paginated(
+    db: Session, program_id: str, skip: int, limit: int
+) -> tuple[int, list[ProgramUsageAssociation]]:
+    base_q = (
+        db.query(Cashback)
+          .options(joinedload(Cashback.user).lazyload("*"))
+          .filter(Cashback.program_id == program_id)
+          .order_by(Cashback.assigned_at.desc())
+    )
+    total = base_q.count()
+    rows = base_q.offset(skip).limit(limit).all()
+    items = [
+        ProgramUsageAssociation(
+            id=cb.id,
+            user_id=cb.user_id,
+            user_name=cb.user.name,
+            user_email=cb.user.email,
+            amount_spent=float(cb.amount_spent),
+            cashback_value=float(cb.cashback_value),
+            assigned_at=cb.assigned_at,
+            expires_at=cb.expires_at,
+            is_active=cb.is_active,
+            created_at=cb.created_at,
+        )
+        for cb in rows
+    ]
+    return total, items

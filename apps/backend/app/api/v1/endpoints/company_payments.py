@@ -5,10 +5,10 @@ from typing import Optional
 from app.api.deps import get_db, get_current_company
 from app.schemas.company_payment import (
     CompanyPaymentCreate, CompanyPaymentRead,
-    PaginatedPayments, PaymentStatus
+    PaginatedPayments, PaymentStatus, PaginatedAdminPayments, PaymentStatus as PaymentStatusEnum
 )
 from app.services.company_payment_service import (
-    create_charge, list_payments, get_balance, get_charge
+    create_charge, list_payments, get_balance, get_charge, list_all_company_payments
 )
 
 router = APIRouter(tags=["company_payments"])
@@ -81,3 +81,27 @@ def read_charge(
             detail="Cobrança não encontrada"
         )
     return charge
+
+
+@router.get(
+    "/admin/payments",
+    response_model=PaginatedAdminPayments,
+    summary="(Admin) Lista todas as cobranças paginadas com dados da empresa"
+)
+def read_all_payments(
+    skip: int = Query(0, ge=0, description="Quantos registros pular"),
+    limit: int = Query(10, ge=1, le=100, description="Máximo por página"),
+    status: Optional[PaymentStatusEnum] = Query(None, description="Filtrar por status"),
+    date_from: Optional[datetime] = Query(None, description="Data mínima (inclusive)"),
+    date_to:   Optional[datetime] = Query(None, description="Data máxima (inclusive)"),
+    db: Session = Depends(get_db),
+):
+    total, payments = list_all_company_payments(
+        db, skip, limit, status, date_from, date_to
+    )
+    return PaginatedAdminPayments(
+        total=total,
+        skip=skip,
+        limit=limit,
+        items=payments
+    )

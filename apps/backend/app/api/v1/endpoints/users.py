@@ -3,10 +3,11 @@
 from fastapi import APIRouter, Depends, Query, status, BackgroundTasks, HTTPException
 from sqlalchemy import select
 from typing import List
-from sqlalchemy.orm import Session
-from ....schemas.referral import ReferralCode
+from sqlalchemy.orm import Session, joinedload
+from app.models.referral import Referral
+from ....schemas.referral import ReferralCode, ReferralDetail, PaginatedReferralCompanies
 from app.api.deps import get_current_user, get_db, require_admin
-from ....services.referral_service import generate_referral_code, get_referral_code, get_companies_by_referral_code
+from ....services.referral_service import generate_referral_code, get_referral_code, get_companies_by_referral_code, list_companies_by_referral_code_paginated
 from jose import jwt
 from app.core.config import settings
 from app.core.email_utils import send_email
@@ -258,6 +259,45 @@ def list_companies_by_referral_code(
     """
     return get_companies_by_referral_code(db, code)
 
+@router.get(
+    "/admin/referrals",
+    response_model=List[ReferralDetail],
+    summary="Lista todas as indicações (admin)"
+)
+def read_all_referrals(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
+    db: Session = Depends(get_db),
+):
+    """
+    Retorna todas as indicações, com dados do usuário e da empresa.
+    """
+    refs = (
+        db.query(Referral)
+          .options(
+              joinedload(Referral.user),
+              joinedload(Referral.company)
+          )
+          .order_by(Referral.created_at.desc())
+          .offset(skip)
+          .limit(limit)
+          .all()
+    )
+    # para cada Referral, o Pydantic extrai:
+    # - id
+    # - referral_code <- user.referral_code
+    # - user.* e company.*
+    # - created_at
+    return [
+        ReferralDetail(
+            id=r.id,
+            referral_code=r.user.referral_code,
+            user=r.user,
+            company=r.company,
+            created_at=r.created_at
+        )
+        for r in refs
+    ]
 
 @router.get(
     "/admin",
@@ -283,4 +323,29 @@ def read_all_users(
         skip=skip,
         limit=limit,
         items=users,
+    )
+
+@router.get(
+    "/admin/{code}/companies",
+    response_model=PaginatedReferralCompanies,
+    summary="Empresas indicadas por um código (admin, paginado)"
+)
+def read_referral_companies(
+    code: str,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    try:
+        total, companies = list_companies_by_referral_code_paginated(
+            db, code, skip, limit
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    return PaginatedReferralCompanies(
+        total=total,
+        skip=skip,
+        limit=limit,
+        items=companies
     )

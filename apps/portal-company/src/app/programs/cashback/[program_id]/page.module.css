@@ -1,6 +1,7 @@
 /* src/app/programs/cashback/[programId]/page.module.css */
 .container {
   margin-top: 92px;
+  margin-bottom: 120px;
 }
 .main {
   margin: 10px auto;
@@ -188,6 +189,25 @@
 }
 
 
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 @media (max-width: 600px) {
   .tableHeader { display: none; }

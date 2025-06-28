@@ -158,14 +158,15 @@ export default function AdminUsersPage() {
     <div className={`${styles.detail} ${styles.detailGrid}`}>
       <div className={styles.detailLeft}>
         <h2>{selectedUser.name}</h2>
-
         <section>
           <h3>Contato</h3>
           <p><strong>Email:</strong> {selectedUser.email}</p>
           {selectedUser.phone && (
             <p><strong>Telefone:</strong> {selectedUser.phone}</p>
           )}
+          <p><strong>ID:</strong> {selectedUser.id}</p>
         </section>
+        
 
         <section>
           <h3>CPF</h3>
