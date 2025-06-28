@@ -34,6 +34,9 @@ from app.models.wallet_transaction import WalletTransaction
 from app.models.fee_setting import SettingTypeEnum, FeeSetting
 from app.models.commission import CommissionTransactionType, CommissionWithdrawalStatus, CommissionWallet, CommissionTransaction, CommissionWithdrawal 
 from app.models.transfer_method import PixKeyType, TransferMethod
+from app.models.point_plan import PointPlan
+from app.models.points_wallet import PointsWallet
+from app.models.company_point_purchase import PurchaseStatus, CompanyPointPurchase
 
 # ...importe aqui outros models quando criar novos
 

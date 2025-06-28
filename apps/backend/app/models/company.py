@@ -88,3 +88,12 @@ class Company(Base):
         cascade="all, delete-orphan",
         lazy="joined",
     )
+
+    point_purchases = relationship(
+        "CompanyPointPurchase",
+        back_populates="company",
+        cascade="all, delete-orphan",
+        lazy="joined",
+    )
+    points_wallet   = relationship("PointsWallet", back_populates="company", uselist=False, cascade="all,delete-orphan")
+
