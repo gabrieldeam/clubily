@@ -25,7 +25,7 @@ import styles from './Sidebar.module.css';
 const navItems = [
   { label: 'Empresas', href: '/admin/companies', icon: Store },
   { label: 'Categorias', href: '/admin/categories', icon: Tag },
-  { label: 'Usuários', href: '/admin/usuarios', icon: User },
+  { label: 'Usuários', href: '/admin/users', icon: User },
   { label: 'Compras', href: '/admin/compras', icon: ShoppingCart },
   { label: 'Suportes', href: '/admin/suportes', icon: LifeBuoy },
   { label: 'Cashback', href: '/admin/programas/cashback', icon: CreditCard },

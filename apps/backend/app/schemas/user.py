@@ -6,6 +6,7 @@ from app.core.utils import normalize_phone, normalize_cpf
 from enum import Enum
 from uuid import UUID
 import re
+from datetime import datetime
 
 class Role(str, Enum):
     admin = "admin"
@@ -71,8 +72,7 @@ class UserRead(BaseModel):
     role: Role
     pre_registered: bool
 
-    class Config:
-        model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
 class UserUpdate(BaseModel):
     name: Optional[str] = None
@@ -94,5 +94,13 @@ class UserBasicRead(BaseModel):
     id: UUID
     name: str
     email: EmailStr
+
+    model_config = ConfigDict(from_attributes=True)
+
+class PaginatedUsers(BaseModel):
+    total: int
+    skip: int
+    limit: int
+    items: List[UserRead]
 
     model_config = ConfigDict(from_attributes=True)

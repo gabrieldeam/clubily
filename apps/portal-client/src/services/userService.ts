@@ -10,7 +10,8 @@ import type {
   PreRegisteredResponse,
   MsgResponse,
   LoginCredentials,
-  ReferralCode
+  ReferralCode,
+  PaginatedUsers
 } from '@/types/user';
 
 import type { CompanyRead } from '@/types/company';
@@ -112,3 +113,14 @@ export const createMyReferralCode = () =>
  */
 export const getMyReferralCode = () =>
   api.get<ReferralCode>('/users/me/referral-code');
+
+
+/**
+ * Lista todos os usuários com paginação (admin)
+ */
+export const listUsers = (
+  skip = 0,
+  limit = 10
+) => api.get<PaginatedUsers>('/users/admin', {
+  params: { skip, limit }
+});

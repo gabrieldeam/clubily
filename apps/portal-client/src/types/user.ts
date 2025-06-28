@@ -80,3 +80,10 @@ export interface LoginCredentials {
 export interface ReferralCode {
   referral_code: string;
 }
+
+export interface PaginatedUsers {
+  total: number;
+  skip: number;
+  limit: number;
+  items: UserRead[];
+}
