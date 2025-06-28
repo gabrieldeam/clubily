@@ -2,7 +2,7 @@
 import string, secrets
 from typing import List
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.models.referral import Referral
 from app.models.user import User
 from app.models.company import Company
@@ -85,3 +85,29 @@ def get_companies_by_referral_code(db: Session, code: str) -> List[Company]:
           .all()
     )
     return companies
+
+
+def list_companies_by_referral_code_paginated(
+    db: Session, code: str, skip: int, limit: int
+) -> tuple[int, list[Company]]:
+    # 1) Localiza o usuário
+    user = db.query(User).filter(User.referral_code == code).first()
+    if not user:
+        raise ValueError("Código de indicação inválido")
+
+    # 2) Query base de Referral → Company
+    q = (
+        db.query(Referral)
+          .options(joinedload(Referral.company))
+          .filter(Referral.user_id == user.id)
+    )
+    total = q.count()
+
+    # 3) Busca paginada e extrai as empresas
+    refs = (
+        q.order_by(Referral.created_at.desc())
+         .offset(skip).limit(limit)
+         .all()
+    )
+    companies = [r.company for r in refs]
+    return total, companies

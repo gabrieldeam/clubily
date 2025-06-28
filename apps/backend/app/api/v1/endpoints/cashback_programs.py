@@ -3,13 +3,14 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Path
 from sqlalchemy.orm import Session
-
+from uuid import UUID
 from app.api.deps import get_db, get_current_company
 from app.schemas.cashback_program import (
     CashbackProgramCreate,
     CashbackProgramRead,
     PaginatedProgramUsage,
     UserProgramStats,
+    PaginatedAssociations
 )
 from app.services.cashback_program_service import (
     create_program,
@@ -23,6 +24,13 @@ from app.services.cashback_program_service import (
     collect_program_metrics,
 )
 from app.models.cashback_program import CashbackProgram
+from app.services.cashback_service import list_programs_simple, get_program_associations_paginated
+
+from app.schemas.admin_cashback import (
+    PaginatedAdminPrograms,
+    AdminProgramRead,
+    AdminCompanyBasic,
+)
 
 router = APIRouter(tags=["cashback_programs"])
 
@@ -176,3 +184,58 @@ def read_public_programs_by_company(
     pertencentes à empresa informada na URL.
     """
     return get_public_programs_by_company(db, company_id)
+
+@router.get("/admin/cashback-programs",
+    response_model=PaginatedAdminPrograms,
+    summary="Lista paginada de programas de cashback (sem associações)"
+)
+def read_all_cashback_programs(
+    skip: int = Query(0, ge=0, description="Quantos programas pular"),
+    limit: int = Query(10, ge=1, le=100, description="Máximo de programas"),
+    db: Session = Depends(get_db),
+):
+    total, progs = list_programs_simple(db, skip, limit)
+
+    items = []
+    for p in progs:
+        cmp = AdminCompanyBasic(
+            id=p.company.id,
+            name=p.company.name,
+            email=p.company.email,
+            phone=p.company.phone,
+            cnpj=p.company.cnpj,
+        )
+        items.append(AdminProgramRead(
+            id=p.id,
+            name=p.name,
+            description=p.description,
+            percent=float(p.percent),
+            validity_days=p.validity_days,
+            is_active=p.is_active,
+            is_visible=p.is_visible,
+            created_at=p.created_at,
+            updated_at=p.updated_at,
+            company=cmp,
+        ))
+
+    return PaginatedAdminPrograms(
+        total=total,
+        skip=skip,
+        limit=limit,
+        items=items,
+    )
+
+
+@router.get(
+    "/admin/{program_id}/associations",
+    response_model=PaginatedAssociations,
+    summary="Lista paginada de associações de um programa de cashback"
+)
+def read_program_associations(
+    program_id: UUID,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    total, items = get_program_associations_paginated(db, str(program_id), skip, limit)
+    return PaginatedAssociations(total=total, skip=skip, limit=limit, items=items)

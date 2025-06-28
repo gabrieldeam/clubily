@@ -87,3 +87,45 @@ export interface PaginatedUsers {
   limit: number;
   items: UserRead[];
 }
+
+
+
+
+export interface ReferralUserRead {
+  id: string;       // UUID
+  name: string;
+  email: string;
+  cpf: string;
+  phone: string;
+}
+
+/**
+ * Dados da empresa indicada
+ */
+export interface ReferralCompanyRead {
+  id: string;       // UUID
+  name: string;
+  email: string;
+  phone: string;
+  cnpj: string;
+}
+
+/**
+ * Detalhe de uma indicação
+ */
+export interface ReferralDetail {
+  id: string;                 // UUID da indicação
+  referral_code: string;      // Código usado pelo usuário
+  user: ReferralUserRead;
+  created_at: string;         // ISO datetime
+}
+
+/**
+ * Paginação de empresas indicadas por um código
+ */
+export interface PaginatedReferralCompanies {
+  total: number;
+  skip: number;
+  limit: number;
+  items: ReferralCompanyRead[];
+}

@@ -1,5 +1,5 @@
 import requests, re, logging
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.models.company_payment import CompanyPayment, PaymentStatus
 from app.services.commission_service import credit_for_payment
 from app.models.company import Company
@@ -216,3 +216,30 @@ def get_charge(
           )
           .first()
     )
+
+
+def list_all_company_payments(
+    db: Session,
+    skip: int,
+    limit: int,
+    status: PaymentStatus = None,
+    date_from: datetime = None,
+    date_to: datetime = None
+) -> tuple[int, list[CompanyPayment]]:
+    q = db.query(CompanyPayment).options(
+        joinedload(CompanyPayment.company)  # carrega relationship → Company
+    )
+    if status:
+        q = q.filter(CompanyPayment.status == status)
+    if date_from:
+        q = q.filter(CompanyPayment.created_at >= date_from)
+    if date_to:
+        q = q.filter(CompanyPayment.created_at <= date_to)
+
+    total = q.count()
+    items = (
+        q.order_by(CompanyPayment.created_at.desc())
+         .offset(skip).limit(limit)
+         .all()
+    )
+    return total, items

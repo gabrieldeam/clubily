@@ -1,8 +1,9 @@
 // src/context/WalletContext.tsx
-'use client';                // ← certifique-se de que isso está aqui
+'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { getWallet } from '@/services/walletService';
+import { useAuth } from './AuthContext';  // 👈 importe o hook de autenticação
 
 interface WalletContextData {
   balance: number;
@@ -13,6 +14,7 @@ interface WalletContextData {
 const WalletContext = createContext<WalletContextData | null>(null);
 
 export function WalletProvider({ children }: { children: ReactNode }) {
+  const { user, loading: authLoading } = useAuth(); // 👈 obtém user e loading da auth
   const [balance, setBalance] = useState(0);
   const [loading, setLoading] = useState(true);
 
@@ -28,9 +30,17 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  // Chama a primeira vez (por ex., se o usuário já estiver logado ao recarregar a página)
   useEffect(() => {
     loadWallet();
   }, []);
+
+  // Recarrega sempre que o usuário efetuar login (user deixa de ser null)
+  useEffect(() => {
+    if (!authLoading && user) {
+      loadWallet();
+    }
+  }, [authLoading, user]);
 
   return (
     <WalletContext.Provider value={{ balance, loading, refresh: loadWallet }}>

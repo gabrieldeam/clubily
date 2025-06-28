@@ -73,3 +73,12 @@ class UserProgramStats(BaseModel):
     generated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class PaginatedAssociations(BaseModel):
+    total: int
+    skip: int
+    limit: int
+    items: List[ProgramUsageAssociation]
+
+    model_config = ConfigDict(from_attributes=True)

@@ -14,9 +14,10 @@ import type {
 } from '@/types/cashbackProgram';
 import styles from './page.module.css';
 
+type ViewMode = 'list' | 'card';
+
 export default function ProgramDetailPage() {
   const params = useParams();
-  console.log('useParams():', params);
 
   // aceita tanto camelCase quanto snake_case
   const programIdRaw =
@@ -34,8 +35,12 @@ export default function ProgramDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
-  const [viewMode, setViewMode] = useState<'list' | 'card'>('list');
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [viewModalOpen, setViewModalOpen] = useState(false);
+
+  // paginação
+  const [page, setPage] = useState(0);
+  const limit = 10;
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -44,22 +49,28 @@ export default function ProgramDetailPage() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-    useEffect(() => {
+  useEffect(() => {
     if (isMobile) setViewMode('card');
   }, [isMobile]);
 
   useEffect(() => {
-    // Se ainda não temos programId, aguardamos o próximo render sem levantar erro
     if (!programId) return;
 
     const fetchData = async () => {
       setLoading(true);
       try {
+        // busca detalhes do programa
         const prog = await getCashbackProgram(programId);
         const progData = 'data' in prog ? prog.data : prog;
         setProgram(progData);
-        const use = await getProgramUsage(programId, 0, 20);
-        const useData = 'data' in use ? use.data : use;
+
+        // busca uso com paginação
+        const useResp = await getProgramUsage(
+          programId,
+          page * limit,
+          limit
+        );
+        const useData = 'data' in useResp ? useResp.data : useResp;
         setUsage(useData);
       } catch (err) {
         setError('Erro ao carregar dados do programa');
@@ -69,7 +80,7 @@ export default function ProgramDetailPage() {
     };
 
     fetchData();
-  }, [programId]);
+  }, [programId, page]);
 
   if (!programId) {
     return <div className={styles.loading}>Carregando ID...</div>;
@@ -86,6 +97,9 @@ export default function ProgramDetailPage() {
   if (!program || !usage) {
     return <div className={styles.error}>Programa não encontrado.</div>;
   }
+
+  // calcula total de páginas com base em total_associations
+  const totalPages = Math.ceil(usage.total_associations / limit);
 
   return (
     <>
@@ -182,6 +196,25 @@ export default function ProgramDetailPage() {
               ))}
             </div>
           )}
+
+                      {/* paginação */}
+            <div className={styles.pagination}>
+              <button
+                onClick={() => setPage((p) => Math.max(p - 1, 0))}
+                disabled={page === 0}
+              >
+                Anterior
+              </button>
+              <span>
+                Página {page + 1} de {totalPages}
+              </span>
+              <button
+                onClick={() => setPage((p) => Math.min(p + 1, totalPages - 1))}
+                disabled={page + 1 >= totalPages}
+              >
+                Próxima
+              </button>
+            </div>
         </section>
 
         {/* modal de seleção de view */}
