@@ -5,7 +5,7 @@ from sqlalchemy import select
 from typing import List
 from sqlalchemy.orm import Session
 from ....schemas.referral import ReferralCode
-from app.api.deps import get_current_user, get_db
+from app.api.deps import get_current_user, get_db, require_admin
 from ....services.referral_service import generate_referral_code, get_referral_code, get_companies_by_referral_code
 from jose import jwt
 from app.core.config import settings
@@ -14,7 +14,7 @@ from app.core.security import hash_password
 from app.models.company import Company
 from ....schemas.company import CompanyRead
 from ....models.user import User
-from ....schemas.user import UserRead, UserUpdate
+from ....schemas.user import UserRead, UserUpdate, PaginatedUsers
 from ....core.phone_utils import normalize_phone
 from ....core.cpf_utils import normalize_cpf
 
@@ -257,3 +257,30 @@ def list_companies_by_referral_code(
     todas as empresas que o usuário dono desse código indicou.
     """
     return get_companies_by_referral_code(db, code)
+
+
+@router.get(
+    "/admin",
+    response_model=PaginatedUsers,
+    summary="Lista todos os usuários (admin)"
+)
+def read_all_users(
+    skip: int = Query(0, ge=0, description="Quantos registros pular"),
+    limit: int = Query(10, ge=1, le=100, description="Máx. de registros"),
+    db: Session = Depends(get_db),              # <— aqui
+    _admin=Depends(require_admin),              # <— apenas para garantir que é admin
+):
+    total = db.query(User).count()
+    users = (
+        db.query(User)
+          .order_by(User.created_at.desc())
+          .offset(skip)
+          .limit(limit)
+          .all()
+    )
+    return PaginatedUsers(
+        total=total,
+        skip=skip,
+        limit=limit,
+        items=users,
+    )

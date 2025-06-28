@@ -1,4 +1,7 @@
 // src/types/commissionAdmin.ts
+
+import type { TransferMethodRead } from '@/types/transferMethod';
+
 export type CommissionWithdrawalStatus =
   | 'pending'
   | 'approved'
@@ -9,13 +12,6 @@ export interface UserBasicRead {
   id: string;
   name: string;
   email: string;
-}
-
-/** Método de transferência (PIX, TED, etc.) */
-export interface TransferMethodRead {
-  id: string;
-  type: string;             // ex: 'PIX', 'TED'
-  details: Record<string, any>; // campos específicos, ex: chave PIX
 }
 
 /** Representação de um saque de comissão */
