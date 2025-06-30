@@ -14,17 +14,19 @@ import {
   Award,
   Gift,
   UserCheck,
-  DollarSign
+  DollarSign,
+  SquareChartGantt
 } from 'lucide-react';
 
 const navItems = [
   { label: 'Empresas', href: '/admin/companies', icon: Store },
   { label: 'Categorias', href: '/admin/categories', icon: Tag },
   { label: 'Usuários', href: '/admin/users', icon: User },
-  { label: 'Pagamentos', href: '/admin/payments', icon: CreditCard },
+  { label: 'Créditos', href: '/admin/payments', icon: CreditCard },
   { label: 'Suportes', href: '/admin/suportes', icon: LifeBuoy },
   { label: 'Cashback', href: '/admin/cashback-programs', icon: CreditCard },
-  { label: 'Pontos', href: '/admin/programas/pontos', icon: Award },
+  { label: 'Pontos', href: '/admin/point-plans', icon: Award },
+  { label: 'Planos de Pontos', href: '/admin/point-plans', icon: SquareChartGantt },
   { label: 'Cartão Fidelidade', href: '/admin/programas/cartao-fidelidade', icon: Gift },
   { label: 'Representantes', href: '/admin/referrals', icon: UserCheck },
   { label: 'Comissões', href: '/admin/commissions', icon: DollarSign }

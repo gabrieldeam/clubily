@@ -1,0 +1,420 @@
+'use client';
+
+import { useEffect, useState, FormEvent } from 'react';
+import {
+  listAdminPointPlans,
+  createPointPlan,
+  patchPointPlan,
+  deletePointPlan,
+} from '@/services/pointPlanService';
+import { listPointPurchases } from '@/services/pointPurchaseService';
+import type {
+  PointPlanRead,
+  PaginatedPointPlans,
+} from '@/types/pointPlan';
+import type {
+  PointPurchaseRead,
+  PaginatedPointPurchases,
+} from '@/types/pointPurchase';
+import Notification from '@/components/Notification/Notification';
+import Modal from '@/components/Modal/Modal';
+import FloatingLabelInput from '@/components/FloatingLabelInput/FloatingLabelInput';
+import Button from '@/components/Button/Button';
+import { PlusCircle } from 'lucide-react';
+import styles from './page.module.css';
+
+type ViewMode = 'table' | 'cards';
+type NotificationState = { type: 'success' | 'error' | 'info'; message: string };
+
+export default function AdminPointPlansPage() {
+  // ─── PLANOS ───────────────────────────────────────────────────────────────
+  const [plans, setPlans] = useState<PointPlanRead[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [notification, setNotification] = useState<NotificationState | null>(null);
+
+  const [page, setPage] = useState(1);
+  const limit = 10;
+  const [total, setTotal] = useState(0);
+
+  const [viewMode, setViewMode] = useState<ViewMode>('table');
+
+  // modal state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [mode, setMode] = useState<'create' | 'edit'>('create');
+  const [current, setCurrent] = useState<PointPlanRead | null>(null);
+
+  // form fields
+  const [name, setName] = useState('');
+  const [subtitle, setSubtitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [recommended, setRecommended] = useState(false);
+  const [price, setPrice] = useState<number>(0);
+  const [points, setPoints] = useState<number>(0);
+
+  useEffect(() => {
+    fetchPlans();
+  }, [page]);
+
+  async function fetchPlans() {
+    setLoading(true);
+    try {
+      const skip = (page - 1) * limit;
+      const res = await listAdminPointPlans(skip, limit);
+      const data: PaginatedPointPlans = res.data;
+      setPlans(data.items);
+      setTotal(data.total);
+    } catch (e: any) {
+      setNotification({ type: 'error', message: e.message || 'Erro ao buscar planos' });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function openCreate() {
+    setMode('create');
+    setCurrent(null);
+    setName('');
+    setSubtitle('');
+    setDescription('');
+    setRecommended(false);
+    setPrice(0);
+    setPoints(0);
+    setModalOpen(true);
+  }
+
+  function openEdit(plan: PointPlanRead) {
+    setMode('edit');
+    setCurrent(plan);
+    setName(plan.name);
+    setSubtitle(plan.subtitle ?? '');
+    setDescription(plan.description);
+    setRecommended(plan.recommended);
+    setPrice(plan.price);
+    setPoints(plan.points);
+    setModalOpen(true);
+  }
+
+  function closeModal() {
+    setModalOpen(false);
+    setCurrent(null);
+  }
+
+  async function handleSave(e: FormEvent) {
+    e.preventDefault();
+    try {
+      if (mode === 'create') {
+        await createPointPlan({ name, subtitle, description, recommended, price, points });
+        setNotification({ type: 'success', message: 'Plano criado com sucesso!' });
+      } else if (current) {
+        await patchPointPlan(current.id, { name, subtitle, description, recommended, price });
+        setNotification({ type: 'success', message: 'Plano atualizado com sucesso!' });
+      }
+      fetchPlans();
+      closeModal();
+    } catch (e: any) {
+      setNotification({ type: 'error', message: e.message || 'Erro ao salvar plano' });
+    }
+  }
+
+  async function handleDelete() {
+    if (!current) return;
+    try {
+      await deletePointPlan(current.id);
+      setNotification({ type: 'success', message: 'Plano excluído com sucesso!' });
+      fetchPlans();
+      closeModal();
+    } catch (e: any) {
+      setNotification({ type: 'error', message: e.message || 'Erro ao excluir plano' });
+    }
+  }
+
+  const lastPage = Math.ceil(total / limit);
+
+  // ─── COMPRAS DE PONTOS ────────────────────────────────────────────────────
+  const [purchases, setPurchases] = useState<PointPurchaseRead[]>([]);
+  const [loadingPurchases, setLoadingPurchases] = useState(true);
+  const [purchasePage, setPurchasePage] = useState(1);
+  const purchaseLimit = 10;
+  const [purchaseTotal, setPurchaseTotal] = useState(0);
+  const [purchaseViewMode, setPurchaseViewMode] = useState<ViewMode>('table');
+  const lastPurchasePage = Math.ceil(purchaseTotal / purchaseLimit);
+
+  useEffect(() => {
+    fetchPurchases();
+  }, [purchasePage]);
+
+  async function fetchPurchases() {
+    setLoadingPurchases(true);
+    try {
+      const skip = (purchasePage - 1) * purchaseLimit;
+      const res = await listPointPurchases(skip, purchaseLimit);
+      const data: PaginatedPointPurchases = res.data;
+      setPurchases(data.items);
+      setPurchaseTotal(data.total);
+    } catch (e: any) {
+      setNotification({ type: 'error', message: e.message || 'Erro ao buscar compras' });
+    } finally {
+      setLoadingPurchases(false);
+    }
+  }
+
+  // helper para escolher classe de badge
+  const badgeClass = (status: string) => {
+    switch (status) {
+      case 'PAID': return styles.badgePaid;
+      case 'PENDING': return styles.badgePending;
+      case 'FAILED': return styles.badgeFailed;
+      case 'CANCELLED': return styles.badgeCancelled;
+      default: return '';
+    }
+  };
+
+  return (
+    <div className={styles.container}>
+      {notification && (
+        <Notification
+          type={notification.type}
+          message={notification.message}
+          onClose={() => setNotification(null)}
+        />
+      )}
+
+      {/* ─── Planos ───────────────────────────────────────── */}
+      <header className={styles.header}>
+        <h1>Planos de Pontos</h1>
+        <div className={styles.actionsHeader}>
+          <button className={styles.btnPrimary} onClick={openCreate}>
+            <PlusCircle size={16} /> Novo Plano
+          </button>
+          <div className={styles.viewToggle}>
+            <button
+              className={viewMode === 'table' ? styles.activeToggle : ''}
+              onClick={() => setViewMode('table')}
+            >
+              Tabela
+            </button>
+            <button
+              className={viewMode === 'cards' ? styles.activeToggle : ''}
+              onClick={() => setViewMode('cards')}
+            >
+              Cards
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {loading ? (
+        <p>Carregando planos...</p>
+      ) : viewMode === 'table' ? (
+        <div className={styles.tableContainer}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Preço</th>
+                <th>Pontos</th>
+                <th>Recomendado</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {plans.map(plan => (
+                <tr key={plan.id}>
+                  <td data-label="Nome">{plan.name}</td>
+                  <td data-label="Preço">R$ {plan.price.toFixed(2)}</td>
+                  <td data-label="Pontos">{plan.points}</td>
+                  <td data-label="Recomendado">{plan.recommended ? 'Sim' : 'Não'}</td>
+                  <td data-label="Ações" className={styles.actions}>
+                    <button className={styles.btnDetail} onClick={() => openEdit(plan)}>
+                      Detalhes
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className={styles.cardsGrid}>
+          {plans.map(plan => (
+            <div key={plan.id} className={styles.card}>
+              <h2>{plan.name}</h2>
+              <p>R$ {plan.price.toFixed(2)}</p>
+              <p><strong>{plan.points} pontos</strong></p>
+              <span className={styles.badgeRecommended}>
+                {plan.recommended ? 'Recomendado' : ''}
+              </span>
+              <button className={styles.btnDetail} onClick={() => openEdit(plan)}>
+                Detalhes
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className={styles.pagination}>
+        <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
+          ← Anterior
+        </button>
+        <span>
+          {page} / {lastPage}
+        </span>
+        <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page === lastPage}>
+          Próxima →
+        </button>
+      </div>
+
+      <Modal open={modalOpen} onClose={closeModal} width={600}>
+        <div className={styles.detail}>
+          <h2>{mode === 'create' ? 'Novo Plano' : 'Editar Plano'}</h2>
+          <form className={styles.form} onSubmit={handleSave}>
+            <FloatingLabelInput
+              id="plan-name"
+              label="Nome"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              required
+            />
+            <FloatingLabelInput
+              id="plan-subtitle"
+              label="Subtítulo"
+              value={subtitle}
+              onChange={e => setSubtitle(e.target.value)}
+            />
+            <FloatingLabelInput
+              id="plan-description"
+              label="Descrição"
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              required
+            />
+            <label className={styles.checkbox}>
+              <input
+                type="checkbox"
+                checked={recommended}
+                onChange={e => setRecommended(e.target.checked)}
+              />
+              Recomendado
+            </label>
+            <FloatingLabelInput
+              id="plan-price"
+              label="Preço"
+              type="number"
+              step="0.01"
+              value={price}
+              onChange={e => setPrice(parseFloat(e.target.value))}
+              required
+            />
+            <FloatingLabelInput
+              id="plan-points"
+              label="Pontos"
+              type="number"
+              value={points}
+              onChange={e => setPoints(parseInt(e.target.value, 10))}
+              required
+            />
+            <div className={styles.formActions}>
+              {mode === 'edit' && (
+                <Button bgColor="#ef4444" onClick={handleDelete} type="button">
+                  Excluir
+                </Button>
+              )}
+              <Button bgColor="#3b82f6" type="submit">
+                Salvar
+              </Button>
+            </div>
+          </form>
+        </div>
+      </Modal>
+
+      {/* ─── Compras de Pontos ────────────────────────────────────────────── */}
+      <section className={styles.purchasesSection}>
+        <div className={styles.header}>
+          <h2>Compras de Pontos</h2>
+          <div className={styles.viewToggle}>
+            <button
+              className={purchaseViewMode === 'table' ? styles.activeToggle : ''}
+              onClick={() => setPurchaseViewMode('table')}
+            >
+              Tabela
+            </button>
+            <button
+              className={purchaseViewMode === 'cards' ? styles.activeToggle : ''}
+              onClick={() => setPurchaseViewMode('cards')}
+            >
+              Cards
+            </button>
+          </div>
+        </div>
+
+        {loadingPurchases ? (
+          <p>Carregando compras...</p>
+        ) : purchaseViewMode === 'table' ? (
+          <div className={styles.tableContainer}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Plano</th>
+                  <th>Valor</th>
+                  <th>Status</th>
+                  <th>Criado em</th>
+                </tr>
+              </thead>
+              <tbody>
+                {purchases.map(p => (
+                  <tr key={p.id}>
+                    <td data-label="ID">{p.id.slice(0, 8)}…</td>
+                    <td data-label="Plano">{p.plan?.name ?? '-'}</td>
+                    <td data-label="Valor">R$ {p.amount.toFixed(2)}</td>
+                    <td data-label="Status">
+                      <span className={badgeClass(p.status)}>{p.status}</span>
+                    </td>
+                    <td data-label="Criado em">
+                      {new Date(p.created_at).toLocaleDateString('pt-BR')}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className={styles.cardsGrid}>
+            {purchases.map(p => (
+              <div key={p.id} className={styles.card}>
+                <div className={styles.cardBody}>
+                  <h3>{p.plan?.name ?? '—'}</h3>
+                  <p><strong>R$ {p.amount.toFixed(2)}</strong></p>
+                  <p>
+                    <span className={badgeClass(p.status)}>{p.status}</span>
+                  </p>
+                  <p className={styles.subText}>
+                    {new Date(p.created_at).toLocaleDateString('pt-BR')}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className={styles.pagination}>
+          <button
+            onClick={() => setPurchasePage(p => Math.max(1, p - 1))}
+            disabled={purchasePage === 1}
+          >
+            ← Anterior
+          </button>
+          <span>
+            {purchasePage} / {lastPurchasePage}
+          </span>
+          <button
+            onClick={() => setPurchasePage(p => Math.min(lastPurchasePage, p + 1))}
+            disabled={purchasePage === lastPurchasePage}
+          >
+            Próxima →
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}

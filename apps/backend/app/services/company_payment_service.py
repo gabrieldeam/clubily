@@ -74,7 +74,6 @@ def refresh_payment_status(db: Session, asaas_id: str) -> CompanyPayment | None:
     raw_status = resp.get("status", "").upper()
 
     # 2) converte para nosso enum
-    from app.services.company_payment_service import STATUS_MAP  # reutiliza o mapeamento
     mapped = STATUS_MAP.get(raw_status)
     if mapped is None:
         return None
@@ -88,7 +87,6 @@ def refresh_payment_status(db: Session, asaas_id: str) -> CompanyPayment | None:
     payment.status = mapped
     db.commit()
     db.refresh(payment)
-
 
 
     # 4) se acabou de virar PAID, credita na carteira

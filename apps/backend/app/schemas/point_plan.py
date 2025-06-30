@@ -10,6 +10,7 @@ class PointPlanBase(BaseModel):
     description: str
     recommended: bool = False
     price: float = Field(..., gt=0)
+    points: int = Field(..., ge=0)
 
 class PointPlanCreate(PointPlanBase):
     pass

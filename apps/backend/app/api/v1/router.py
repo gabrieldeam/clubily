@@ -1,8 +1,14 @@
 # backend/app/api/v1/router.py
 
 from fastapi import APIRouter
-from .endpoints import auth, cashback_metrics, users
-from .endpoints import auth, users, companies, categories, addresses, cashback_associations, cashback_programs, asaas_webhook, company_payments, admin_payments, asaas_customer, wallet, fee_settings, admin_commissions, commissions, transfer_methods
+from .endpoints import (
+    auth, cashback_metrics, users, companies, categories, addresses, 
+    cashback_associations, cashback_programs, asaas_webhook, 
+    company_payments, admin_payments, asaas_customer, wallet, 
+    fee_settings, admin_commissions, commissions, transfer_methods,
+    point_purchases, points_wallet, point_plans, admin_point_plans,
+)
+
 router = APIRouter()
 router.include_router(auth.router, prefix="/auth", tags=["auth"])
 router.include_router(users.router, prefix="/users", tags=["users"])
@@ -21,3 +27,7 @@ router.include_router(fee_settings.router, prefix="/admin/fee-settings", tags=["
 router.include_router(commissions.router, prefix="/commissions", tags=["commissions"])
 router.include_router(admin_commissions.router, prefix="/admin/commissions", tags=["admin_commissions"])
 router.include_router(transfer_methods.router, prefix="/transfer_methods", tags=["transfer_methods"])
+router.include_router(point_purchases.router, prefix="/point-purchases", tags=["point_purchases"])
+router.include_router(points_wallet.router, prefix="/points", tags=["points"])
+router.include_router(point_plans.router, prefix="/point-plans", tags=["point_plans"])
+router.include_router(admin_point_plans.router, prefix="/point-plans/admin", tags=["admin_point_plans"])
