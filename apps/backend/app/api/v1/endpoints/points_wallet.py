@@ -5,7 +5,7 @@ from app.api.deps import get_db, get_current_company
 from app.services.points_wallet_service import get_points_balance
 from app.schemas.points_wallet import PointsBalance
 
-router = APIRouter(prefix="/points", tags=["points"])
+router = APIRouter(tags=["points"])
 
 @router.get("/balance", response_model=PointsBalance)
 def read_points_balance(

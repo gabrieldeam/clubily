@@ -70,32 +70,42 @@ def create_point_purchase(db: Session, company_id: str, plan_id: str) -> Company
     db.refresh(purchase)
     return purchase
 
-def refresh_point_purchase_status(db: Session, asaas_id: str) -> CompanyPointPurchase | None:
+def refresh_point_purchase_status(
+    db: Session, asaas_id: str
+) -> CompanyPointPurchase | None:
     """
     Reconsulta o status no Asaas, atualiza e, se ficar PAID, credita pontos.
     """
-    purchase = db.query(CompanyPointPurchase).filter_by(asaas_id=asaas_id).first()
+    purchase = (
+        db.query(CompanyPointPurchase)
+          .filter_by(asaas_id=asaas_id)
+          .first()
+    )
     if not purchase:
         return None
 
-    # buscar status no Asaas
-    resp = gateway._get_payment(db, asaas_id)  # implemente _get_payment para retornar JSON
+    # 1) busca status no Asaas
+    resp = gateway.get_payment(asaas_id)
     raw = resp.get("status", "").upper()
 
-    from app.services.company_payment_service import STATUS_MAP  # reutiliza o mapeamento
+    # 2) mapeia para PurchaseStatus
+    from app.services.point_purchase_service import STATUS_MAP
     mapped = STATUS_MAP.get(raw)
     if mapped is None:
         return purchase
 
-    # converte para PurchaseStatus
+    # 3) se mudou para PAID, atualiza e credita pontos
     if mapped == PurchaseStatus.PAID and purchase.status != PurchaseStatus.PAID:
         purchase.status = PurchaseStatus.PAID
         db.commit()
         db.refresh(purchase)
-        # ao virar PAID, credita pontos na carteira da empresa
-        credit_points(db, purchase.company_id, plan := get_plan(db, purchase.plan_id).points)
+
+        # ao virar PAID, credita exatos plan.points
+        plan = get_plan(db, purchase.plan_id)
+        credit_points(db, purchase.company_id, plan.points)
 
     return purchase
+
 
 def list_point_purchases(db: Session, company_id: str, skip: int, limit: int) -> tuple[int, list[CompanyPointPurchase]]:
     """
@@ -124,3 +134,17 @@ def list_all_point_purchases(db: Session, skip: int, limit: int) -> tuple[int, l
     total = q.count()
     items = q.order_by(CompanyPointPurchase.created_at.desc()).offset(skip).limit(limit).all()
     return total, items
+
+def get_point_purchase(
+    db: Session,
+    company_id: str,
+    purchase_id: str
+) -> CompanyPointPurchase | None:
+    """
+    Retorna uma compra de pontos pelo ID, garantindo que pertença à company_id.
+    """
+    return (
+        db.query(CompanyPointPurchase)
+          .filter_by(id=purchase_id, company_id=company_id)
+          .first()
+    )

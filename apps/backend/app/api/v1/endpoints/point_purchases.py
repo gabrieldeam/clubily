@@ -1,17 +1,15 @@
 # app/api/v1/endpoints/point_purchases.py
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
-from decimal import Decimal
-from typing import List
 from app.api.deps import get_db, get_current_company
 from app.services.point_purchase_service import (
-    create_point_purchase, list_point_purchases, list_all_point_purchases
+    create_point_purchase, list_point_purchases, list_all_point_purchases, get_point_purchase
 )
 from app.schemas.point_purchase import (
     PointPurchaseCreate, PointPurchaseRead, PaginatedPointPurchases
 )
 
-router = APIRouter(prefix="/point-purchases", tags=["point_purchases"])
+router = APIRouter(tags=["point_purchases"])
 
 @router.post("/", response_model=PointPurchaseRead, status_code=status.HTTP_201_CREATED)
 def purchase_points(
@@ -41,3 +39,19 @@ def read_all_point_purchases(
 ):
     total, items = list_all_point_purchases(db, skip, limit)
     return PaginatedPointPurchases(total=total, skip=skip, limit=limit, items=items)
+
+
+@router.get("/{purchase_id}", response_model=PointPurchaseRead)
+def read_point_purchase(
+    purchase_id: str,
+    db: Session = Depends(get_db),
+    current_company=Depends(get_current_company)
+):
+    """
+    Retorna os detalhes de uma compra de pontos pelo seu ID,
+    garantindo que seja da empresa autenticada.
+    """
+    p = get_point_purchase(db, str(current_company.id), purchase_id)
+    if not p:
+        raise HTTPException(status_code=404, detail="Compra de pontos não encontrada")
+    return p
