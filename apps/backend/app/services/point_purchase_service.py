@@ -9,6 +9,8 @@ from app.services.points_wallet_service import credit_points
 from app.models.company import Company
 from app.models.company_point_purchase import CompanyPointPurchase, PurchaseStatus
 
+from app.services.commission_service import credit_for_payment
+
 logger = logging.getLogger(__name__)
 gateway = AsaasClient()
 
@@ -89,7 +91,6 @@ def refresh_point_purchase_status(
     raw = resp.get("status", "").upper()
 
     # 2) mapeia para PurchaseStatus
-    from app.services.point_purchase_service import STATUS_MAP
     mapped = STATUS_MAP.get(raw)
     if mapped is None:
         return purchase
@@ -103,6 +104,7 @@ def refresh_point_purchase_status(
         # ao virar PAID, credita exatos plan.points
         plan = get_plan(db, purchase.plan_id)
         credit_points(db, purchase.company_id, plan.points)
+        credit_for_payment(db, purchase)
 
     return purchase
 

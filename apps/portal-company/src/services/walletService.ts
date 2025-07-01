@@ -25,3 +25,5 @@ export const withdrawUserWallet = (userId: string, payload: WalletWithdraw) =>
     `/wallet/${userId}/wallet/withdraw`,
     payload
   );
+
+  

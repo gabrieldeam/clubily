@@ -37,13 +37,10 @@ export default function AdminPointPlansPage() {
   const [total, setTotal] = useState(0);
 
   const [viewMode, setViewMode] = useState<ViewMode>('table');
-
-  // modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [mode, setMode] = useState<'create' | 'edit'>('create');
   const [current, setCurrent] = useState<PointPlanRead | null>(null);
 
-  // form fields
   const [name, setName] = useState('');
   const [subtitle, setSubtitle] = useState('');
   const [description, setDescription] = useState('');
@@ -51,53 +48,34 @@ export default function AdminPointPlansPage() {
   const [price, setPrice] = useState<number>(0);
   const [points, setPoints] = useState<number>(0);
 
-  useEffect(() => {
-    fetchPlans();
-  }, [page]);
-
+  useEffect(() => { fetchPlans(); }, [page]);
   async function fetchPlans() {
     setLoading(true);
     try {
       const skip = (page - 1) * limit;
       const res = await listAdminPointPlans(skip, limit);
       const data: PaginatedPointPlans = res.data;
-      setPlans(data.items);
-      setTotal(data.total);
+      setPlans(data.items); setTotal(data.total);
     } catch (e: any) {
       setNotification({ type: 'error', message: e.message || 'Erro ao buscar planos' });
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   }
 
   function openCreate() {
-    setMode('create');
-    setCurrent(null);
-    setName('');
-    setSubtitle('');
-    setDescription('');
-    setRecommended(false);
-    setPrice(0);
-    setPoints(0);
+    setMode('create'); setCurrent(null);
+    setName(''); setSubtitle(''); setDescription('');
+    setRecommended(false); setPrice(0); setPoints(0);
     setModalOpen(true);
   }
-
   function openEdit(plan: PointPlanRead) {
-    setMode('edit');
-    setCurrent(plan);
-    setName(plan.name);
-    setSubtitle(plan.subtitle ?? '');
+    setMode('edit'); setCurrent(plan);
+    setName(plan.name); setSubtitle(plan.subtitle ?? '');
     setDescription(plan.description);
     setRecommended(plan.recommended);
-    setPrice(plan.price);
-    setPoints(plan.points);
+    setPrice(plan.price); setPoints(plan.points);
     setModalOpen(true);
   }
-
-  function closeModal() {
-    setModalOpen(false);
-    setCurrent(null);
-  }
+  function closeModal() { setModalOpen(false); setCurrent(null); }
 
   async function handleSave(e: FormEvent) {
     e.preventDefault();
@@ -109,25 +87,21 @@ export default function AdminPointPlansPage() {
         await patchPointPlan(current.id, { name, subtitle, description, recommended, price });
         setNotification({ type: 'success', message: 'Plano atualizado com sucesso!' });
       }
-      fetchPlans();
-      closeModal();
+      fetchPlans(); closeModal();
     } catch (e: any) {
       setNotification({ type: 'error', message: e.message || 'Erro ao salvar plano' });
     }
   }
-
   async function handleDelete() {
     if (!current) return;
     try {
       await deletePointPlan(current.id);
       setNotification({ type: 'success', message: 'Plano excluído com sucesso!' });
-      fetchPlans();
-      closeModal();
+      fetchPlans(); closeModal();
     } catch (e: any) {
       setNotification({ type: 'error', message: e.message || 'Erro ao excluir plano' });
     }
   }
-
   const lastPage = Math.ceil(total / limit);
 
   // ─── COMPRAS DE PONTOS ────────────────────────────────────────────────────
@@ -139,26 +113,32 @@ export default function AdminPointPlansPage() {
   const [purchaseViewMode, setPurchaseViewMode] = useState<ViewMode>('table');
   const lastPurchasePage = Math.ceil(purchaseTotal / purchaseLimit);
 
-  useEffect(() => {
-    fetchPurchases();
-  }, [purchasePage]);
+  // novo: estado para modal de compra
+  const [purchaseModalOpen, setPurchaseModalOpen] = useState(false);
+  const [currentPurchase, setCurrentPurchase] = useState<PointPurchaseRead | null>(null);
 
+  useEffect(() => { fetchPurchases(); }, [purchasePage]);
   async function fetchPurchases() {
     setLoadingPurchases(true);
     try {
       const skip = (purchasePage - 1) * purchaseLimit;
       const res = await listPointPurchases(skip, purchaseLimit);
       const data: PaginatedPointPurchases = res.data;
-      setPurchases(data.items);
-      setPurchaseTotal(data.total);
+      setPurchases(data.items); setPurchaseTotal(data.total);
     } catch (e: any) {
       setNotification({ type: 'error', message: e.message || 'Erro ao buscar compras' });
-    } finally {
-      setLoadingPurchases(false);
-    }
+    } finally { setLoadingPurchases(false); }
   }
 
-  // helper para escolher classe de badge
+  function openPurchaseDetails(p: PointPurchaseRead) {
+    setCurrentPurchase(p);
+    setPurchaseModalOpen(true);
+  }
+  function closePurchaseModal() {
+    setPurchaseModalOpen(false);
+    setCurrentPurchase(null);
+  }
+
   const badgeClass = (status: string) => {
     switch (status) {
       case 'PAID': return styles.badgePaid;
@@ -327,7 +307,7 @@ export default function AdminPointPlansPage() {
         </div>
       </Modal>
 
-      {/* ─── Compras de Pontos ────────────────────────────────────────────── */}
+            {/* ─── Compras de Pontos ────────────────────────────────────────────── */}
       <section className={styles.purchasesSection}>
         <div className={styles.header}>
           <h2>Compras de Pontos</h2>
@@ -335,15 +315,11 @@ export default function AdminPointPlansPage() {
             <button
               className={purchaseViewMode === 'table' ? styles.activeToggle : ''}
               onClick={() => setPurchaseViewMode('table')}
-            >
-              Tabela
-            </button>
+            >Tabela</button>
             <button
               className={purchaseViewMode === 'cards' ? styles.activeToggle : ''}
               onClick={() => setPurchaseViewMode('cards')}
-            >
-              Cards
-            </button>
+            >Cards</button>
           </div>
         </div>
 
@@ -359,12 +335,13 @@ export default function AdminPointPlansPage() {
                   <th>Valor</th>
                   <th>Status</th>
                   <th>Criado em</th>
+                  <th>Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {purchases.map(p => (
                   <tr key={p.id}>
-                    <td data-label="ID">{p.id.slice(0, 8)}…</td>
+                    <td data-label="ID">{p.id.slice(0,8)}…</td>
                     <td data-label="Plano">{p.plan?.name ?? '-'}</td>
                     <td data-label="Valor">R$ {p.amount.toFixed(2)}</td>
                     <td data-label="Status">
@@ -372,6 +349,14 @@ export default function AdminPointPlansPage() {
                     </td>
                     <td data-label="Criado em">
                       {new Date(p.created_at).toLocaleDateString('pt-BR')}
+                    </td>
+                    <td data-label="Ações" className={styles.actions}>
+                      <button
+                        className={styles.btnDetail}
+                        onClick={() => openPurchaseDetails(p)}
+                      >
+                        Detalhes
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -385,12 +370,16 @@ export default function AdminPointPlansPage() {
                 <div className={styles.cardBody}>
                   <h3>{p.plan?.name ?? '—'}</h3>
                   <p><strong>R$ {p.amount.toFixed(2)}</strong></p>
-                  <p>
-                    <span className={badgeClass(p.status)}>{p.status}</span>
-                  </p>
+                  <p><span className={badgeClass(p.status)}>{p.status}</span></p>
                   <p className={styles.subText}>
                     {new Date(p.created_at).toLocaleDateString('pt-BR')}
                   </p>
+                  <button
+                    className={styles.btnDetail}
+                    onClick={() => openPurchaseDetails(p)}
+                  >
+                    Detalhes
+                  </button>
                 </div>
               </div>
             ))}
@@ -415,6 +404,53 @@ export default function AdminPointPlansPage() {
           </button>
         </div>
       </section>
+
+       {/* Modal de Detalhes de Compra */}
+<Modal open={purchaseModalOpen} onClose={closePurchaseModal} width={600}>
+  {currentPurchase && (
+    <div className={styles.detail}>
+      <h2>Compra: {currentPurchase.asaas_id}</h2>
+
+      <section>
+        <h3>Plano</h3>
+        <p><strong>Nome:</strong> {currentPurchase.plan?.name ?? '-'}</p>
+        <p><strong>Pontos:</strong> {currentPurchase.plan?.points}</p>
+        <p><strong>Valor:</strong> R$ {currentPurchase.amount.toFixed(2)}</p>
+      </section>
+
+      <section>
+        <h3>Detalhes da Compra</h3>
+        {currentPurchase.pix_copy_paste_code && (
+          <p>
+            <strong>Código PIX:</strong>{' '}
+            <code>{currentPurchase.pix_copy_paste_code}</code>
+          </p>
+        )}
+        {currentPurchase.pix_expires_at && (
+          <p>
+            <strong>Validade PIX:</strong>{' '}
+            {new Date(currentPurchase.pix_expires_at).toLocaleString('pt-BR')}
+          </p>
+        )}
+        <p>
+          <strong>Status:</strong>{' '}
+          <span className={badgeClass(currentPurchase.status)}>
+            {currentPurchase.status}
+          </span>
+        </p>
+        <p>
+          <strong>Criado em:</strong>{' '}
+          {new Date(currentPurchase.created_at).toLocaleString('pt-BR')}
+        </p>
+        <p>
+          <strong>Atualizado em:</strong>{' '}
+          {new Date(currentPurchase.updated_at).toLocaleDateString('pt-BR')}
+        </p>
+      </section>
+    </div>
+  )}
+</Modal>
+
     </div>
   );
 }

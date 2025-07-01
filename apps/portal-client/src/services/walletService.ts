@@ -4,7 +4,8 @@ import api from './api';
 import type {
   UserCashbackWalletRead,
   WalletSummary,
-  WalletTransactionRead
+  WalletTransactionRead,
+  WalletRead
 } from '@/types/wallet';
 
 /**
@@ -40,3 +41,10 @@ export const listWalletDebits = (
   api.get<WalletTransactionRead[]>('/wallet/debits', {
     params: { company_id: companyId, skip, limit },
   });
+
+/**
+ * Busca (ou cria, se não existir) a carteira de pontos de uma empresa (admin).
+ * GET /wallet/admin/{companyId}/balance
+ */
+export const getCompanyWallet = (companyId: string) =>
+  api.get<WalletRead>(`/wallet/admin/${companyId}/balance`);

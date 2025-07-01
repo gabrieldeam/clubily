@@ -210,20 +210,31 @@
   background: #f3f4f6;
 }
 
-/* Modal detail */
+/* Modal details */
 .detail {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
   background: #fff;
-  padding: 1.5rem;
-  border-radius: 0.5rem;
+  padding: 20px;
+  border-radius: 20px;
 }
 .detail h2 {
   margin: 0;
   font-size: 1.5rem;
   color: #111827;
 }
+.detail section {
+  background: #f3f4f6;
+  padding: 1rem;
+  border-radius: 0.375rem;
+}
+.detail section h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  color: #374151;
+}
+
 .form {
   display: flex;
   flex-direction: column;

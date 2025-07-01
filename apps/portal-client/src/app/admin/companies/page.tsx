@@ -11,6 +11,8 @@ import {
   listFeeSettings,
   patchFeeSetting,
 } from '@/services/feeSettingService';
+import { getPointsBalance } from '@/services/pointsWalletService';
+import { getCompanyWallet } from '@/services/walletService';
 import type {
   CompanyRead,
   PaginationParams,
@@ -20,6 +22,8 @@ import type {
   FeeSettingRead,
   SettingTypeEnum,
 } from '@/types/feeSetting';
+import type { PointsBalance } from '@/types/pointsWallet';
+import type { WalletRead } from '@/types/wallet';
 import Modal from '@/components/Modal/Modal';
 import Notification from '@/components/Notification/Notification';
 import styles from './page.module.css';
@@ -66,6 +70,16 @@ export default function AdminCompaniesPage() {
   // Modo de visualização
   const [viewMode, setViewMode] = useState<ViewMode>('table');
 
+    // SALDO DE PONTOS
+  const [balance, setBalance] = useState<number | null>(null);
+  const [balLoading, setBalLoading] = useState(false);
+  const [balError, setBalError] = useState('');
+ 
+    // === NOVOS ESTADOS PARA WALLET ===
+  const [wallet, setWallet] = useState<WalletRead | null>(null);
+  const [wLoading, setWLoading] = useState(false);
+  const [wError, setWError] = useState('');
+
   useEffect(() => {
     fetchCompanies();
   }, [page]);
@@ -97,10 +111,39 @@ export default function AdminCompaniesPage() {
     }
   }
 
-  function openDetails(comp: CompanyRead) {
-    setSelectedCompany(comp);
-    setModalOpen(true);
+async function openDetails(comp: CompanyRead) {
+  // abre o modal e seleciona a empresa
+  setSelectedCompany(comp);
+  setModalOpen(true);
+
+  // 1) Busca saldo simples (pointsBalance)
+  setBalLoading(true);
+  setBalError('');
+  try {
+    const res = await getPointsBalance(comp.id);
+    const data: PointsBalance = res.data;
+    setBalance(data.balance);
+  } catch (e: any) {
+    setBalError('Não foi possível carregar saldo');
+    setBalance(null);
+  } finally {
+    setBalLoading(false);
   }
+
+  // 2) Busca carteira completa (WalletRead)
+  setWLoading(true);
+  setWError('');
+  try {
+    const res2 = await getCompanyWallet(comp.id);
+    setWallet(res2.data);
+  } catch (e: any) {
+    setWError('Não foi possível carregar carteira');
+    setWallet(null);
+  } finally {
+    setWLoading(false);
+  }
+}
+
   function closeDetails() {
     setModalOpen(false);
     setSelectedCompany(null);
@@ -305,24 +348,55 @@ async function handleFsSave(type: SettingTypeEnum) {
 
       <Modal open={modalOpen} onClose={closeDetails} width={700}>
         {selectedCompany && (
-          <div className={styles.detailGrid}>
-            <div className={styles.detailLeft}>
-              <h2>{selectedCompany.name}</h2>
-              {selectedCompany.logo_url && (
-                <img
-                  src={`${baseUrl}${selectedCompany.logo_url}`}
-                  alt={`${selectedCompany.name} logo`}
-                  className={styles.logo}
-                />
-              )}
+          <div className={styles.detailGrid}>              
               <section>
-                <h3>Contato</h3>
-                <p><strong>Email:</strong> {selectedCompany.email}</p>
-                <p><strong>Telefone:</strong> {selectedCompany.phone}</p>
-                <p><strong>ID:</strong> {selectedCompany.id}</p>
+                <h3>Informações</h3> 
+                <div className={styles.detail}>
+                  <div>
+                    {selectedCompany.logo_url && (
+                      <img
+                        src={`${baseUrl}${selectedCompany.logo_url}`}
+                        alt={`${selectedCompany.name} logo`}
+                        className={styles.logo}
+                      />
+                    )}
+                  </div>             
+                  <div>
+                    <p><strong>Nome:</strong> {selectedCompany.name}</p>
+                    <p><strong>Email:</strong> {selectedCompany.email}</p>
+                    <p><strong>Telefone:</strong> {selectedCompany.phone}</p>
+                    <p><strong>ID:</strong> {selectedCompany.id}</p>
+                  </div>
+                </div>
+
               </section>
-            </div>
-            <div className={styles.detailRight}>
+
+              <section className={styles.detail}>
+                <div>
+                  <h3>Saldo de Pontos</h3>
+                  {balLoading ? (
+                    <p>Carregando...</p>
+                  ) : balError ? (
+                    <p>{balError}</p>
+                  ) : (
+                    <p>{balance} pts</p>
+                  )}
+                </div>
+                <div>
+                  <h3>Saldo de Créditos</h3>
+                    {wLoading 
+                      ? <p>Carregando...</p>
+                      : wError
+                        ? <p>{wError}</p>
+                        : wallet && (
+                          <div>
+                            <p>{wallet.balance} ctds</p>                            
+                          </div>
+                        )
+                    }
+                </div>
+              </section>
+              
               <section>
                 <h3>Endereço</h3>
                 <p>
@@ -348,7 +422,6 @@ async function handleFsSave(type: SettingTypeEnum) {
                   ))}
                 </ul>
               </section>
-            </div>
           </div>
         )}
       </Modal>
