@@ -122,9 +122,14 @@ def list_point_purchases(db: Session, company_id: str, skip: int, limit: int) ->
     items = q.order_by(CompanyPointPurchase.created_at.desc()).offset(skip).limit(limit).all()
     return total, items
 
-def list_all_point_purchases(db: Session, skip: int, limit: int) -> tuple[int, list[CompanyPointPurchase]]:
+def list_all_point_purchases(
+    db: Session,
+    skip: int,
+    limit: int
+) -> tuple[int, list[CompanyPointPurchase]]:
     """
-    Endpoint admin: lista todas as compras de pontos de todas as empresas.
+    Endpoint admin: lista todas as compras de pontos de todas as empresas,
+    com company e plan já carregados.
     """
     q = (
         db.query(CompanyPointPurchase)
@@ -134,7 +139,12 @@ def list_all_point_purchases(db: Session, skip: int, limit: int) -> tuple[int, l
           )
     )
     total = q.count()
-    items = q.order_by(CompanyPointPurchase.created_at.desc()).offset(skip).limit(limit).all()
+    items = (
+        q.order_by(CompanyPointPurchase.created_at.desc())
+         .offset(skip)
+         .limit(limit)
+         .all()
+    )
     return total, items
 
 def get_point_purchase(

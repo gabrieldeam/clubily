@@ -32,14 +32,23 @@ def history_points(
     return PaginatedPointPurchases(total=total, skip=skip, limit=limit, items=items)
 
 
-@router.get("/admin", response_model=PaginatedPointPurchases)
+@router.get(
+    "/admin",
+    response_model=PaginatedPointPurchases,
+    summary="Admin: todas as compras de pontos com info da empresa"
+)
 def read_all_point_purchases(
-    skip: int = Query(0, ge=0), limit: int = Query(10, ge=1, le=100),
-    db: Session = Depends(get_db)
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
+    db: Session = Depends(get_db),
 ):
-    total, items = list_all_point_purchases(db, skip, limit)
-    return PaginatedPointPurchases(total=total, skip=skip, limit=limit, items=items)
-
+    total, purchases = list_all_point_purchases(db, skip, limit)
+    return PaginatedPointPurchases(
+        total=total,
+        skip=skip,
+        limit=limit,
+        items=purchases
+    )
 
 @router.get("/{purchase_id}", response_model=PointPurchaseRead)
 def read_point_purchase(

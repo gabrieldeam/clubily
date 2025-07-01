@@ -228,6 +228,9 @@
   background: #f3f4f6;
   padding: 1rem;
   border-radius: 0.375rem;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 .detail section h3 {
   margin: 0 0 0.5rem;

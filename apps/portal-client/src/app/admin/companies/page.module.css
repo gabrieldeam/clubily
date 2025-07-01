@@ -335,3 +335,51 @@
 }
 
 
+/* Contêiner das operações */
+.opContainer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+/* Input de quantidade */
+.opContainer input {
+  width: 120px;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+/* Botão primário (Creditar) */
+.btnPrimary {
+  background-color: #0070f3;
+  color: #fff;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s ease;
+}
+
+.btnPrimary:hover {
+  background-color: #005bb5;
+}
+
+/* Botão secundário (Debitar) */
+.btnSecondary {
+  background-color: #eaeaea;
+  color: #333;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s ease;
+}
+
+.btnSecondary:hover {
+  background-color: #cacaca;
+}

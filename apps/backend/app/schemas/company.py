@@ -116,3 +116,12 @@ class CompanyReadWithService(CompanyRead):
     serves_address: bool
 
     model_config = ConfigDict(from_attributes=True)
+
+class CompanyBasic(BaseModel):
+    id: UUID
+    name: str
+    email: str
+    phone: str    
+    cnpj: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)

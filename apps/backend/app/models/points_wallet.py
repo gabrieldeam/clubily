@@ -16,3 +16,10 @@ class PointsWallet(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     company = relationship("Company", back_populates="points_wallet")
+
+    transactions = relationship(
+        "PointsWalletTransaction",
+        back_populates="wallet",
+        cascade="all, delete-orphan",
+        order_by="PointsWalletTransaction.created_at.desc()"
+    )

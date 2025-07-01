@@ -406,50 +406,58 @@ export default function AdminPointPlansPage() {
       </section>
 
        {/* Modal de Detalhes de Compra */}
-<Modal open={purchaseModalOpen} onClose={closePurchaseModal} width={600}>
-  {currentPurchase && (
-    <div className={styles.detail}>
-      <h2>Compra: {currentPurchase.asaas_id}</h2>
+      <Modal open={purchaseModalOpen} onClose={closePurchaseModal} width={600}>
+        {currentPurchase && (
+          <div className={styles.detail}>
+            <h2>Compra: {currentPurchase.asaas_id}</h2>
 
-      <section>
-        <h3>Plano</h3>
-        <p><strong>Nome:</strong> {currentPurchase.plan?.name ?? '-'}</p>
-        <p><strong>Pontos:</strong> {currentPurchase.plan?.points}</p>
-        <p><strong>Valor:</strong> R$ {currentPurchase.amount.toFixed(2)}</p>
-      </section>
+            <section>
+              <h3>Plano</h3>
+              <p><strong>Nome:</strong> {currentPurchase.plan?.name ?? '-'}</p>
+              <p><strong>Pontos:</strong> {currentPurchase.plan?.points}</p>
+              <p><strong>Valor:</strong> R$ {currentPurchase.amount.toFixed(2)}</p>
+            </section>
 
-      <section>
-        <h3>Detalhes da Compra</h3>
-        {currentPurchase.pix_copy_paste_code && (
-          <p>
-            <strong>Código PIX:</strong>{' '}
-            <code>{currentPurchase.pix_copy_paste_code}</code>
-          </p>
+            <section>
+              <h3>Detalhes da Compra</h3>
+              {currentPurchase.pix_copy_paste_code && (
+                <p>
+                  <strong>Código PIX:</strong>{' '}
+                  <code>{currentPurchase.pix_copy_paste_code}</code>
+                </p>
+              )}
+              {currentPurchase.pix_expires_at && (
+                <p>
+                  <strong>Validade PIX:</strong>{' '}
+                  {new Date(currentPurchase.pix_expires_at).toLocaleString('pt-BR')}
+                </p>
+              )}
+              <p>
+                <strong>Status:</strong>{' '}
+                <span className={badgeClass(currentPurchase.status)}>
+                  {currentPurchase.status}
+                </span>
+              </p>
+              <p>
+                <strong>Criado em:</strong>{' '}
+                {new Date(currentPurchase.created_at).toLocaleString('pt-BR')}
+              </p>
+              <p>
+                <strong>Atualizado em:</strong>{' '}
+                {new Date(currentPurchase.updated_at).toLocaleDateString('pt-BR')}
+              </p>
+            </section>
+            <section>
+              <h3>Empresa</h3>
+              <p><strong>ID:</strong> {currentPurchase.company?.id ?? '-'}</p>
+              <p><strong>Nome:</strong> {currentPurchase.company?.name}</p>
+              <p><strong>Email:</strong> {currentPurchase.company?.email}</p>
+              <p><strong>Telefone:</strong> {currentPurchase.company?.phone}</p>
+              <p><strong>CNPJ:</strong> {currentPurchase.company?.cnpj}</p>
+            </section>
+          </div>
         )}
-        {currentPurchase.pix_expires_at && (
-          <p>
-            <strong>Validade PIX:</strong>{' '}
-            {new Date(currentPurchase.pix_expires_at).toLocaleString('pt-BR')}
-          </p>
-        )}
-        <p>
-          <strong>Status:</strong>{' '}
-          <span className={badgeClass(currentPurchase.status)}>
-            {currentPurchase.status}
-          </span>
-        </p>
-        <p>
-          <strong>Criado em:</strong>{' '}
-          {new Date(currentPurchase.created_at).toLocaleString('pt-BR')}
-        </p>
-        <p>
-          <strong>Atualizado em:</strong>{' '}
-          {new Date(currentPurchase.updated_at).toLocaleDateString('pt-BR')}
-        </p>
-      </section>
-    </div>
-  )}
-</Modal>
+      </Modal>
 
     </div>
   );
