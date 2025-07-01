@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_db, get_current_company, require_admin
 from app.services.points_wallet_service import get_points_balance, debit_points, credit_points
 from app.schemas.points_wallet import PointsBalance, PointsOperation, PointsTransaction, PaginatedPointsTransactions
-from typing import List
 from app.models.points_wallet_transaction import PointsWalletTransaction
 
 router = APIRouter(tags=["points"])
@@ -76,10 +75,18 @@ def debit_points_by_company(
 ):
     """
     Admin apenas: debita `points` pontos da carteira da empresa passada por ID.
+    Esta é uma **retirada especial de pontos**.
     """
-    debit_points(db, company_id, op.points)
+    # passa a descrição da transação aqui no endpoint:
+    debit_points(
+        db,
+        company_id,
+        op.points,
+        description="retirada especial de pontos"
+    )
     balance = get_points_balance(db, company_id)
     return {"balance": balance}
+
 
 @router.post(
     "/admin/{company_id}/credit",
@@ -94,10 +101,18 @@ def credit_points_by_company(
 ):
     """
     Admin apenas: credita `points` pontos na carteira da empresa identificada por `company_id`.
+    Esta é uma **inclusão especial de créditos**.
     """
-    credit_points(db, company_id, op.points)
+    # passa a descrição da transação aqui no endpoint:
+    credit_points(
+        db,
+        company_id,
+        op.points,
+        description="inclusão especial de pontos"
+    )
     balance = get_points_balance(db, company_id)
     return {"balance": balance}
+
 
 @router.get(
     "/admin/{company_id}/transactions",

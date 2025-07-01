@@ -3,7 +3,8 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 from decimal import Decimal
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
+from enum import Enum
 
 class WalletRead(BaseModel):
     company_id: UUID
@@ -51,5 +52,38 @@ class WalletTransactionRead(BaseModel):
     user_id: UUID
     amount: Decimal
     created_at: datetime 
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+
+
+
+class WalletOperation(BaseModel):
+    amount: Decimal = Field(..., gt=0)
+    description: Optional[str] = None
+
+    model_config = ConfigDict()
+
+
+class CreditTxType(str, Enum):
+    CREDIT = "credit"
+    DEBIT  = "debit"
+
+class WalletTransactionRead(BaseModel):
+    id: UUID
+    type: CreditTxType
+    amount: Decimal
+    description: Optional[str]
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PaginatedWalletTransactions(BaseModel):
+    total: int
+    skip: int
+    limit: int
+    items: List[WalletTransactionRead]
 
     model_config = ConfigDict(from_attributes=True)

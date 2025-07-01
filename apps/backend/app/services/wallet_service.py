@@ -5,6 +5,8 @@ from app.models.wallet import Wallet
 from decimal import Decimal
 from app.models.wallet import UserCashbackWallet
 from app.models.wallet_transaction import WalletTransaction
+from app.models.credits_wallet_transaction import CreditsWalletTransaction, CreditTxType
+
 
 def get_or_create_wallet(db: Session, company_id: str) -> Wallet:
     w = db.query(Wallet).filter_by(company_id=company_id).first()
@@ -15,13 +17,6 @@ def get_or_create_wallet(db: Session, company_id: str) -> Wallet:
         db.refresh(w)
     return w
 
-def credit_wallet(db: Session, company_id: str, amount: Decimal) -> Wallet:
-    w = get_or_create_wallet(db, company_id)
-    w.balance += amount
-    db.commit()
-    db.refresh(w)
-    return w
-
 
 def get_wallet_balance(db: Session, company_id: str) -> Decimal:
     """
@@ -30,10 +25,34 @@ def get_wallet_balance(db: Session, company_id: str) -> Decimal:
     w = db.query(Wallet).filter_by(company_id=company_id).first()
     return w.balance if w else Decimal("0.00")
 
-def debit_wallet(db: Session, company_id: str, amount: Decimal) -> None:
-    """
-    Debita `amount` do saldo da carteira da empresa, lançando erro se saldo insuficiente.
-    """
+def credit_wallet(
+    db: Session,
+    company_id: str,
+    amount: Decimal,
+    description: str | None = None
+) -> Wallet:
+    w = get_or_create_wallet(db, company_id)
+    w.balance += amount
+
+    tx = CreditsWalletTransaction(
+        wallet_id=w.id,
+        company_id=company_id,
+        type=CreditTxType.CREDIT,
+        amount=amount,
+        description=description,
+    )
+    db.add(tx)
+    db.commit()
+    db.refresh(w)
+    return w
+
+
+def debit_wallet(
+    db: Session,
+    company_id: str,
+    amount: Decimal,
+    description: str | None = None
+) -> Wallet:
     w = (
         db.query(Wallet)
           .filter_by(company_id=company_id)
@@ -42,9 +61,19 @@ def debit_wallet(db: Session, company_id: str, amount: Decimal) -> None:
     )
     if not w or w.balance < amount:
         raise ValueError("Saldo insuficiente na carteira da empresa")
-    w.balance -= amount
-    db.commit()
 
+    w.balance -= amount
+    tx = CreditsWalletTransaction(
+        wallet_id=w.id,
+        company_id=company_id,
+        type=CreditTxType.DEBIT,
+        amount=amount,
+        description=description,
+    )
+    db.add(tx)
+    db.commit()
+    db.refresh(w)
+    return w
 
 
 

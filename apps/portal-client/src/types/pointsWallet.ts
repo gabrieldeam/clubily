@@ -1,26 +1,31 @@
 // src/types/pointsWallet.ts
+
+/**
+ * Saldo de pontos retornado para a empresa
+ */
 export interface PointsBalance {
   balance: number;
 }
 
-/**
- * Tipo de operação na carteira de pontos
- */
-export type TransactionType = 'credit' | 'debit';
+
+export interface PointsOperation {
+  points: number;
+}
+
 
 /**
- * Item de transação de crédito/débito da carteira de pontos
+ * Transação de pontos individual
  */
 export interface PointsTransaction {
   id: string;
-  type: TransactionType;
+  type: string;
   amount: number;
   description?: string;
-  created_at: string; // ISO date
+  created_at: string; // ISO date string
 }
 
 /**
- * Resposta paginada do extrato de transações de pontos da empresa logada
+ * Extrato paginado de transações de pontos
  */
 export interface PaginatedPointsTransactions {
   total: number;

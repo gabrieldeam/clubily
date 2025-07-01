@@ -30,3 +30,30 @@ export interface WalletRead {
   created_at: string;   // ISO datetime
   updated_at: string;   // ISO datetime
 }
+
+
+export interface WalletOperation {
+  amount: number;          // valor em reais
+  description?: string;    // texto opcional
+}
+
+/**
+ * Transação de crédito/débito na carteira (admin)
+ */
+export interface AdminWalletTransaction {
+  id: string;
+  type: 'credit' | 'debit';
+  amount: number;
+  description?: string;
+  created_at: string;      // ISO date string
+}
+
+/**
+ * Extrato paginado de transações da carteira (admin)
+ */
+export interface PaginatedWalletTransactions {
+  total: number;
+  skip: number;
+  limit: number;
+  items: AdminWalletTransaction[];
+}

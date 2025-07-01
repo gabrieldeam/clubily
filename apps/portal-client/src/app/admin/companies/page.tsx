@@ -17,7 +17,7 @@ import {
   creditPoints,
   listPointsTransactions,
 } from '@/services/pointsWalletService';
-import { getCompanyWallet } from '@/services/walletService';
+import { getCompanyWallet, adminCreditWallet, adminDebitWallet, listAdminWalletTransactions  } from '@/services/walletService';
 import type {
   CompanyRead,
   PaginationParams,
@@ -28,7 +28,7 @@ import type {
   SettingTypeEnum,
 } from '@/types/feeSetting';
 import type { PointsBalance, PointsTransaction, PaginatedPointsTransactions } from '@/types/pointsWallet';
-import type { WalletRead } from '@/types/wallet';
+import type { WalletRead, WalletOperation, AdminWalletTransaction, PaginatedWalletTransactions } from '@/types/wallet';
 import Modal from '@/components/Modal/Modal';
 import Notification from '@/components/Notification/Notification';
 import styles from './page.module.css';
@@ -94,6 +94,22 @@ export default function AdminCompaniesPage() {
   const [txLoading, setTxLoading] = useState(false);
   const [txError, setTxError] = useState<string>('');
 
+  // === Estados de operações de créditos ===
+  const [creditAmount, setCreditAmount] = useState<number>(0);
+  // === Estados do extrato paginado de créditos ===
+  const [creditTransactions, setCreditTransactions] = useState<AdminWalletTransaction[]>([]);
+  const [creditTxTotal, setCreditTxTotal] = useState(0);
+  const [creditTxPage, setCreditTxPage] = useState(1);
+  const [creditTxLoading, setCreditTxLoading] = useState(false);
+  const [creditTxError, setCreditTxError] = useState<string>('');
+
+  // === Qual extrato exibir: 'points' ou 'credits' ===
+  const [txView, setTxView] = useState<'points' | 'credits'>('points');
+
+  // === Modal de Saldos ===
+  const [balancesModalOpen, setBalancesModalOpen] = useState(false);
+  const [balancesCompany, setBalancesCompany] = useState<CompanyRead | null>(null);
+
   useEffect(() => {
     fetchCompanies();
   }, [page]);
@@ -128,6 +144,23 @@ export default function AdminCompaniesPage() {
     }
   }
 
+  async function loadCreditTransactions(companyId: string, page = 1) {
+    setCreditTxLoading(true);
+    setCreditTxError('');
+    try {
+      const skip = (page - 1) * 5;
+      const res = await listAdminWalletTransactions(companyId, skip, 5);
+      const data: PaginatedWalletTransactions = res.data;
+      setCreditTransactions(data.items);
+      setCreditTxTotal(data.total);
+      setCreditTxPage(page);
+    } catch (e: any) {
+      setCreditTxError('Erro ao carregar extrato de créditos');
+    } finally {
+      setCreditTxLoading(false);
+    }
+  }
+
   async function toggleCompany(comp: CompanyRead) {
     setProcessingId(comp.id);
     try {
@@ -142,35 +175,69 @@ export default function AdminCompaniesPage() {
     }
   }
 
-  async function handleDebitPoints() {
-    if (!selectedCompany) return;
-    try {
-      const res = await debitPoints(selectedCompany.id, { points: opAmount });
-      setBalance(res.data.balance);
-      setNotification({ type: 'success', message: `Debitou ${opAmount} pts` });
-      await loadTransactions(selectedCompany!.id, txPage);
-    } catch (e: any) {
-      setNotification({ type: 'error', message: e.message || 'Erro no débito' });
-    }
-  }
+// ────────────────
+// Handlers para a modal de Saldos
+// ────────────────
 
-  async function handleCreditPoints() {
-    if (!selectedCompany) return;
-    try {
-      const res = await creditPoints(selectedCompany.id, { points: opAmount });
-      setBalance(res.data.balance);
-      setNotification({ type: 'success', message: `Creditou ${opAmount} pts` });
-      await loadTransactions(selectedCompany!.id, txPage);
-    } catch (e: any) {
-      setNotification({ type: 'error', message: e.message || 'Erro no crédito' });
-    }
+async function handleBalancesDebitPoints() {
+  if (!balancesCompany) return;
+  try {
+    const res = await debitPoints(balancesCompany.id, { points: opAmount });
+    setBalance(res.data.balance);
+    setNotification({ type: 'success', message: `Debitou ${opAmount} pts` });
+    await loadTransactions(balancesCompany.id, 1);
+  } catch (e: any) {
+    setNotification({ type: 'error', message: e.message || 'Erro no débito' });
   }
+}
+
+async function handleBalancesCreditPoints() {
+  if (!balancesCompany) return;
+  try {
+    const res = await creditPoints(balancesCompany.id, { points: opAmount });
+    setBalance(res.data.balance);
+    setNotification({ type: 'success', message: `Creditou ${opAmount} pts` });
+    await loadTransactions(balancesCompany.id, 1);
+  } catch (e: any) {
+    setNotification({ type: 'error', message: e.message || 'Erro no crédito' });
+  }
+}
+
+async function handleBalancesAdminCredit() {
+  if (!balancesCompany) return;
+  try {
+    const payload: WalletOperation = { amount: creditAmount, description: '' };
+    const res = await adminCreditWallet(balancesCompany.id, payload);
+    setWallet(res.data);
+    setNotification({ type: 'success', message: `Creditou R$${creditAmount}` });
+    await loadCreditTransactions(balancesCompany.id, 1);
+  } catch (e: any) {
+    setNotification({ type: 'error', message: e.message || 'Erro no crédito' });
+  }
+}
+
+async function handleBalancesAdminDebit() {
+  if (!balancesCompany) return;
+  try {
+    const payload: WalletOperation = { amount: creditAmount, description: '' };
+    const res = await adminDebitWallet(balancesCompany.id, payload);
+    setWallet(res.data);
+    setNotification({ type: 'success', message: `Debitou R$${creditAmount}` });
+    await loadCreditTransactions(balancesCompany.id, 1);
+  } catch (e: any) {
+    setNotification({ type: 'error', message: e.message || 'Erro no débito' });
+  }
+}
+
 
   async function openDetails(comp: CompanyRead) {
     // abre o modal e seleciona a empresa
     setSelectedCompany(comp);
     setModalOpen(true);
-    await loadTransactions(comp.id, 1);
+    await Promise.all([
+      loadTransactions(comp.id, 1),
+      loadCreditTransactions(comp.id, 1),
+    ]);
 
     // 1) Busca saldo simples (pointsBalance)
     setBalLoading(true);
@@ -261,6 +328,34 @@ async function handleFsSave(type: SettingTypeEnum) {
   }
 }
 
+async function openBalancesModal(comp: CompanyRead) {
+  setBalancesCompany(comp);
+  setBalancesModalOpen(true);
+  setBalLoading(true);
+ setWLoading(true);
+ try {
+   const [ptsRes, walletRes, , ] = await Promise.all([
+     getPointsBalance(comp.id),
+     getCompanyWallet(comp.id),
+     loadTransactions(comp.id, 1),
+     loadCreditTransactions(comp.id, 1),
+   ]);
+   setBalance(ptsRes.data.balance);
+   setWallet(walletRes.data);
+ } catch (e: any) {
+   // você pode querer setar balError / wError aqui
+ } finally {
+   setBalLoading(false);
+   setWLoading(false);
+ }
+}
+
+function closeBalancesModal() {
+  setBalancesModalOpen(false);
+  setBalancesCompany(null);
+}
+
+
   const lastPage = Math.ceil(total / size);
   if (loading) return <p>Carregando empresas...</p>;
 
@@ -289,6 +384,7 @@ async function handleFsSave(type: SettingTypeEnum) {
                 <th>CNPJ</th>
                 <th>Status</th>
                 <th>Taxas</th>
+                <th>Saldos</th>
                 <th>Ações</th>
               </tr>
             </thead>
@@ -307,6 +403,14 @@ async function handleFsSave(type: SettingTypeEnum) {
                       className={styles.btnPrimary}
                       onClick={() => openFeeSettings(comp)}
                     >Ver/Editar</button>
+                  </td>
+                  <td data-label="Saldos">
+                    <button
+                      className={styles.btnDetail}
+                      onClick={() => openBalancesModal(comp)}
+                    >
+                      Ver Saldos
+                    </button>
                   </td>
                   <td data-label="Ações" className={styles.actions}>
                     <button
@@ -430,140 +534,239 @@ async function handleFsSave(type: SettingTypeEnum) {
                     {selectedCompany.description && (                      
                       <p><strong>Descrição:</strong>{selectedCompany.description}</p>                      
                     )}
-                    <div className={styles.detail}>
-                      <section>
-                        <h3>Endereço</h3>
-                        <p>
-                          {selectedCompany.street}, {selectedCompany.number}
-                          {selectedCompany.complement && `, ${selectedCompany.complement}`}
-                        </p>
-                        <p>
-                          {selectedCompany.neighborhood} – {selectedCompany.city}/{selectedCompany.state}
-                        </p>
-                        <p><strong>CEP:</strong> {selectedCompany.postal_code}</p>
-                      </section>
-                      <section>
-                        <h3>Categorias</h3>
-                        <ul className={styles.categories}>
-                          {selectedCompany.categories.map(cat => (
-                            <li key={cat.id}>{cat.name}</li>
-                          ))}
-                        </ul>
-                      </section>
+                  </div>
+                </div>              
+              </section>
+              <section>
+                  <h3>Endereço</h3>
+                  <p>
+                    {selectedCompany.street}, {selectedCompany.number}
+                    {selectedCompany.complement && `, ${selectedCompany.complement}`}
+                  </p>
+                  <p>
+                    {selectedCompany.neighborhood} – {selectedCompany.city}/{selectedCompany.state}
+                  </p>
+                  <p><strong>CEP:</strong> {selectedCompany.postal_code}</p>
+                </section>
+                <section>
+                  <h3>Categorias</h3>
+                  <ul className={styles.categories}>
+                    {selectedCompany.categories.map(cat => (
+                      <li key={cat.id}>{cat.name}</li>
+                    ))}
+                  </ul>
+                </section>
+          </div>
+        )}
+      </Modal>
+
+      <Modal open={balancesModalOpen} onClose={closeBalancesModal} width={800}>
+        {balancesCompany && (
+          <div className={styles.detailGrid}>
+            <h2>Saldos – {balancesCompany.name}</h2>   
+              {notification && (
+                <Notification
+                  type={notification.type}
+                  message={notification.message}
+                  onClose={() => setNotification(null)}
+                />
+              )}
+                <section className={styles.detail}>
+                  <div>
+                    <h3>Saldo de Pontos</h3>
+                    {balLoading ? (
+                      <p>Carregando...</p>
+                    ) : balError ? (
+                      <p>{balError}</p>
+                    ) : (
+                      <p>{balance} pts</p>
+                    )}
+                  </div>
+                  <div>
+                    <h3>Saldo de Créditos</h3>
+                    {wLoading ? (
+                      <p>Carregando...</p>
+                    ) : wError ? (
+                      <p>{wError}</p>
+                    ) : wallet ? (
+                      <p>{wallet.balance} ctds</p>
+                    ) : null}
+                  </div>
+                </section>
+                
+                {/* Nova Seção: Operações de Crédito/Débito */}
+                <div className={styles.detail}>
+                  <section>
+                  <h3>Gerenciar Pontos</h3>
+                  <div>
+                  <div className={styles.opContainer}>
+                    <input
+                      type="number"
+                      value={opAmount}
+                      onChange={e => setOpAmount(parseInt(e.target.value, 10))}
+                      placeholder="Quantidade de pontos"
+                      min={0}
+                    />
+                    <button className={styles.btnPrimary} onClick={handleBalancesCreditPoints}>
+                      Creditar
+                    </button>
+                    <button className={styles.btnSecondary} onClick={handleBalancesDebitPoints}>
+                      Debitar
+                    </button>
+                  </div>
+                  </div>
+                </section>
+                
+                <section>
+                  <h3>Gerenciar Créditos</h3>
+                  <div>
+                    <div className={styles.opContainer}>
+                      <input
+                        type="number"
+                        value={creditAmount}
+                        onChange={e => setCreditAmount(parseFloat(e.target.value))}
+                        placeholder="Valor em R$"
+                        min={0}
+                      />
+                      <button className={styles.btnPrimary} onClick={handleBalancesAdminCredit}>
+                        Creditar
+                      </button>
+                      <button className={styles.btnSecondary} onClick={handleBalancesAdminDebit}>
+                        Debitar
+                      </button>
                     </div>
                   </div>
-                </div>
+                </section>
+              </div>
 
-              </section>
-
-              
-            <div className={styles.detail}>
-              <section className={styles.detail}>
-                <div>
-                  <h3>Saldo de Pontos</h3>
-                  {balLoading ? (
-                    <p>Carregando...</p>
-                  ) : balError ? (
-                    <p>{balError}</p>
-                  ) : (
-                    <p>{balance} pts</p>
-                  )}
-                </div>
-                <div>
-                  <h3>Saldo de Créditos</h3>
-                  {wLoading ? (
-                    <p>Carregando...</p>
-                  ) : wError ? (
-                    <p>{wError}</p>
-                  ) : wallet ? (
-                    <p>{wallet.balance} ctds</p>
-                  ) : null}
-                </div>
-              </section>
-              
-              {/* Nova Seção: Operações de Crédito/Débito */}
-              <section className={styles.detail}>
-                <h3>Gerenciar Pontos</h3>
-                <div>
-                  {notification && (
-                  <Notification
-                    type={notification.type}
-                    message={notification.message}
-                    onClose={() => setNotification(null)}
-                  />
-                )}
-                <div className={styles.opContainer}>
-                  <input
-                    type="number"
-                    value={opAmount}
-                    onChange={e => setOpAmount(parseInt(e.target.value, 10))}
-                    placeholder="Quantidade de pontos"
-                    min={0}
-                  />
-                  <button className={styles.btnPrimary} onClick={handleCreditPoints}>
-                    Creditar
-                  </button>
-                  <button className={styles.btnSecondary} onClick={handleDebitPoints}>
-                    Debitar
-                  </button>
-                </div>
-                </div>
-              </section>
-            </div>
-
-            {/* Nova Seção: Extrato Paginado */}
+              {/* Nova Seção: Extrato Paginado */}
             <section>
-              <h3>Extrato de Transações</h3>
-              {txLoading ? (
-                <p>Carregando extrato...</p>
-              ) : txError ? (
-                <p>{txError}</p>
-              ) : (
-                <>
-                  <table className={styles.table}>
-                    <thead>
-                      <tr>
-                        <th>Data</th>
-                        <th>Tipo</th>
-                        <th>Quantidade</th>
-                        <th>Descrição</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {transactions.map(tx => (
-                        <tr key={tx.id}>
-                          <td>{new Date(tx.created_at).toLocaleString()}</td>
-                          <td>{tx.type}</td>
-                          <td>{tx.amount}</td>
-                          <td>{tx.description ?? '-'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  <div className={styles.pagination}>
-                    <button
-                      onClick={() =>
-                        selectedCompany &&
-                        loadTransactions(selectedCompany.id, txPage - 1)
-                      }
-                      disabled={txPage === 1}
-                    >
-                      ← Anterior
-                    </button>
+              <div className={styles.detailHeader}>
+                <h3>Extrato de Transações</h3>
+                <div className={styles.viewToggle}>
+                  <button
+                    className={txView === 'points' ? styles.activeToggle : ''}
+                    onClick={() => setTxView('points')}
+                  >
+                    Pontos
+                  </button>
+                  <button
+                    className={txView === 'credits' ? styles.activeToggle : ''}
+                    onClick={() => setTxView('credits')}
+                  >
+                    Créditos
+                  </button>
+                </div>
+              </div>
 
-                    <button
-                      onClick={() =>
-                        selectedCompany &&
-                        loadTransactions(selectedCompany.id, txPage + 1)
-                      }
-                      disabled={txPage >= Math.ceil(txTotal / 5)}
-                    >
-                      Próxima →
-                    </button>
-                  </div>
-                </>
-              )}
-            </section>  
+              {txView === 'points' ? (
+                txLoading ? (
+                  <p>Carregando extrato de pontos...</p>
+                ) : txError ? (
+                  <p>{txError}</p>
+                ) : (
+                  <>
+                    <table className={styles.table}>
+                      <thead>
+                        <tr>
+                          <th>Data</th>
+                          <th>Tipo</th>
+                          <th>Quantidade</th>
+                          <th>Descrição</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {transactions.map(tx => (
+                          <tr key={tx.id}>
+                            <td>{new Date(tx.created_at).toLocaleString()}</td>
+                            <td>{tx.type}</td>
+                            <td>{tx.amount}</td>
+                            <td>{tx.description ?? '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <div className={styles.pagination}>
+                      <button
+                        onClick={() =>
+                          selectedCompany &&
+                          loadTransactions(selectedCompany.id, txPage - 1)
+                        }
+                        disabled={txPage === 1}
+                      >
+                        ← Anterior
+                      </button>
+                      
+                      <span>
+                        {txPage} / {Math.ceil(txTotal / 5)}
+                      </span>
+
+                      <button
+                        onClick={() =>
+                          selectedCompany &&
+                          loadTransactions(selectedCompany.id, txPage + 1)
+                        }
+                        disabled={txPage >= Math.ceil(txTotal / 5)}
+                      >
+                        Próxima →
+                      </button>
+                    </div>
+                  </>
+                    )
+                  ) : (
+                    creditTxLoading ? (
+                      <p>Carregando extrato de créditos...</p>
+                    ) : creditTxError ? (
+                      <p>{creditTxError}</p>
+                    ) : (
+                      <>
+                        <table className={styles.table}>
+                          <thead>
+                            <tr>
+                              <th>Data</th>
+                              <th>Tipo</th>
+                              <th>Valor (R$)</th>
+                              <th>Descrição</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {creditTransactions.map(tx => (
+                              <tr key={tx.id}>
+                                <td>{new Date(tx.created_at).toLocaleString()}</td>
+                                <td>{tx.type}</td>
+                                <td>{tx.amount}</td>
+                                <td>{tx.description ?? '-'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        <div className={styles.pagination}>
+                          <button
+                            onClick={() =>
+                              selectedCompany &&
+                              loadCreditTransactions(selectedCompany.id, creditTxPage - 1)
+                            }
+                            disabled={creditTxPage === 1}
+                          >
+                            ← Anterior
+                          </button>
+                          <span>
+                            {creditTxPage} / {Math.ceil(creditTxTotal / 5)}
+                          </span>
+                          <button
+                            onClick={() =>
+                              selectedCompany &&
+                              loadCreditTransactions(selectedCompany.id, creditTxPage + 1)
+                            }
+                            disabled={creditTxPage >= Math.ceil(creditTxTotal / 5)}
+                          >
+                            Próxima →
+                          </button>
+                        </div>
+                      </>
+                    )
+                  )}
+                </section>
           </div>
         )}
       </Modal>
