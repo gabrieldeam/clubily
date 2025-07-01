@@ -5,7 +5,10 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 111000;
+  z-index: 11100000;
+  
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .content {
@@ -13,6 +16,7 @@
   padding: 2rem 2.5rem;
   border-radius: 0.75rem;
   width: 100%;
+  max-height: 100vh;
 }
 
 .closeBtn {
@@ -27,3 +31,5 @@
   padding: 5px;
   border-radius: 100px;
 }
+
+

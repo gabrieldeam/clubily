@@ -24,6 +24,13 @@ class Wallet(Base):
     # relacionamento de volta
     company = relationship("Company", back_populates="wallet")
 
+    transactions = relationship(
+        "CreditsWalletTransaction",
+        back_populates="wallet",
+        cascade="all, delete-orphan",
+        order_by="CreditsWalletTransaction.created_at.desc()"
+    )
+
 class UserCashbackWallet(Base):
     __tablename__ = "user_cashback_wallets"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)

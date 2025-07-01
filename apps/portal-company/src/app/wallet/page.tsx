@@ -112,9 +112,14 @@ export default function WalletPage() {
                   </div>
                 )}
               </div>
-              <Link href="/credits">
-                <button className={styles.button}>Comprar Créditos</button>
-              </Link>
+              <div className={styles.linkDiv}>
+                <Link href="/wallet/transactions?view=credits">
+                  <button className={styles.button}>Extrato</button>
+                </Link>
+                <Link href="/credits">
+                  <button className={styles.button}>Comprar Créditos</button>
+                </Link>
+              </div>
             </section>
 
             {/* Pontos */}
@@ -125,13 +130,18 @@ export default function WalletPage() {
                   <p>Carregando saldo de pontos…</p>
                 ) : (
                   <div className={styles.balanceValue}>
-                    {pointsBalance.toLocaleString()} pontos
+                    {pointsBalance.toLocaleString()} pts
                   </div>
                 )}
               </div>
-              <Link href="/points">
-                <button className={styles.button}>Comprar Pontos</button>
-              </Link>
+              <div className={styles.linkDiv}>
+                <Link href="/wallet/transactions?view=points">
+                  <button className={styles.button}>Extrato</button>
+                </Link>
+                <Link href="/points">
+                  <button className={styles.button}>Comprar Pontos</button>
+                </Link>
+              </div>
             </section>
           </div>
 

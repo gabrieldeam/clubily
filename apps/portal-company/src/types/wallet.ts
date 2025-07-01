@@ -19,3 +19,24 @@ export interface UserWalletRead {
 export interface WalletWithdraw {
   amount: number;
 }
+
+/**
+ * Item de transação de crédito/débito da carteira
+ */
+export interface WalletTransactionRead {
+  id: string;
+  type: 'credit' | 'debit';
+  amount: number;
+  description?: string;
+  created_at: string; // ISO date
+}
+
+/**
+ * Resposta paginada do extrato de transações da carteira
+ */
+export interface PaginatedWalletTransactions {
+  total: number;
+  skip: number;
+  limit: number;
+  items: WalletTransactionRead[];
+}

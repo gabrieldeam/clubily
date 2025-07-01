@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from decimal import Decimal
 from app.api.deps import get_db, get_current_company, get_current_user, require_admin
-from app.schemas.wallet import WalletRead, UserCashbackWalletRead, WalletSummary, UserWalletRead, WalletWithdraw, UserWalletRead, WalletTransactionRead
+from app.schemas.wallet import WalletRead, UserCashbackWalletRead, WalletSummary, UserWalletRead, WalletWithdraw, UserWalletRead, WalletTransactionRead, WalletOperation, PaginatedWalletTransactions
 from app.services.wallet_service import (
     get_or_create_wallet,
     list_user_wallets,
@@ -14,12 +14,15 @@ from app.services.wallet_service import (
     get_user_wallet_summary,
     get_or_create_user_wallet,
     withdraw_user_wallet,
+    credit_wallet,
+    debit_wallet
 )
 from uuid import UUID
 from app.services.cashback_service import (
     expire_overdue_cashbacks
 )
 from app.models.wallet_transaction import WalletTransaction
+from app.models.credits_wallet_transaction import CreditsWalletTransaction
 
 
 router = APIRouter(tags=["wallet"])
@@ -38,6 +41,39 @@ def read_wallet(
     return w
 
 @router.get(
+    "/transactions",
+    response_model=PaginatedWalletTransactions,
+    summary="Extrato paginado de créditos da própria empresa"
+)
+def list_own_wallet_transactions(
+    db: Session = Depends(get_db),
+    current_company=Depends(get_current_company),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, gt=0, le=100),
+):
+    """
+    Retorna o extrato (crédito e débito) paginado da carteira da empresa autenticada.
+    """
+    base_q = (
+        db.query(CreditsWalletTransaction)
+          .filter_by(company_id=current_company.id)
+    )
+    total = base_q.count()
+    items = (
+        base_q
+        .order_by(CreditsWalletTransaction.created_at.desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+    return {
+        "total": total,
+        "skip": skip,
+        "limit": limit,
+        "items": items,
+    }
+
+@router.get(
     "/admin/{company_id}/balance",
     response_model=WalletRead,
     dependencies=[Depends(require_admin)]
@@ -51,6 +87,94 @@ def read_points_balance_by_company(
     """
     wallet = get_or_create_wallet(db, company_id)
     return wallet
+
+@router.post(
+    "/admin/{company_id}/credit",
+    response_model=WalletRead,
+    dependencies=[Depends(require_admin)],
+    summary="Admin: credita créditos em uma empresa"
+)
+def admin_credit_wallet(
+    company_id: str,
+    op: WalletOperation,
+    db: Session = Depends(get_db),
+):
+    """
+    Admin apenas: credita `amount` reais na carteira da empresa.
+    """
+    w = credit_wallet(
+        db,
+        company_id,
+        op.amount,
+        description="inclusão especial de créditos"
+    )
+    return w
+
+# -- débito admin ---
+@router.post(
+    "/admin/{company_id}/debit",
+    response_model=WalletRead,
+    dependencies=[Depends(require_admin)],
+    summary="Admin: debita créditos de uma empresa"
+)
+def admin_debit_wallet(
+    company_id: str,
+    op: WalletOperation,
+    db: Session = Depends(get_db),
+):
+    """
+    Admin apenas: debita `amount` reais da carteira da empresa.
+    """
+    try:
+        w = debit_wallet(
+            db,
+            company_id,
+            op.amount,
+            description="retirada especial de créditos"
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return w
+
+
+@router.get(
+    "/admin/{company_id}/transactions",
+    response_model=PaginatedWalletTransactions,
+    dependencies=[Depends(require_admin)],
+    summary="Admin: extrato paginado de créditos"
+)
+def admin_list_wallet_transactions(
+    company_id: str,
+    db: Session = Depends(get_db),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, gt=0, le=100),
+):
+    """
+    Admin apenas: extrato de transações de crédito/débito de uma empresa.
+    """
+    base_q = db.query(CreditsWalletTransaction).filter_by(company_id=company_id)
+    total = base_q.count()
+    items = (
+        base_q
+        .order_by(CreditsWalletTransaction.created_at.desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+    return {
+        "total": total,
+        "skip": skip,
+        "limit": limit,
+        "items": items,
+    }
+
+
+
+
+
+
+
+
 
 @router.get(
     "/cashback-wallets",

@@ -38,6 +38,7 @@ from app.models.point_plan import PointPlan
 from app.models.points_wallet import PointsWallet
 from app.models.company_point_purchase import PurchaseStatus, CompanyPointPurchase
 from app.models.points_wallet_transaction import TransactionType, PointsWalletTransaction
+from app.models.credits_wallet_transaction import CreditTxType, CreditsWalletTransaction
 
 # ...importe aqui outros models quando criar novos
 

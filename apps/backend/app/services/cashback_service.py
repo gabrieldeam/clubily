@@ -85,7 +85,7 @@ def assign_cashback(db: Session, user_id: str, program_id: str, amount_spent: fl
     balance = get_wallet_balance(db, company_id)
     if balance < fee:
         raise ValueError("Saldo insuficiente na carteira da empresa para associação de cashback (custa R$0,10)")
-    debit_wallet(db, company_id, fee)
+    debit_wallet(db, company_id, fee, description="retirada de créditos para taxa de cashback")
 
     # 5) cria o cashback
     expires = datetime.utcnow() + timedelta(days=program.validity_days)

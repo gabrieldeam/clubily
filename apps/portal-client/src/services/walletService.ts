@@ -5,7 +5,10 @@ import type {
   UserCashbackWalletRead,
   WalletSummary,
   WalletTransactionRead,
-  WalletRead
+  WalletRead,
+  WalletOperation,
+  PaginatedWalletTransactions,
+  AdminWalletTransaction,
 } from '@/types/wallet';
 
 /**
@@ -48,3 +51,44 @@ export const listWalletDebits = (
  */
 export const getCompanyWallet = (companyId: string) =>
   api.get<WalletRead>(`/wallet/admin/${companyId}/balance`);
+
+
+/**
+ * Admin: credita reais na carteira de uma empresa.
+ * POST /wallet/admin/{company_id}/credit
+ */
+export const adminCreditWallet = (
+  companyId: string,
+  op: WalletOperation
+) =>
+  api.post<WalletRead>(
+    `/wallet/admin/${companyId}/credit`,
+    op
+  );
+
+/**
+ * Admin: debita reais da carteira de uma empresa.
+ * POST /wallet/admin/{company_id}/debit
+ */
+export const adminDebitWallet = (
+  companyId: string,
+  op: WalletOperation
+) =>
+  api.post<WalletRead>(
+    `/wallet/admin/${companyId}/debit`,
+    op
+  );
+
+/**
+ * Admin: extrato paginado de créditos/débitos.
+ * GET /wallet/admin/{company_id}/transactions?skip=&limit=
+ */
+export const listAdminWalletTransactions = (
+  companyId: string,
+  skip = 0,
+  limit = 10
+) =>
+  api.get<PaginatedWalletTransactions>(
+    `/wallet/admin/${companyId}/transactions`,
+    { params: { skip, limit } }
+  );
