@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path, status, Query
 from sqlalchemy.orm import Session
 from typing import List
 from decimal import Decimal
-from app.api.deps import get_db, get_current_company, get_current_user
+from app.api.deps import get_db, get_current_company, get_current_user, require_admin
 from app.schemas.wallet import WalletRead, UserCashbackWalletRead, WalletSummary, UserWalletRead, WalletWithdraw, UserWalletRead, WalletTransactionRead
 from app.services.wallet_service import (
     get_or_create_wallet,
@@ -36,6 +36,21 @@ def read_wallet(
     # garante que exista
     w = get_or_create_wallet(db, str(current_company.id))
     return w
+
+@router.get(
+    "/admin/{company_id}/balance",
+    response_model=WalletRead,
+    dependencies=[Depends(require_admin)]
+)
+def read_points_balance_by_company(
+    company_id: str,
+    db: Session = Depends(get_db),
+):
+    """
+    Admin only: retorna o saldo de pontos da empresa passada por ID.
+    """
+    wallet = get_or_create_wallet(db, company_id)
+    return wallet
 
 @router.get(
     "/cashback-wallets",

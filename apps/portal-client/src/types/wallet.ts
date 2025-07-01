@@ -23,3 +23,10 @@ export interface WalletTransactionRead {
   amount: number;       // ou string, dependendo de como vem do back
   created_at: string;   // ISO date string
 }
+
+export interface WalletRead {
+  company_id: string;   // UUID
+  balance: number;      // Decimal convertido para number
+  created_at: string;   // ISO datetime
+  updated_at: string;   // ISO datetime
+}
