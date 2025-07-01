@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional
 from .point_plan import PointPlanRead
 from enum import Enum
+from .company import CompanyBasic
 
 class PurchaseStatus(str, Enum):
     PENDING   = "PENDING"
@@ -21,6 +22,7 @@ class PointPurchaseRead(BaseModel):
     amount: float
     status: PurchaseStatus
     asaas_id: str
+    company: CompanyBasic
     pix_qr_code: Optional[str]
     pix_copy_paste_code: Optional[str]
     pix_expires_at: Optional[datetime]

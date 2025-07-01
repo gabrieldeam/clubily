@@ -11,7 +11,12 @@ import {
   listFeeSettings,
   patchFeeSetting,
 } from '@/services/feeSettingService';
-import { getPointsBalance } from '@/services/pointsWalletService';
+import {
+  getPointsBalance,
+  debitPoints,
+  creditPoints,
+  listPointsTransactions,
+} from '@/services/pointsWalletService';
 import { getCompanyWallet } from '@/services/walletService';
 import type {
   CompanyRead,
@@ -22,7 +27,7 @@ import type {
   FeeSettingRead,
   SettingTypeEnum,
 } from '@/types/feeSetting';
-import type { PointsBalance } from '@/types/pointsWallet';
+import type { PointsBalance, PointsTransaction, PaginatedPointsTransactions } from '@/types/pointsWallet';
 import type { WalletRead } from '@/types/wallet';
 import Modal from '@/components/Modal/Modal';
 import Notification from '@/components/Notification/Notification';
@@ -80,6 +85,15 @@ export default function AdminCompaniesPage() {
   const [wLoading, setWLoading] = useState(false);
   const [wError, setWError] = useState('');
 
+    // === Estados de operações de pontos ===
+  const [opAmount, setOpAmount] = useState<number>(0);
+  // === Estados do extrato paginado ===
+  const [transactions, setTransactions] = useState<PointsTransaction[]>([]);
+  const [txTotal, setTxTotal] = useState(0);
+  const [txPage, setTxPage] = useState(1);
+  const [txLoading, setTxLoading] = useState(false);
+  const [txError, setTxError] = useState<string>('');
+
   useEffect(() => {
     fetchCompanies();
   }, [page]);
@@ -97,6 +111,23 @@ export default function AdminCompaniesPage() {
     }
   }
 
+ async function loadTransactions(companyId: string, page = 1) {
+    setTxLoading(true);
+    setTxError('');
+    try {
+      const skip = (page - 1) * 5;
+      const res = await listPointsTransactions(companyId, skip, 5);
+      const data: PaginatedPointsTransactions = res.data;
+      setTransactions(data.items);
+      setTxTotal(data.total);
+      setTxPage(page);
+    } catch (e: any) {
+      setTxError('Erro ao carregar extrato');
+    } finally {
+      setTxLoading(false);
+    }
+  }
+
   async function toggleCompany(comp: CompanyRead) {
     setProcessingId(comp.id);
     try {
@@ -111,42 +142,72 @@ export default function AdminCompaniesPage() {
     }
   }
 
-async function openDetails(comp: CompanyRead) {
-  // abre o modal e seleciona a empresa
-  setSelectedCompany(comp);
-  setModalOpen(true);
-
-  // 1) Busca saldo simples (pointsBalance)
-  setBalLoading(true);
-  setBalError('');
-  try {
-    const res = await getPointsBalance(comp.id);
-    const data: PointsBalance = res.data;
-    setBalance(data.balance);
-  } catch (e: any) {
-    setBalError('Não foi possível carregar saldo');
-    setBalance(null);
-  } finally {
-    setBalLoading(false);
+  async function handleDebitPoints() {
+    if (!selectedCompany) return;
+    try {
+      const res = await debitPoints(selectedCompany.id, { points: opAmount });
+      setBalance(res.data.balance);
+      setNotification({ type: 'success', message: `Debitou ${opAmount} pts` });
+      await loadTransactions(selectedCompany!.id, txPage);
+    } catch (e: any) {
+      setNotification({ type: 'error', message: e.message || 'Erro no débito' });
+    }
   }
 
-  // 2) Busca carteira completa (WalletRead)
-  setWLoading(true);
-  setWError('');
-  try {
-    const res2 = await getCompanyWallet(comp.id);
-    setWallet(res2.data);
-  } catch (e: any) {
-    setWError('Não foi possível carregar carteira');
-    setWallet(null);
-  } finally {
-    setWLoading(false);
+  async function handleCreditPoints() {
+    if (!selectedCompany) return;
+    try {
+      const res = await creditPoints(selectedCompany.id, { points: opAmount });
+      setBalance(res.data.balance);
+      setNotification({ type: 'success', message: `Creditou ${opAmount} pts` });
+      await loadTransactions(selectedCompany!.id, txPage);
+    } catch (e: any) {
+      setNotification({ type: 'error', message: e.message || 'Erro no crédito' });
+    }
   }
-}
+
+  async function openDetails(comp: CompanyRead) {
+    // abre o modal e seleciona a empresa
+    setSelectedCompany(comp);
+    setModalOpen(true);
+    await loadTransactions(comp.id, 1);
+
+    // 1) Busca saldo simples (pointsBalance)
+    setBalLoading(true);
+    setBalError('');
+    try {
+      const res = await getPointsBalance(comp.id);
+      const data: PointsBalance = res.data;
+      setBalance(data.balance);
+    } catch (e: any) {
+      setBalError('Não foi possível carregar saldo');
+      setBalance(null);
+    } finally {
+      setBalLoading(false);
+    }
+
+    // 2) Busca carteira completa (WalletRead)
+    setWLoading(true);
+    setWError('');
+    try {
+      const res2 = await getCompanyWallet(comp.id);
+      setWallet(res2.data);
+    } catch (e: any) {
+      setWError('Não foi possível carregar carteira');
+      setWallet(null);
+    } finally {
+      setWLoading(false);
+    }
+  }
 
   function closeDetails() {
     setModalOpen(false);
     setSelectedCompany(null);
+    // limpa estados relacionados
+    setTransactions([]);
+    setTxTotal(0);
+    setTxPage(1);
+    setOpAmount(0);
   }
 
   async function openFeeSettings(comp: CompanyRead) {
@@ -346,7 +407,7 @@ async function handleFsSave(type: SettingTypeEnum) {
         </div>
       </Modal>
 
-      <Modal open={modalOpen} onClose={closeDetails} width={700}>
+      <Modal open={modalOpen} onClose={closeDetails} width={800}>
         {selectedCompany && (
           <div className={styles.detailGrid}>              
               <section>
@@ -366,11 +427,37 @@ async function handleFsSave(type: SettingTypeEnum) {
                     <p><strong>Email:</strong> {selectedCompany.email}</p>
                     <p><strong>Telefone:</strong> {selectedCompany.phone}</p>
                     <p><strong>ID:</strong> {selectedCompany.id}</p>
+                    {selectedCompany.description && (                      
+                      <p><strong>Descrição:</strong>{selectedCompany.description}</p>                      
+                    )}
+                    <div className={styles.detail}>
+                      <section>
+                        <h3>Endereço</h3>
+                        <p>
+                          {selectedCompany.street}, {selectedCompany.number}
+                          {selectedCompany.complement && `, ${selectedCompany.complement}`}
+                        </p>
+                        <p>
+                          {selectedCompany.neighborhood} – {selectedCompany.city}/{selectedCompany.state}
+                        </p>
+                        <p><strong>CEP:</strong> {selectedCompany.postal_code}</p>
+                      </section>
+                      <section>
+                        <h3>Categorias</h3>
+                        <ul className={styles.categories}>
+                          {selectedCompany.categories.map(cat => (
+                            <li key={cat.id}>{cat.name}</li>
+                          ))}
+                        </ul>
+                      </section>
+                    </div>
                   </div>
                 </div>
 
               </section>
 
+              
+            <div className={styles.detail}>
               <section className={styles.detail}>
                 <div>
                   <h3>Saldo de Pontos</h3>
@@ -384,44 +471,99 @@ async function handleFsSave(type: SettingTypeEnum) {
                 </div>
                 <div>
                   <h3>Saldo de Créditos</h3>
-                    {wLoading 
-                      ? <p>Carregando...</p>
-                      : wError
-                        ? <p>{wError}</p>
-                        : wallet && (
-                          <div>
-                            <p>{wallet.balance} ctds</p>                            
-                          </div>
-                        )
-                    }
+                  {wLoading ? (
+                    <p>Carregando...</p>
+                  ) : wError ? (
+                    <p>{wError}</p>
+                  ) : wallet ? (
+                    <p>{wallet.balance} ctds</p>
+                  ) : null}
                 </div>
               </section>
               
-              <section>
-                <h3>Endereço</h3>
-                <p>
-                  {selectedCompany.street}, {selectedCompany.number}
-                  {selectedCompany.complement && `, ${selectedCompany.complement}`}
-                </p>
-                <p>
-                  {selectedCompany.neighborhood} – {selectedCompany.city}/{selectedCompany.state}
-                </p>
-                <p><strong>CEP:</strong> {selectedCompany.postal_code}</p>
+              {/* Nova Seção: Operações de Crédito/Débito */}
+              <section className={styles.detail}>
+                <h3>Gerenciar Pontos</h3>
+                <div>
+                  {notification && (
+                  <Notification
+                    type={notification.type}
+                    message={notification.message}
+                    onClose={() => setNotification(null)}
+                  />
+                )}
+                <div className={styles.opContainer}>
+                  <input
+                    type="number"
+                    value={opAmount}
+                    onChange={e => setOpAmount(parseInt(e.target.value, 10))}
+                    placeholder="Quantidade de pontos"
+                    min={0}
+                  />
+                  <button className={styles.btnPrimary} onClick={handleCreditPoints}>
+                    Creditar
+                  </button>
+                  <button className={styles.btnSecondary} onClick={handleDebitPoints}>
+                    Debitar
+                  </button>
+                </div>
+                </div>
               </section>
-              {selectedCompany.description && (
-                <section>
-                  <h3>Descrição</h3>
-                  <p>{selectedCompany.description}</p>
-                </section>
+            </div>
+
+            {/* Nova Seção: Extrato Paginado */}
+            <section>
+              <h3>Extrato de Transações</h3>
+              {txLoading ? (
+                <p>Carregando extrato...</p>
+              ) : txError ? (
+                <p>{txError}</p>
+              ) : (
+                <>
+                  <table className={styles.table}>
+                    <thead>
+                      <tr>
+                        <th>Data</th>
+                        <th>Tipo</th>
+                        <th>Quantidade</th>
+                        <th>Descrição</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {transactions.map(tx => (
+                        <tr key={tx.id}>
+                          <td>{new Date(tx.created_at).toLocaleString()}</td>
+                          <td>{tx.type}</td>
+                          <td>{tx.amount}</td>
+                          <td>{tx.description ?? '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <div className={styles.pagination}>
+                    <button
+                      onClick={() =>
+                        selectedCompany &&
+                        loadTransactions(selectedCompany.id, txPage - 1)
+                      }
+                      disabled={txPage === 1}
+                    >
+                      ← Anterior
+                    </button>
+
+                    <button
+                      onClick={() =>
+                        selectedCompany &&
+                        loadTransactions(selectedCompany.id, txPage + 1)
+                      }
+                      disabled={txPage >= Math.ceil(txTotal / 5)}
+                    >
+                      Próxima →
+                    </button>
+                  </div>
+                </>
               )}
-              <section>
-                <h3>Categorias</h3>
-                <ul className={styles.categories}>
-                  {selectedCompany.categories.map(cat => (
-                    <li key={cat.id}>{cat.name}</li>
-                  ))}
-                </ul>
-              </section>
+            </section>  
           </div>
         )}
       </Modal>

@@ -49,3 +49,11 @@ export interface CompanyRead {
 export interface CompanyReadWithService extends CompanyRead {
   serves_address: boolean;
 }
+
+export interface CompanyBasic {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  cnpj: string;
+}
