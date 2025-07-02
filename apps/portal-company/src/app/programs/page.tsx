@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Header from '@/components/Header/Header';
 import Modal from '@/components/Modal/Modal';
+import PointsRulesMain from '@/components/PointsRulesMain/PointsRulesMain';
 import {
   getCashbackPrograms,
   createCashbackProgram,
@@ -181,6 +182,10 @@ export default function ProgramsPage() {
           </div>
         )}
       </main>
+
+      <div>
+         <PointsRulesMain />
+       </div>
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)}>
         <CashbackProgramModal

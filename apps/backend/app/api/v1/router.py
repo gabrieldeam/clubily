@@ -6,7 +6,7 @@ from .endpoints import (
     cashback_associations, cashback_programs, asaas_webhook, 
     company_payments, admin_payments, asaas_customer, wallet, 
     fee_settings, admin_commissions, commissions, transfer_methods,
-    point_purchases, points_wallet, point_plans, admin_point_plans,
+    point_purchases, points_wallet, point_plans, admin_point_plans, points
 )
 
 router = APIRouter()
@@ -31,3 +31,4 @@ router.include_router(point_purchases.router, prefix="/point-purchases", tags=["
 router.include_router(points_wallet.router, prefix="/points", tags=["points"])
 router.include_router(point_plans.router, prefix="/point-plans", tags=["point_plans"])
 router.include_router(admin_point_plans.router, prefix="/point-plans/admin", tags=["admin_point_plans"])
+router.include_router(points.router, prefix="/points", tags=["points"])
