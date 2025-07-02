@@ -42,6 +42,10 @@ from app.models.credits_wallet_transaction import CreditTxType, CreditsWalletTra
 from app.models.points_rule import RuleType, PointsRule
 from app.models.user_points_transaction import UserPointsTxType, UserPointsTransaction
 from app.models.user_points_wallet import UserPointsWallet
+from app.models.branch import Branch
+from app.models.inventory_item import InventoryItem
+from app.models.purchase_log import PurchaseLog
+from app.models.product_category import ProductCategory, inventory_item_categories
 
 
 

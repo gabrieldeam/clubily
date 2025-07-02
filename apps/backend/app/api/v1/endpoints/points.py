@@ -3,8 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Path, Body, status
 from sqlalchemy.orm import Session
 from typing import List, Any, Dict
 from uuid import UUID
-from datetime import datetime
-from app.api.deps import get_db, get_current_company, require_admin, get_current_user
+from app.api.deps import get_db, get_current_company, get_current_user
 from app.schemas.points_rule import (
     PointsRuleCreate, PointsRuleRead, PointsRuleUpdate
 )
@@ -97,6 +96,12 @@ def delete_points_rule(
     return
 
 
+
+
+
+
+
+
 # Avaliar regra manualmente
 @router.post(
     "/rules/{rule_id}/evaluate",
@@ -113,6 +118,14 @@ def evaluate_rule(
     data = payload.get("data", {})
     awarded = evaluate_and_award(db, user_id, str(current_company.id), str(rule_id), data)
     return {"awarded": awarded}
+
+
+
+
+
+
+
+
 
 # Endpoints usuário
 @router.get(
@@ -144,6 +157,9 @@ def list_user_transactions(
         db, str(current_user.id), str(current_company.id), skip, limit
     )
     return {"total": total, "skip": skip, "limit": limit, "items": items}
+
+
+
 
 # Listar regras visíveis para front
 @router.get(

@@ -13,7 +13,21 @@ from app.services.points_wallet_service import debit_points
 from app.services.wallet_service import get_wallet_balance, debit_wallet
 from app.services.fee_setting_service import get_effective_fee
 from app.models.fee_setting import SettingTypeEnum
+from datetime import timedelta
 
+def cooldown_ok(db: Session, user_id: str, rule: PointsRule) -> bool:
+    cooldown = int(rule.config.get("cooldown_days", 0))
+    if cooldown == 0:
+        return True
+    last_tx = (
+        db.query(UserPointsTransaction)
+          .filter_by(user_id=user_id, rule_id=str(rule.id))
+          .order_by(UserPointsTransaction.created_at.desc())
+          .first()
+    )
+    if not last_tx:
+        return True
+    return datetime.utcnow() - last_tx.created_at >= timedelta(days=cooldown)
 
 # ─── CRUD de regras ───────────────────────────────────────────────────────────
 
@@ -154,7 +168,26 @@ def evaluate_and_award(
             base_points = int(cfg.get("points", 0))
 
     elif rule.rule_type == RuleType.frequency:
-        if payload.get("count", 0) >= int(cfg.get("threshold", 0)):
+        window = int(cfg.get("window_days", 0))
+        threshold = int(cfg.get("threshold", 0))
+        from app.services.purchase_log_service import count_purchases
+        purchases = count_purchases(db, user_id, company_id, window)
+        if purchases >= threshold and cooldown_ok(db, user_id, rule):
+            base_points = int(cfg.get("bonus_points", 0))
+
+    elif rule.rule_type == RuleType.recurrence:
+        # streak calculation
+        from app.services.purchase_log_service import count_purchases
+        period_days = int(cfg.get("period_days", 7))
+        threshold = int(cfg.get("threshold_per_period", 1))
+        periods = int(cfg.get("consecutive_periods", 1))
+        streak = 0
+        for i in range(periods):
+            start_offset = period_days * i
+            purchases = count_purchases(db, user_id, company_id, period_days)
+            if purchases >= threshold:
+                streak += 1
+        if streak >= periods and cooldown_ok(db, user_id, rule):
             base_points = int(cfg.get("bonus_points", 0))
 
     elif rule.rule_type == RuleType.category:
@@ -166,10 +199,6 @@ def evaluate_and_award(
 
     elif rule.rule_type == RuleType.first_purchase:
         if payload.get("is_first", False):
-            base_points = int(cfg.get("bonus_points", 0))
-
-    elif rule.rule_type == RuleType.recurrence:
-        if payload.get("streak", 0) >= int(cfg.get("consecutive_periods", 0)):
             base_points = int(cfg.get("bonus_points", 0))
 
     elif rule.rule_type == RuleType.digital_behavior:
