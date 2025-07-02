@@ -3,8 +3,6 @@ import type {
   PointsRuleRead,
   PointsRuleCreate,
   PointsRuleUpdate,
-  EvaluateRulePayload,
-  EvaluateRuleResponse,
 } from "@/types/points";
 
 /**
@@ -46,14 +44,8 @@ export const deletePointsRule = (ruleId: string) =>
   api.delete<void>(`/points/rules/${ruleId}`);
 
 /**
- * Avalia manualmente uma regra para um usuário.
- * POST /points/rules/{rule_id}/evaluate
+ * Lista regras ativas visíveis para front.
+ * GET /points/rules/active
  */
-export const evaluatePointsRule = (
-  ruleId: string,
-  payload: EvaluateRulePayload
-) =>
-  api.post<EvaluateRuleResponse>(
-    `/points/rules/${ruleId}/evaluate`,
-    payload
-  );
+export const listActivePointsRules = () =>
+  api.get<PointsRuleRead[]>("/points/rules/active");
