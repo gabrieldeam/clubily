@@ -87,3 +87,9 @@ class User(Base):
         uselist=False,
         cascade="all, delete-orphan",
     )
+
+    points_wallets = relationship(
+        "UserPointsWallet",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
