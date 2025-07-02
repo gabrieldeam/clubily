@@ -32,12 +32,3 @@ export interface PointsRuleRead extends PointsRuleBase {
   created_at: string; // ISO
   updated_at: string; // ISO
 }
-
-// payload / resposta da avaliação manual
-export interface EvaluateRulePayload {
-  user_id: string;
-  data: Record<string, any>;
-}
-export interface EvaluateRuleResponse {
-  awarded: number;
-}

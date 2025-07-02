@@ -12,10 +12,11 @@ from app.schemas.user_points import (
 )
 from app.services.points_rule_service import (
     get_company_rules, get_visible_rules, get_rule,
-    create_rule, update_rule, delete_rule,
+    create_rule,
     get_or_create_user_points_wallet,
-    list_user_points_transactions, evaluate_and_award
+    list_user_points_transactions,
 )
+from app.models.points_rule import PointsRule
 
 router = APIRouter(tags=["points"])
 
@@ -73,10 +74,22 @@ def update_points_rule(
     db: Session = Depends(get_db),
     current_company=Depends(get_current_company),
 ):
-    rule = get_rule(db, str(rule_id))
-    if not rule or rule.company_id != str(current_company.id):
+    # busca só a regra desta empresa
+    rule = (
+        db.query(PointsRule)
+          .filter(PointsRule.id == rule_id,
+                  PointsRule.company_id == current_company.id)
+          .first()
+    )
+    if not rule:
         raise HTTPException(status_code=404, detail="Regra não encontrada")
-    return update_rule(db, str(rule_id), rule_in)
+
+    # aplica update
+    for field, value in rule_in.dict().items():
+        setattr(rule, field, value)
+    db.commit()
+    db.refresh(rule)
+    return rule
 
 
 @router.delete(
@@ -89,10 +102,17 @@ def delete_points_rule(
     db: Session = Depends(get_db),
     current_company=Depends(get_current_company),
 ):
-    rule = get_rule(db, str(rule_id))
-    if not rule or rule.company_id != str(current_company.id):
+    rule = (
+        db.query(PointsRule)
+          .filter(PointsRule.id == rule_id,
+                  PointsRule.company_id == current_company.id)
+          .first()
+    )
+    if not rule:
         raise HTTPException(status_code=404, detail="Regra não encontrada")
-    delete_rule(db, str(rule_id))
+
+    db.delete(rule)
+    db.commit()
     return
 
 
@@ -100,24 +120,6 @@ def delete_points_rule(
 
 
 
-
-
-# Avaliar regra manualmente
-@router.post(
-    "/rules/{rule_id}/evaluate",
-    summary="Empresa: Avaliar regra e atribuir pontos",
-    dependencies=[Depends(get_current_company)]
-)
-def evaluate_rule(
-    rule_id: UUID,
-    payload: Dict[str, Any],  # ex: {"user_id":..., "data":{...}}
-    db: Session = Depends(get_db),
-    current_company=Depends(get_current_company)
-):
-    user_id = payload.get("user_id")
-    data = payload.get("data", {})
-    awarded = evaluate_and_award(db, user_id, str(current_company.id), str(rule_id), data)
-    return {"awarded": awarded}
 
 
 

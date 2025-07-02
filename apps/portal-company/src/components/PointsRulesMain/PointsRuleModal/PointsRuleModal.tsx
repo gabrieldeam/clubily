@@ -86,7 +86,7 @@ export default function PointsRuleModal({ rule, onSave, onCancel }: Props) {
         return (
           <>
             <FloatingLabelInput
-              label="Dias na janela"
+              label="Janela de dias"
               type="number"
               value={config.window_days ?? ''}
               onChange={e => setConfig({ ...config, window_days: Number(e.target.value) })}
@@ -104,7 +104,7 @@ export default function PointsRuleModal({ rule, onSave, onCancel }: Props) {
               onChange={e => setConfig({ ...config, bonus_points: Number(e.target.value) })}
             />
             <FloatingLabelInput
-              label="Cooldown (dias)"
+              label="Período de carência (dias)"
               type="number"
               value={config.cooldown_days ?? ''}
               onChange={e => setConfig({ ...config, cooldown_days: Number(e.target.value) })}
@@ -172,7 +172,7 @@ export default function PointsRuleModal({ rule, onSave, onCancel }: Props) {
               onChange={e => setConfig({ ...config, bonus_points: Number(e.target.value) })}
             />
             <FloatingLabelInput
-              label="Cooldown (dias)"
+              label="Período de carência (dias)"
               type="number"
               value={config.cooldown_days ?? ''}
               onChange={e => setConfig({ ...config, cooldown_days: Number(e.target.value) })}
