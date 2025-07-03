@@ -4,8 +4,8 @@ from decimal import Decimal
 from pydantic import BaseModel
 from typing import List
 from uuid import UUID
-from sqlalchemy.orm import Session
-
+from sqlalchemy.orm import Session, selectinload
+from app.models.inventory_item import InventoryItem
 from app.api.deps import get_db, get_current_company
 from app.services.purchase_log_service import log_purchase
 from app.services.points_rule_service import evaluate_all_rules
@@ -32,14 +32,34 @@ async def create_purchase(
     Retorna total_awarded e breakdown por regra.
     """
     # 1) grava compra
-    log_purchase(db, str(payload.user_id), str(current_company.id), payload.amount)
+    log_purchase(
+        db,
+        str(payload.user_id),
+        str(current_company.id),
+        payload.amount,
+        payload.purchased_items 
+    )
+
+    # 1.1) busca categorias dos itens comprados
+    items = (
+        db.query(InventoryItem)
+          .filter(InventoryItem.id.in_(payload.purchased_items))
+          .options(selectinload(InventoryItem.categories))
+          .all()
+    )
+    # extrai IDs (ou nomes) únicos
+    categories = { str(cat.id) for item in items for cat in item.categories }
+
 
     # 2) avalia todas as regras em duas fases
+    data = payload.dict()
+    data["amount_spent"] = data.pop("amount")
+    data["product_categories"] = list(categories)
     total_awarded, breakdown = evaluate_all_rules(
         db,
         str(payload.user_id),
         str(current_company.id),
-        payload.dict()
+        data
     )
 
     return {"total_awarded": total_awarded, "breakdown": breakdown}
