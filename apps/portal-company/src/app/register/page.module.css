@@ -1,4 +1,51 @@
 /* /app/registros/page.module.css */
-.container {
+.layout {
+  display: flex;
   margin-top: 92px;
+  align-items: flex-start;
+}
+
+/* sidebar fixa à esquerda */
+.sidebar {
+  width: 200px;
+  background: #fff;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-radius: 20px;
+  /* opcional: garante que não tente esticar */
+  height: auto;
+}
+
+/* botões da sidebar */
+.sidebar button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: background 0.2s, color 0.2s;
+}
+
+.sidebar button:hover {
+  background: #000000;
+  color: #ffffff;
+}
+
+.sidebar .active {
+  background: #000000;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+/* área de conteúdo que expande */
+.content {
+  flex: 1;
+  padding: 0 0 0 10px;
+  overflow-y: auto;
 }

@@ -131,7 +131,7 @@ export default function ProgramDetailPage() {
             </div>
             <div>
               <span>Médias em Dias de Intervalo</span>
-              <strong>{usage.average_interval_days.toFixed(2)}</strong>
+              <strong>{usage.average_interval_days?.toFixed(2) ?? '0.00'}</strong>
             </div>
           </div>
           <div className={styles.props}>

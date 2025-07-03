@@ -1,12 +1,18 @@
 // src/components/PointsRulesMain/PointsRuleModal/PointsRuleModal.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { FormEvent, useState, useEffect,useRef } from 'react';
 import { RuleType } from '@/types/points';
 import type { PointsRuleRead, PointsRuleCreate } from '@/types/points';
+import type { BranchRead } from '@/types/branch';
+import type { ProductCategoryRead } from '@/types/productCategory';
+import type { InventoryItemRead } from '@/types/inventoryItem';
 import FloatingLabelInput from '@/components/FloatingLabelInput/FloatingLabelInput';
 import Button from '@/components/Button/Button';
 import { getRuleTypeLabel } from '@/utils/roleUtils';
+import { listBranches } from '@/services/branchService';
+import { listProductCategories } from '@/services/productCategoryService';
+import { listInventoryItems } from '@/services/inventoryItemService';
 import styles from './PointsRuleModal.module.css';
 
 interface Props {
@@ -22,28 +28,52 @@ export default function PointsRuleModal({ rule, onSave, onCancel }: Props) {
   const [config, setConfig] = useState<Record<string, any>>({});
   const [active, setActive] = useState(true);
   const [visible, setVisible] = useState(true);
+  const [branches, setBranches] = useState<BranchRead[]>([]);
+  const [categories, setCategories] = useState<ProductCategoryRead[]>([]);
+  const [items, setItems] = useState<InventoryItemRead[]>([]);
+  const [notification, setNotification] = useState<{ type: 'error'; message: string } | null>(null);
+  const slugTouched = useRef(false);
+
 
   useEffect(() => {
+    listBranches().then(res => setBranches(res.data));
+    listProductCategories().then(res => setCategories(res.data));
+    listInventoryItems().then(res => setItems(res.data));
+  }, []);
+
+    useEffect(() => {
     if (rule) {
-      setName(rule.name);
-      setDescription(rule.description ?? '');
+      setName(rule.name || '');
+      setDescription(rule.description || '');
       setRuleType(rule.rule_type);
-      setConfig(rule.config);
+      setConfig(rule.config || {});
       setActive(rule.active);
       setVisible(rule.visible);
+    } else {
+      setName('');
+      setDescription('');
+      setRuleType(RuleType.value_spent);
+      setConfig({});
+      setActive(true);
+      setVisible(true);
+      setNotification(null);
     }
   }, [rule]);
 
-  const handleSubmit = () => {
-    const payload: PointsRuleCreate = {
-      name,
-      description,
-      rule_type: ruleType,
-      config,
-      active,
-      visible,
-    };
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) {
+      setNotification({ type: 'error', message: 'O nome é obrigatório.' });
+      return;
+    }
+    const payload: PointsRuleCreate = { name, description, rule_type: ruleType, config, active, visible };
     onSave(payload, rule?.id);
+  };
+
+  const toggleValue = (key: string, val: string) => {
+    const arr: string[] = config[key] || [];
+    const newArr = arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val];
+    setConfig({ ...config, [key]: newArr });
   };
 
   const renderConfigFields = () => {
@@ -113,26 +143,45 @@ export default function PointsRuleModal({ rule, onSave, onCancel }: Props) {
         );
       case RuleType.category:
         return (
-          <>
-            <FloatingLabelInput
-              label="Categorias (vírgula-separadas)"
-              type="text"
-              value={(config.categories || []).join(',')}
-              onChange={e =>
-                setConfig({
-                  ...config,
-                  categories: e.target.value.split(',').map(s => s.trim()),
-                })
-              }
-            />
+          <div className={styles.field}>
+            <label>Categorias</label>
+            <select
+              multiple
+              size={Math.min(categories.length, 10)}
+              className={styles.multiSelect}
+              value={config.categories || []}
+              onChange={() => {}}
+            >
+              {categories.map(cat => (
+                <option
+                  key={cat.id}
+                  value={cat.id}
+                  onMouseDown={e => {
+                    e.preventDefault();
+                    toggleValue('categories', cat.id);
+                  }}
+                >
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+            {/* mostrar nomes selecionados abaixo */}
+            <div className={styles.selectedText}>
+              {' '}
+              {(config.categories || [])
+                .map((id: string) => categories.find(c => c.id === id)?.name)
+                .filter(Boolean)
+                .join(', ') || 'Selecione quais você quer'}
+            </div>
             <FloatingLabelInput
               label="Multiplicador"
               type="number"
               value={config.multiplier ?? ''}
               onChange={e => setConfig({ ...config, multiplier: Number(e.target.value) })}
             />
-          </>
+          </div>
         );
+
       case RuleType.first_purchase:
         return (
           <FloatingLabelInput
@@ -225,42 +274,63 @@ export default function PointsRuleModal({ rule, onSave, onCancel }: Props) {
         );
       case RuleType.geolocation:
         return (
-          <>
-            <FloatingLabelInput
-              label="ID da filial"
-              type="text"
-              value={config.branch_id ?? ''}
+          <div className={styles.field}>
+            <label>Filial</label>
+            <select
+              className={styles.select}
+              value={config.branch_id || ''}
               onChange={e => setConfig({ ...config, branch_id: e.target.value })}
-            />
+            >
+              <option value="">Selecione</option>
+              {branches.map(b => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
             <FloatingLabelInput
               label="Pontos"
               type="number"
               value={config.points ?? ''}
               onChange={e => setConfig({ ...config, points: Number(e.target.value) })}
             />
-          </>
+          </div>
         );
       case RuleType.inventory:
         return (
-          <>
-            <FloatingLabelInput
-              label="IDs de item (vírgula-separados)"
-              type="text"
-              value={(config.item_ids || []).join(',')}
-              onChange={e =>
-                setConfig({
-                  ...config,
-                  item_ids: e.target.value.split(',').map(s => s.trim()),
-                })
-              }
-            />
+          <div className={styles.field}>
+            <label>Itens</label>
+            <select
+              multiple
+              size={Math.min(items.length, 10)}
+              className={styles.multiSelect}
+              value={config.item_ids || []}
+              onChange={() => {}}
+            >
+              {items.map(it => (
+                <option
+                  key={it.id}
+                  value={it.id}
+                  onMouseDown={e => {
+                    e.preventDefault();
+                    toggleValue('item_ids', it.id);
+                  }}
+                >
+                  {it.name}
+                </option>
+              ))}
+            </select>
+            <div className={styles.selectedText}>
+              {(config.item_ids || [])
+                .map((id: string) => items.find(i => i.id === id)?.name)
+                .filter(Boolean)
+                .join(', ') || 'Selecione quais você quer'}
+            </div>
             <FloatingLabelInput
               label="Multiplicador"
               type="number"
               value={config.multiplier ?? ''}
               onChange={e => setConfig({ ...config, multiplier: Number(e.target.value) })}
             />
-          </>
+          </div>
         );
       default:
         return <p>Configuração não implementada para este tipo.</p>;
@@ -327,7 +397,7 @@ export default function PointsRuleModal({ rule, onSave, onCancel }: Props) {
       </div>
 
       <div className={styles.actions}>
-        <Button onClick={handleSubmit} bgColor="#10b981">
+        <Button onClick={handleSubmit}>
           Salvar
         </Button>
         <Button onClick={onCancel} bgColor="#f3f4f6" style={{ color: '#374151' }}>
