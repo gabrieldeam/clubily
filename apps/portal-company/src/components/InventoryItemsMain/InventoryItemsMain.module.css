@@ -200,6 +200,27 @@
 }
 .viewOptions button:hover { background: #e5e7eb; }
 
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.pagination button {
+  padding: 0.3rem 0.8rem;
+  border: none;
+  background: #eee;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.pagination button:disabled {
+  opacity: .4;
+  cursor: default;
+}
+
 /* RESPONSIVIDADE */
 @media (max-width: 600px) {
   .tableHeader { display: none; }

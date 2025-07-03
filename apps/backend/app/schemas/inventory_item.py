@@ -3,6 +3,7 @@ from uuid import UUID
 from datetime import datetime
 from decimal import Decimal
 from pydantic import BaseModel, ConfigDict
+from typing import List
 
 class InventoryItemBase(BaseModel):
     sku: str
@@ -18,3 +19,11 @@ class InventoryItemRead(InventoryItemBase):
     company_id: UUID
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
+
+class PaginatedInventoryItems(BaseModel):
+    total: int
+    skip: int
+    limit: int
+    items: List[InventoryItemRead]
+
+    model_config = ConfigDict()

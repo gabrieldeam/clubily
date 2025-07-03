@@ -7,7 +7,6 @@ from enum import Enum
 
 class UserPointsWalletRead(BaseModel):
     user_id: UUID
-    company_id: UUID
     balance: int
     created_at: datetime
     updated_at: datetime

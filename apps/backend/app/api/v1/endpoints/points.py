@@ -131,36 +131,46 @@ def delete_points_rule(
 
 # Endpoints usuário
 @router.get(
-    "/balance",
+    "/balanceUser",
     response_model=UserPointsWalletRead,
     summary="Saldo de pontos do usuário autenticado"
 )
 def read_user_points_balance(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
-    current_company=Depends(get_current_company)
 ):
-    w = get_or_create_user_points_wallet(db, str(current_user.id), str(current_company.id))
-    return w
+    """
+    Retorna a carteira global de pontos do usuário logado.
+    """
+    return get_or_create_user_points_wallet(db, str(current_user.id))
+
 
 @router.get(
-    "/transactions",
+    "/transactionsUser",
     response_model=PaginatedUserPointsTransactions,
     summary="Extrato paginado de pontos do usuário autenticado"
 )
 def list_user_transactions(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(10, gt=0, le=100),
+    skip: int = Query(0, ge=0, description="Número de registros a pular"),
+    limit: int = Query(10, gt=0, le=100, description="Máximo de registros retornados"),
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
-    current_company=Depends(get_current_company)
 ):
+    """
+    Retorna histórico paginado de transações de pontos do usuário logado.
+    """
     total, items = list_user_points_transactions(
-        db, str(current_user.id), str(current_company.id), skip, limit
+        db,
+        str(current_user.id),
+        skip,
+        limit
     )
-    return {"total": total, "skip": skip, "limit": limit, "items": items}
-
-
+    return {
+        "total": total,
+        "skip": skip,
+        "limit": limit,
+        "items": items
+    }
 
 
 # Listar regras visíveis para front

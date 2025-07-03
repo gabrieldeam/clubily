@@ -13,6 +13,7 @@ import type { CompanyRead } from '@/types/company';
 import Header from '@/components/Header/Header';
 import styles from './Dashboard.module.css';
 import CashbackSummaryCard from '@/components/CashbackSummaryCard/CashbackSummaryCard';
+import PointsBalanceCard from '@/components/PointsBalanceCard/PointsBalanceCard';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 
@@ -142,6 +143,7 @@ export default function Dashboard() {
     <Header onSearch={q => router.push(`/search?name=${encodeURIComponent(q)}`)} />
     <div className={styles.container}> 
       <section className={styles.gridItem}>
+        <PointsBalanceCard />
         <CashbackSummaryCard />
       </section>
 
