@@ -10,7 +10,7 @@ from app.api.deps import get_db, get_current_company
 from app.services.purchase_log_service import log_purchase
 from app.services.points_rule_service import evaluate_all_rules
 
-router = APIRouter(prefix="/purchases", tags=["purchases"])
+router = APIRouter(tags=["purchases"])
 
 class PurchasePayload(BaseModel):
     user_id: UUID

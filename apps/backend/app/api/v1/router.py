@@ -33,7 +33,6 @@ router.include_router(points_wallet.router, prefix="/points", tags=["points"])
 router.include_router(point_plans.router, prefix="/point-plans", tags=["point_plans"])
 router.include_router(admin_point_plans.router, prefix="/point-plans/admin", tags=["admin_point_plans"])
 router.include_router(points.router, prefix="/points", tags=["points"])
-
 router.include_router(branches.router, prefix="/branches", tags=["branches"])
 router.include_router(inventory_items.router, prefix="/inventory", tags=["inventory"])
 router.include_router(purchases.router, prefix="/purchases", tags=["purchases"])

@@ -1,40 +1,38 @@
-// /components/BranchesMain/BranchesMain.tsx
+// /components/ProductCategoriesMain/ProductCategoriesMain.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
 import Modal from '@/components/Modal/Modal';
 import {
-  listBranches,
-  createBranch,
-  updateBranch,
-  deleteBranch
-} from '@/services/branchService';
-import type { BranchRead, BranchCreate } from '@/types/branch';
-import BranchModal from './BranchModal/BranchModal';
-import styles from './BranchesMain.module.css';
-import Link from 'next/link'; // se quiser link para detalhe
+  listProductCategories,
+  createProductCategory,
+  updateProductCategory,
+  deleteProductCategory,
+} from '@/services/productCategoryService';
+import type { ProductCategoryRead, ProductCategoryCreate } from '@/types/productCategory';
+import CategoryModal from './CategoryModal/CategoryModal';
+import styles from './ProductCategoriesMain.module.css';
 
-export default function BranchesMain() {
-  const [branches, setBranches] = useState<BranchRead[]>([]);
+export default function ProductCategoriesMain() {
+  const [categories, setCategories] = useState<ProductCategoryRead[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
-  const [selected, setSelected] = useState<BranchRead | null>(null);
+  const [selected, setSelected] = useState<ProductCategoryRead | null>(null);
 
-  // view mode
+  // view toggle (list/card)
   const [viewMode, setViewMode] = useState<'list' | 'card'>('list');
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
-  const fetchBranches = () => {
+  const fetchCategories = () => {
     setLoading(true);
-    listBranches()
-      .then(res => setBranches(res.data))
+    listProductCategories()
+      .then(res => setCategories(res.data))
       .finally(() => setLoading(false));
   };
 
-  useEffect(fetchBranches, []);
+  useEffect(fetchCategories, []);
 
-  // detect mobile width <768px
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     handleResize();
@@ -42,7 +40,6 @@ export default function BranchesMain() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // força card em mobile
   useEffect(() => {
     if (isMobile) setViewMode('card');
   }, [isMobile]);
@@ -51,33 +48,30 @@ export default function BranchesMain() {
     setSelected(null);
     setModalOpen(true);
   };
-
-  const openEdit = (b: BranchRead) => {
-    setSelected(b);
+  const openEdit = (c: ProductCategoryRead) => {
+    setSelected(c);
     setModalOpen(true);
   };
-
   const handleDelete = async (id: string) => {
-    if (confirm('Deseja realmente excluir esta filial?')) {
-      await deleteBranch(id);
-      fetchBranches();
+    if (confirm('Deseja realmente excluir esta categoria?')) {
+      await deleteProductCategory(id);
+      fetchCategories();
     }
   };
-
-  const handleSave = async (data: BranchCreate, id?: string) => {
-    if (id) await updateBranch(id, data);
-    else await createBranch(data);
+  const handleSave = async (data: ProductCategoryCreate, id?: string) => {
+    if (id) await updateProductCategory(id, data);
+    else await createProductCategory(data);
     setModalOpen(false);
-    fetchBranches();
+    fetchCategories();
   };
 
   return (
     <main className={styles.main}>
       <div className={styles.topBar}>
-        <h2>Filiais</h2>
+        <h2>Categorias de Produto</h2>
         <div className={styles.actionsHeader}>          
           <button className={styles.addBtn} onClick={openCreate}>
-            + Nova Filial
+            + Nova Categoria
           </button>
           {!isMobile && (
             <button
@@ -91,12 +85,12 @@ export default function BranchesMain() {
       </div>
 
       {loading ? (
-        <p className={styles.loading}>Carregando filiais...</p>
-      ) : branches.length === 0 ? (
+        <p className={styles.loading}>Carregando categorias...</p>
+      ) : categories.length === 0 ? (
         <div className={styles.empty}>
-          <h3>Sem filiais cadastradas</h3>
+          <h3>Sem categorias cadastradas</h3>
           <button onClick={openCreate} className={styles.createBtn}>
-            Criar primeira filial
+            Criar primeira categoria
           </button>
         </div>
       ) : viewMode === 'list' ? (
@@ -108,27 +102,27 @@ export default function BranchesMain() {
             <div className={styles.colActions}>Ações</div>
           </div>
           <div className={styles.tableBody}>
-            {branches.map(b => (
-              <div key={b.id} className={styles.tableRow}>
+            {categories.map(c => (
+              <div key={c.id} className={styles.tableRow}>
                 <div className={styles.colName} data-label="Nome:">
-                  {b.name}
+                  {c.name}
                 </div>
                 <div className={styles.colSlug} data-label="Slug:">
-                  {b.slug}
+                  {c.slug}
                 </div>
                 <div className={styles.colCreated} data-label="Criado em:">
-                  {new Date(b.created_at).toLocaleDateString('pt-BR')}
+                  {new Date(c.created_at).toLocaleDateString('pt-BR')}
                 </div>
                 <div className={styles.colActions}>
                   <button
                     className={styles.edit}
-                    onClick={() => openEdit(b)}
+                    onClick={() => openEdit(c)}
                   >
                     ✏️
                   </button>
                   <button
                     className={styles.delete}
-                    onClick={() => handleDelete(b.id)}
+                    onClick={() => handleDelete(c.id)}
                   >
                     🗑️
                   </button>
@@ -139,18 +133,18 @@ export default function BranchesMain() {
         </div>
       ) : (
         <div className={styles.cardGrid}>
-          {branches.map(b => (
+          {categories.map(c => (
             <div
-              key={b.id}
+              key={c.id}
               className={styles.card}
-              onClick={() => openEdit(b)}
+              onClick={() => openEdit(c)}
             >
               <div className={styles.cardHeader}>
-                <h3>{b.name}</h3>
+                <h3>{c.name}</h3>
               </div>
-              <p className={styles.cardSlug}>{b.slug}</p>
+              <p className={styles.cardSlug}>{c.slug}</p>
               <p className={styles.cardCreated}>
-                Criado em {new Date(b.created_at).toLocaleDateString('pt-BR')}
+                Criado em {new Date(c.created_at).toLocaleDateString('pt-BR')}
               </p>
               <div className={styles.cardActions}>
                 <button className={styles.edit}>✏️ Editar</button>
@@ -158,7 +152,7 @@ export default function BranchesMain() {
                   className={styles.delete}
                   onClick={e => {
                     e.stopPropagation();
-                    handleDelete(b.id);
+                    handleDelete(c.id);
                   }}
                 >
                   🗑️
@@ -169,7 +163,7 @@ export default function BranchesMain() {
         </div>
       )}
 
-      {/* Modal de ViewMode */}
+      {/* View Mode Modal */}
       <Modal open={viewModalOpen} onClose={() => setViewModalOpen(false)}>
         <div className={styles.viewModeModal}>
           <h2>Modo de visualização</h2>
@@ -194,14 +188,14 @@ export default function BranchesMain() {
         </div>
       </Modal>
 
-      {/* Modal de CRUD */}
+      {/* CRUD Modal */}
       <Modal open={modalOpen} onClose={() => setModalOpen(false)}>
-        <BranchModal
-          branch={selected}
+        <CategoryModal
+          category={selected}
           onSave={handleSave}
           onCancel={() => setModalOpen(false)}
         />
       </Modal>
     </main>
-  );
+);
 }
