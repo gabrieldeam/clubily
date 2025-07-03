@@ -50,6 +50,11 @@ export default function ClientModal({ onClose }: ClientModalProps) {
   const [items, setItems] = useState<InventoryItemRead[]>([]);
   const [itemsLoading, setItemsLoading] = useState(false);
 
+  /* paginação */
+  const [itemTotal, setItemTotal] = useState(0);
+  const [itemSkip, setItemSkip]   = useState(0);
+  const itemLimit = 10;
+
   /* ---------- carteira ---------- */
   const [userWallet, setUserWallet] = useState<UserWalletRead | null>(null);
   const [walletLoading, setWalletLoading] = useState(false);
@@ -177,8 +182,11 @@ export default function ClientModal({ onClose }: ClientModalProps) {
 
     /* inventário */
     setItemsLoading(true);
-    listInventoryItems()
-      .then((r) => setItems(r.data))
+    listInventoryItems(itemSkip, itemLimit)
+      .then(({ data }) => {
+        setItems(data.items);
+        setItemTotal(data.total);
+      })
       .catch(console.error)
       .finally(() => setItemsLoading(false));
 
@@ -196,7 +204,7 @@ export default function ClientModal({ onClose }: ClientModalProps) {
       .catch(console.error)
       .finally(() => setBranchesLoading(false));
 
-  }, [client]);
+  }, [client, itemSkip]);
 
   /* ---------- 3) se houver só 1 programa, selecione-o ---------- */
   useEffect(() => {
@@ -303,6 +311,18 @@ export default function ClientModal({ onClose }: ClientModalProps) {
       setWithdrawLoading(false);
     }
   };
+
+  const hasPrevPage = itemSkip > 0;
+  const hasNextPage = itemSkip + itemLimit < itemTotal;
+
+  const goPrevPage = () => {
+    if (hasPrevPage) setItemSkip((prev) => Math.max(prev - itemLimit, 0));
+  };
+
+  const goNextPage = () => {
+    if (hasNextPage) setItemSkip((prev) => prev + itemLimit);
+  };
+
 
   /* ---------- RENDER ---------- */
 
@@ -416,6 +436,29 @@ export default function ClientModal({ onClose }: ClientModalProps) {
                     </label>
                   );
                 })}
+                {/* paginação */}
+                  {itemTotal > itemLimit && (
+                    <div className={styles.pagination}>
+                      <button
+                        className={styles.pageButton}
+                        onClick={goPrevPage}
+                        disabled={!hasPrevPage}
+                      >
+                        ← Anterior
+                      </button>
+                      <span className={styles.pageInfo}>
+                        {Math.floor(itemSkip / itemLimit) + 1} /{" "}
+                        {Math.ceil(itemTotal / itemLimit)}
+                      </span>
+                      <button
+                        className={styles.pageButton}
+                        onClick={goNextPage}
+                        disabled={!hasNextPage}
+                      >
+                        Próxima →
+                      </button>
+                    </div>
+                  )}
               </div>
 
               {/* nomes dos itens selecionados */}

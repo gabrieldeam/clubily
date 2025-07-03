@@ -1,0 +1,25 @@
+/* src/components/PointsBalanceCard/PointsBalanceCard.module.css */
+.card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.title {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #111827;
+}
+.balance {
+  font-size: 2.5rem;
+  font-weight: 600;
+  color: #10b981;
+  margin: 8px 0;
+}
+.footer {
+  font-size: 0.85rem;
+  color: #6b7280;
+}

@@ -97,15 +97,17 @@ def delete_rule(db: Session, rule_id: str):
 
 # ─── Carteira de pontos do usuário ────────────────────────────────────────────
 
-def get_or_create_user_points_wallet(db: Session, user_id: str, company_id: str):
-    w = db.query(UserPointsWallet).filter_by(
-        user_id=user_id,
-        company_id=company_id
-    ).first()
+def get_or_create_user_points_wallet(
+    db: Session,
+    user_id: str
+) -> UserPointsWallet:
+    """
+    Retorna a carteira global de pontos do usuário ou cria uma nova com balance=0.
+    """
+    w = db.query(UserPointsWallet).filter_by(user_id=user_id).first()
     if not w:
         w = UserPointsWallet(
             user_id=user_id,
-            company_id=company_id,
             balance=0
         )
         db.add(w)
@@ -121,7 +123,7 @@ def credit_user_points(
     points: int,
     description: str | None
 ):
-    w = get_or_create_user_points_wallet(db, user_id, company_id)
+    w = get_or_create_user_points_wallet(db, user_id)
     w.balance += points
     tx = UserPointsTransaction(
         wallet_id=w.id,
@@ -140,14 +142,13 @@ def credit_user_points(
 def list_user_points_transactions(
     db: Session,
     user_id: str,
-    company_id: str,
     skip: int,
     limit: int
-):
-    base_q = db.query(UserPointsTransaction).filter_by(
-        user_id=user_id,
-        company_id=company_id
-    )
+) -> Tuple[int, List[UserPointsTransaction]]:
+    """
+    Retorna total de transações e lista paginada das transações de pontos do usuário.
+    """
+    base_q = db.query(UserPointsTransaction).filter_by(user_id=user_id)
     total = base_q.count()
     items = (
         base_q

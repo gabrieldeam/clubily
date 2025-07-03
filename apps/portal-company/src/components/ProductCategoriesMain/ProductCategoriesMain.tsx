@@ -24,14 +24,22 @@ export default function ProductCategoriesMain() {
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
+  /* paginação */
+  const [skip,  setSkip]  = useState(0);   // deslocamento atual
+  const limit            = 10;            // itens por página (fixo ou configurável)
+  const [total, setTotal] = useState(0);
+
   const fetchCategories = () => {
     setLoading(true);
-    listProductCategories()
-      .then(res => setCategories(res.data))
+    listProductCategories(skip, limit)
+      .then(res => {
+        setCategories(res.data.items);
+        setTotal(res.data.total);
+      })
       .finally(() => setLoading(false));
   };
 
-  useEffect(fetchCategories, []);
+  useEffect(fetchCategories, [skip]);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -64,6 +72,13 @@ export default function ProductCategoriesMain() {
     setModalOpen(false);
     fetchCategories();
   };
+
+  const canPrev = skip > 0;
+  const canNext = skip + limit < total;
+
+  const goPrev = () => { if (canPrev) setSkip(prev => Math.max(prev - limit, 0)); };
+  const goNext = () => { if (canNext) setSkip(prev => prev + limit); };
+
 
   return (
     <main className={styles.main}>
@@ -130,6 +145,15 @@ export default function ProductCategoriesMain() {
               </div>
             ))}
           </div>
+          {total > limit && (
+            <div className={styles.pagination}>
+              <button onClick={goPrev} disabled={!canPrev}>← Anterior</button>
+              <span>
+                {Math.floor(skip / limit) + 1} / {Math.ceil(total / limit)}
+              </span>
+              <button onClick={goNext} disabled={!canNext}>Próxima →</button>
+            </div>
+          )}
         </div>
       ) : (
         <div className={styles.cardGrid}>
@@ -160,6 +184,15 @@ export default function ProductCategoriesMain() {
               </div>
             </div>
           ))}
+          {total > limit && (
+            <div className={styles.pagination}>
+              <button onClick={goPrev} disabled={!canPrev}>← Anterior</button>
+              <span>
+                {Math.floor(skip / limit) + 1} / {Math.ceil(total / limit)}
+              </span>
+              <button onClick={goNext} disabled={!canNext}>Próxima →</button>
+            </div>
+          )}
         </div>
       )}
 

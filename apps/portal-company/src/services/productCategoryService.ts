@@ -4,15 +4,18 @@ import type {
   ProductCategoryRead,
   ProductCategoryCreate,
   ProductCategoryUpdate,
+  PaginatedProductCategories,
 } from "@/types/productCategory";
 
 /**
- * Lista todas as categorias de produto da empresa logada.
- * GET /product-categories
+ * Lista categorias paginadas.
+ * GET /product-categories?skip={skip}&limit={limit}
  */
-export const listProductCategories = () =>
-  api.get<ProductCategoryRead[]>("/product-categories");
-
+export const listProductCategories = (skip = 0, limit = 10) =>
+  api.get<PaginatedProductCategories>("/product-categories", {
+    params: { skip, limit },
+  });
+  
 /**
  * Cria nova categoria de produto.
  * POST /product-categories

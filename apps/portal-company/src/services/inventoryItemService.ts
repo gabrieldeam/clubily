@@ -4,15 +4,19 @@ import type {
   InventoryItemRead,
   InventoryItemCreate,
   InventoryItemUpdate,
+  PaginatedInventoryItems,
 } from "@/types/inventoryItem";
 
-/**
- * Lista todos os itens de inventário da empresa logada.
- * GET /inventory
- */
-export const listInventoryItems = () =>
-  api.get<InventoryItemRead[]>("/inventory");
 
+/**
+ * Lista itens de inventário paginados da empresa logada.
+ * GET /inventory?skip={skip}&limit={limit}
+ */
+export const listInventoryItems = (skip = 0, limit = 10) =>
+  api.get<PaginatedInventoryItems>("/inventory", {
+    params: { skip, limit },
+  });
+  
 /**
  * Cria um novo item de inventário.
  * POST /inventory
