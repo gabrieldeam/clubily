@@ -252,10 +252,12 @@ def evaluate_all_rules(
 
         elif rule.rule_type == RuleType.category:
             # só aplica multiplicador se a categoria do payload estiver na lista
-            categories = cfg.get("categories", [])
-            if pl.get("category") in categories:
+            payload_cats = pl.get("product_categories", [])
+            rule_cats    = cfg.get("categories", [])
+            # se **qualquer** categoria comprada bater na regra
+            if any(cat in rule_cats for cat in payload_cats):
                 mult = float(cfg.get("multiplier", 1))
-                pts = floor(pl.get("base_points", 0) * mult)
+                pts  = floor(pl.get("base_points", 0) * mult)
 
 
         elif rule.rule_type == RuleType.inventory:
