@@ -23,6 +23,8 @@ class UserPointsTransactionRead(BaseModel):
     amount: int
     description: Optional[str]
     rule_id: Optional[UUID]
+    company_id: UUID              
+    company_name: Optional[str] = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

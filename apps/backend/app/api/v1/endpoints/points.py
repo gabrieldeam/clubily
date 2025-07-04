@@ -1,7 +1,7 @@
 # backend/app/api/v1/endpoints/points.py
 from fastapi import APIRouter, Depends, HTTPException, Query, Path, Body, status
 from sqlalchemy.orm import Session
-from typing import List, Any, Dict
+from typing import List
 from uuid import UUID
 from app.api.deps import get_db, get_current_company, get_current_user
 from app.schemas.points_rule import (
@@ -116,7 +116,20 @@ def delete_points_rule(
     return
 
 
-
+@router.get(
+    "/rules/company/{company_id}",
+    response_model=List[PointsRuleRead],
+    summary="Usuário: Regras de pontos ativas/visíveis de uma empresa específica"
+)
+def list_company_visible_rules(
+    company_id: UUID = Path(..., description="ID da empresa cujas regras serão listadas"),
+    db: Session = Depends(get_db),
+):
+    """
+    Retorna todas as regras de pontos que a empresa deixou *ativas* **e** *visíveis*  
+    (ou seja, prontas para serem exibidas no app do usuário).
+    """
+    return get_visible_rules(db, str(company_id))
 
 
 
@@ -151,14 +164,11 @@ def read_user_points_balance(
     summary="Extrato paginado de pontos do usuário autenticado"
 )
 def list_user_transactions(
-    skip: int = Query(0, ge=0, description="Número de registros a pular"),
-    limit: int = Query(10, gt=0, le=100, description="Máximo de registros retornados"),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, gt=0, le=100),
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    """
-    Retorna histórico paginado de transações de pontos do usuário logado.
-    """
     total, items = list_user_points_transactions(
         db,
         str(current_user.id),

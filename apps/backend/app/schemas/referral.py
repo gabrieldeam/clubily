@@ -42,6 +42,7 @@ class ReferralDetail(BaseModel):
     id: UUID
     referral_code: str = Field(..., description="Código usado")
     user: ReferralUserRead
+    company: ReferralCompanyRead
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

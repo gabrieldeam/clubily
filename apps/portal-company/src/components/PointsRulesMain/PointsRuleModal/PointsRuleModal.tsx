@@ -30,18 +30,46 @@ export default function PointsRuleModal({ rule, onSave, onCancel }: Props) {
   const [visible, setVisible] = useState(true);
   const [branches, setBranches] = useState<BranchRead[]>([]);
   const [categories, setCategories] = useState<ProductCategoryRead[]>([]);
+  const [catSkip, setCatSkip] = useState(0);
+  const catLimit = 10;
+  const [catTotal, setCatTotal] = useState(0);
   const [items, setItems] = useState<InventoryItemRead[]>([]);
+  const [itemSkip, setItemSkip] = useState(0);
+  const itemLimit = 10;
+  const [itemTotal, setItemTotal] = useState(0);
   const [notification, setNotification] = useState<{ type: 'error'; message: string } | null>(null);
   const slugTouched = useRef(false);
 
 
   useEffect(() => {
-    listBranches().then(res => setBranches(res.data));
-    listProductCategories().then(res => setCategories(res.data));
-    listInventoryItems().then(res => setItems(res.data));
-  }, []);
+    listProductCategories(catSkip, catLimit)
+      .then(res => {
+        setCategories(res.data.items);
+        setCatTotal(res.data.total);
+      })
+      .catch(() => {
+        // opcional: setNotification({ type: 'error', message: 'Falha ao carregar categorias.' });
+      });
+  }, [catSkip]);
 
-    useEffect(() => {
+  useEffect(() => {
+    listInventoryItems(itemSkip, itemLimit)
+      .then(res => {
+        setItems(res.data.items);
+        setItemTotal(res.data.total);
+      })
+      .catch(() => {
+        // opcional: mostrar notificação de erro
+      });
+  }, [itemSkip]);
+
+  useEffect(() => {
+    listBranches()
+      .then(res => setBranches(res.data))
+      .catch(console.error)
+  }, [])
+
+  useEffect(() => {
     if (rule) {
       setName(rule.name || '');
       setDescription(rule.description || '');
@@ -158,26 +186,55 @@ export default function PointsRuleModal({ rule, onSave, onCancel }: Props) {
                   value={cat.id}
                   onMouseDown={e => {
                     e.preventDefault();
-                    toggleValue('categories', cat.id);
+                    const arr: string[] = config.categories || [];
+                    const next = arr.includes(cat.id)
+                      ? arr.filter(x => x !== cat.id)
+                      : [...arr, cat.id];
+                    setConfig({ ...config, categories: next });
                   }}
                 >
                   {cat.name}
                 </option>
               ))}
             </select>
+
+            {/* controles de paginação */}
+            <div className={styles.paginationControls}>
+              <button
+                type="button"
+                disabled={catSkip === 0}
+                onClick={() => setCatSkip(catSkip - catLimit)}
+              >
+                Anterior
+              </button>
+              <span>
+                Página {Math.floor(catSkip / catLimit) + 1} de{' '}
+                {Math.ceil(catTotal / catLimit)}
+              </span>
+              <button
+                type="button"
+                disabled={catSkip + catLimit >= catTotal}
+                onClick={() => setCatSkip(catSkip + catLimit)}
+              >
+                Próximo
+              </button>
+            </div>
+
             {/* mostrar nomes selecionados abaixo */}
             <div className={styles.selectedText}>
-              {' '}
               {(config.categories || [])
                 .map((id: string) => categories.find(c => c.id === id)?.name)
                 .filter(Boolean)
-                .join(', ') || 'Selecione quais você quer'}
+                .join(', ') || 'Nenhuma selecionada'}
             </div>
+
             <FloatingLabelInput
               label="Multiplicador"
               type="number"
               value={config.multiplier ?? ''}
-              onChange={e => setConfig({ ...config, multiplier: Number(e.target.value) })}
+              onChange={e =>
+                setConfig({ ...config, multiplier: Number(e.target.value) })
+              }
             />
           </div>
         );
@@ -273,65 +330,98 @@ export default function PointsRuleModal({ rule, onSave, onCancel }: Props) {
           </>
         );
       case RuleType.geolocation:
-        return (
-          <div className={styles.field}>
-            <label>Filial</label>
-            <select
-              className={styles.select}
-              value={config.branch_id || ''}
-              onChange={e => setConfig({ ...config, branch_id: e.target.value })}
-            >
-              <option value="">Selecione</option>
-              {branches.map(b => (
-                <option key={b.id} value={b.id}>{b.name}</option>
-              ))}
-            </select>
-            <FloatingLabelInput
-              label="Pontos"
-              type="number"
-              value={config.points ?? ''}
-              onChange={e => setConfig({ ...config, points: Number(e.target.value) })}
-            />
-          </div>
-        );
-      case RuleType.inventory:
-        return (
-          <div className={styles.field}>
-            <label>Itens</label>
-            <select
-              multiple
-              size={Math.min(items.length, 10)}
-              className={styles.multiSelect}
-              value={config.item_ids || []}
-              onChange={() => {}}
-            >
-              {items.map(it => (
-                <option
-                  key={it.id}
-                  value={it.id}
-                  onMouseDown={e => {
-                    e.preventDefault();
-                    toggleValue('item_ids', it.id);
-                  }}
-                >
-                  {it.name}
-                </option>
-              ))}
-            </select>
-            <div className={styles.selectedText}>
-              {(config.item_ids || [])
-                .map((id: string) => items.find(i => i.id === id)?.name)
-                .filter(Boolean)
-                .join(', ') || 'Selecione quais você quer'}
-            </div>
-            <FloatingLabelInput
-              label="Multiplicador"
-              type="number"
-              value={config.multiplier ?? ''}
-              onChange={e => setConfig({ ...config, multiplier: Number(e.target.value) })}
-            />
-          </div>
-        );
+  return (
+    <div className={styles.field}>
+      <label>Filial</label>
+      <select
+        className={styles.select}
+        value={config.branch_id || ''}
+        onChange={e => setConfig({ ...config, branch_id: e.target.value })}
+      >
+        <option value="">Nenhuma selecionada</option>
+        {branches.map(b => (
+          <option key={b.id} value={b.id}>
+            {b.name}
+          </option>
+        ))}
+      </select>
+      <FloatingLabelInput
+        label="Pontos"
+        type="number"
+        value={config.points ?? ''}
+        onChange={e => setConfig({ ...config, points: Number(e.target.value) })}
+      />
+    </div>
+  );
+  case RuleType.inventory:
+  return (
+    <div className={styles.field}>
+      <label>Itens de Inventário</label>
+      <select
+        multiple
+        size={Math.min(items.length, 10)}
+        className={styles.multiSelect}
+        value={config.item_ids || []}
+        onChange={() => {}}
+      >
+        {items.map(it => (
+          <option
+            key={it.id}
+            value={it.id}
+            onMouseDown={e => {
+              e.preventDefault();
+              const arr: string[] = config.item_ids || [];
+              const next = arr.includes(it.id)
+                ? arr.filter(x => x !== it.id)
+                : [...arr, it.id];
+              setConfig({ ...config, item_ids: next });
+            }}
+          >
+            {it.name}
+          </option>
+        ))}
+      </select>
+
+      {/* controles de paginação */}
+      <div className={styles.paginationControls}>
+        <button
+          type="button"
+          disabled={itemSkip === 0}
+          onClick={() => setItemSkip(itemSkip - itemLimit)}
+        >
+          Anterior
+        </button>
+        <span>
+          Página {Math.floor(itemSkip / itemLimit) + 1} de{' '}
+          {Math.ceil(itemTotal / itemLimit)}
+        </span>
+        <button
+          type="button"
+          disabled={itemSkip + itemLimit >= itemTotal}
+          onClick={() => setItemSkip(itemSkip + itemLimit)}
+        >
+          Próximo
+        </button>
+      </div>
+
+      {/* nomes selecionados */}
+      <div className={styles.selectedText}>
+        {(config.item_ids || [])
+          .map((id: string) => items.find(i => i.id === id)?.name)
+          .filter(Boolean)
+          .join(', ') || 'Nenhum selecionado'}
+      </div>
+
+      <FloatingLabelInput
+        label="Multiplicador"
+        type="number"
+        value={config.multiplier ?? ''}
+        onChange={e =>
+          setConfig({ ...config, multiplier: Number(e.target.value) })
+        }
+      />
+    </div>
+  );
       default:
         return <p>Configuração não implementada para este tipo.</p>;
     }

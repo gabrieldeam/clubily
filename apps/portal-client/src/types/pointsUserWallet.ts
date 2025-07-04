@@ -1,4 +1,4 @@
-// src/types/pointsWallet.ts
+// src/types/pointsUserWallet.ts
 
 /**
  * Carteira de pontos do usuário.
@@ -23,7 +23,9 @@ export interface UserPointsTransactionRead {
   type: UserPointsTxType;   // award | adjustment
   amount: number;           // quanto foi creditado/debitado
   description?: string;     // descrição opcional
-  rule_id?: string;         // ID da regra (se aplicável)
+  rule_id?: string;
+  company_id: string;  
+  company_name: string;   
   created_at: string;       // ISO date
 }
 

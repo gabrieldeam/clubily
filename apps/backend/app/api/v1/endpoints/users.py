@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends, Query, status, BackgroundTasks, HTTPException
 from sqlalchemy import select
 from typing import List
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, selectinload, load_only
 from app.models.referral import Referral
 from ....schemas.referral import ReferralCode, ReferralDetail, PaginatedReferralCompanies
 from app.api.deps import get_current_user, get_db, require_admin
@@ -268,33 +268,46 @@ def read_all_referrals(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
+    _admin = Depends(require_admin),               # garante admin
 ):
     """
-    Retorna todas as indicações, com dados do usuário e da empresa.
+    Pagina primeiro em Referral, depois carrega usuário/empresa
+    apenas com os campos necessários.
     """
-    refs = (
-        db.query(Referral)
-          .options(
-              joinedload(Referral.user),
-              joinedload(Referral.company)
-          )
+
+    # ➊ Sub-consulta só com os IDs paginados
+    sub = (
+        db.query(Referral.id)
           .order_by(Referral.created_at.desc())
           .offset(skip)
           .limit(limit)
+          .subquery()
+    )
+
+    # ➋ Buscar os Referral completos, mas usando selectinload +
+    #    load_only para não puxar relações pesadas.
+    refs = (
+        db.query(Referral)
+          .join(sub, Referral.id == sub.c.id)
+          .options(
+              selectinload(Referral.user).load_only(
+                  User.id, User.name, User.email, User.cpf, User.phone, User.referral_code
+              ),
+              selectinload(Referral.company).load_only(
+                  Company.id, Company.name, Company.email, Company.phone, Company.cnpj
+              ),
+          )
+          .order_by(Referral.created_at.desc())
           .all()
     )
-    # para cada Referral, o Pydantic extrai:
-    # - id
-    # - referral_code <- user.referral_code
-    # - user.* e company.*
-    # - created_at
+
     return [
         ReferralDetail(
             id=r.id,
             referral_code=r.user.referral_code,
             user=r.user,
             company=r.company,
-            created_at=r.created_at
+            created_at=r.created_at,
         )
         for r in refs
     ]

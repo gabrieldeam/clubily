@@ -81,7 +81,6 @@
 
 .saveBtn {
   padding: 8px 16px;
-  background: #10b981;
   border: none;
   border-radius: 6px;
   color: #fff;
@@ -105,4 +104,35 @@
 
 .cancelBtn:hover {
   background: #e5e7eb;
+}
+
+/* área de paginação do select */
+.paginationControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 8px;
+  font-size: 0.9rem;
+}
+
+.paginationControls button {
+  padding: 4px 8px;
+  border: 1px solid #ccc;
+  background: #f3f3f3;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.paginationControls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
 }

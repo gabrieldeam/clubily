@@ -14,6 +14,7 @@ from app.services.wallet_service import get_wallet_balance, debit_wallet
 from app.services.fee_setting_service import get_effective_fee
 from app.models.fee_setting import SettingTypeEnum
 from datetime import timedelta
+from app.models.company import Company
 
 from app.models.purchase_log import PurchaseLog
 
@@ -139,25 +140,48 @@ def credit_user_points(
     db.refresh(w)
     return w
 
+
 def list_user_points_transactions(
     db: Session,
     user_id: str,
     skip: int,
     limit: int
-) -> Tuple[int, List[UserPointsTransaction]]:
+) -> Tuple[int, List[Dict[str, Any]]]:
     """
-    Retorna total de transações e lista paginada das transações de pontos do usuário.
+    Retorna total e lista paginada das transações.
+    Inclui company_name em cada item.
     """
-    base_q = db.query(UserPointsTransaction).filter_by(user_id=user_id)
+    base_q = (
+        db.query(UserPointsTransaction)
+          .join(Company, Company.id == UserPointsTransaction.company_id)
+          .filter(UserPointsTransaction.user_id == user_id)
+    )
+
     total = base_q.count()
-    items = (
+    txs = (
         base_q
         .order_by(UserPointsTransaction.created_at.desc())
         .offset(skip)
         .limit(limit)
         .all()
     )
+
+    items: List[Dict[str, Any]] = []
+    for t in txs:
+        items.append(
+            {
+                "id":           t.id,
+                "type":         t.type,
+                "amount":       t.amount,
+                "description":  t.description,
+                "rule_id":      t.rule_id,
+                "company_id":   t.company_id,
+                "company_name": t.company.name,
+                "created_at":   t.created_at,
+            }
+        )
     return total, items
+
 
 
 # ─── Avaliação e atribuição de pontos ─────────────────────────────────────────

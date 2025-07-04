@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Modal from '@/components/Modal/Modal';
+import Notification from '@/components/Notification/Notification';
 import {
   getCashbackPrograms,
   createCashbackProgram,
@@ -17,6 +18,7 @@ import styles from './CashbackProgramsMain.module.css';
 export default function CashbackProgramsMain() {
   const [programs, setPrograms] = useState<CashbackProgramRead[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [selected, setSelected] = useState<CashbackProgramRead | null>(null);
@@ -37,13 +39,20 @@ export default function CashbackProgramsMain() {
   }, [isMobile]);
 
   // buscar programas
-  const fetchPrograms = () => {
+  const fetchPrograms = async () => {
     setLoading(true);
-    getCashbackPrograms()
-      .then(res => setPrograms(res.data))
-      .finally(() => setLoading(false));
+    setError(null);
+    try {
+      const res = await getCashbackPrograms();
+      setPrograms(res.data);
+    } catch (e: any) {
+      // captura detail do HTTPException
+      setError(e.response?.data?.detail || 'Erro ao carregar programas');
+    } finally {
+      setLoading(false);
+    }
   };
-  useEffect(fetchPrograms, []);
+  useEffect(() => { fetchPrograms(); }, []);
 
   // contadores
   const total = programs.length;
@@ -51,21 +60,38 @@ export default function CashbackProgramsMain() {
   const visibleCount = programs.filter(p => p.is_visible).length;
 
   // ações CRUD
-  const openCreate = () => { setSelected(null); setModalOpen(true); };
-  const openEdit = (p: CashbackProgramRead) => { setSelected(p); setModalOpen(true); };
+  const openCreate = () => {
+    setError(null);
+    setSelected(null);
+    setModalOpen(true);
+  };
+  const openEdit = (p: CashbackProgramRead) => {
+    setError(null);
+    setSelected(p);
+    setModalOpen(true);
+  };
   const handleDelete = async (id: string) => {
-    if (confirm('Deseja realmente excluir este programa?')) {
+    if (!confirm('Deseja realmente excluir este programa?')) return;
+    setError(null);
+    try {
       await deleteCashbackProgram(id);
-      fetchPrograms();
+      await fetchPrograms();
+    } catch (e: any) {
+      setError(e.response?.data?.detail || 'Erro ao excluir programa');
     }
   };
   const handleSave = async (data: CashbackProgramCreate, id?: string) => {
-    if (id) await updateCashbackProgram(id, data);
-    else await createCashbackProgram(data);
-    setModalOpen(false);
-    fetchPrograms();
+    setError(null);
+    try {
+      if (id) await updateCashbackProgram(id, data);
+      else await createCashbackProgram(data);
+      setModalOpen(false);
+      await fetchPrograms();
+    } catch (e: any) {
+      setError(e.response?.data?.detail || 'Erro ao salvar programa');
+    }
   };
-
+  
   return (
     <main className={styles.main}>
       <div className={styles.topBar}>
@@ -79,6 +105,13 @@ export default function CashbackProgramsMain() {
             </>
           )}
         </div>
+        {error && (
+            <Notification
+              type="error"
+              message={error}
+              onClose={() => setError(null)}
+            />
+          )}
         <div className={styles.actionsHeader}>
           <button className={styles.addBtn} onClick={openCreate}>
             + Novo Programa
