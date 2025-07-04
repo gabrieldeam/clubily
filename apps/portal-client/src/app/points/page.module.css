@@ -1,0 +1,112 @@
+/* src/app/points/page.module.css */
+
+.container {
+  margin-top: 92px;
+  margin-bottom: 120px;
+}
+
+.main {
+  background: #fff;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.title {
+  margin: 0 0 16px;
+  font-size: 1.5rem;
+}
+
+.summary {
+  margin-bottom: 12px;
+  font-size: 0.95rem;
+  color: #374151;
+}
+
+.tableWrapper {
+  overflow-x: auto;
+  margin-bottom: 16px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.table th,
+.table td {
+  padding: 12px 8px;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 0.95rem;
+  color: #374151;
+}
+
+/* Arredonda cantos do cabeçalho */
+.table thead tr th:first-child {
+  border-top-left-radius: 8px;
+}
+.table thead tr th:last-child {
+  border-top-right-radius: 8px;
+}
+
+.table thead {
+  background: #f3f4f6;
+}
+
+.table tbody tr:hover {
+  background: #fafafa;
+}
+
+.message,
+.error {
+  text-align: center;
+  padding: 1rem 0;
+  color: #666;
+}
+
+.error {
+  color: #b91c1c;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+}
+
+.pageButton {
+  padding: 6px 12px;
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+}
+
+.pageButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pageButton:hover:not(:disabled) {
+  background: #e5e7eb;
+}
+
+.pageInfo {
+  font-size: 0.9rem;
+  color: #374151;
+}
+
+@media (max-width: 600px) {
+  .table th,
+  .table td {
+    padding: 8px 4px;
+    font-size: 0.85rem;
+  }
+}
