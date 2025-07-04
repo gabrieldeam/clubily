@@ -13,35 +13,58 @@
   text-align: center;
 }
 
-.catSection {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.catLabel {
-  font-weight: 600;
-}
-
-.catList {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  max-height: 120px;
-  overflow-y: auto;
-  padding: 8px;
-  background: #f9fafb;
-  border-radius: 8px;
-}
-
-.catItem {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
 
 .actions {
   display: flex;
   justify-content: flex-end;
   gap: 1rem;
+}
+
+
+
+
+/* InventoryItemModal.module.css */
+.catSection {
+  margin-top: 1rem;
+}
+.catLabel {
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+.catList {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.catItem {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.9rem;
+}
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+}
+.pagination button {
+  padding: 4px 8px;
+  border: none;
+  background: #f3f4f6;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.pagination span {
+  font-size: 0.9rem;
 }

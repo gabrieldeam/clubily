@@ -10,9 +10,9 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { getCompanyInfo } from '@/services/companyService';
-import { listPublicCashbackProgramsByCompany } from '@/services/cashbackProgramService';
-import type { CashbackProgramRead } from '@/types/cashbackProgram';
 import type { CompanyRead } from '@/types/company';
+import PointsCompanyRulesMain from '@/components/PointsCompanyRulesMain/PointsCompanyRulesMain';
+import CompanyCashbackProgramsMain from '@/components/CompanyCashbackProgramsMain/CompanyCashbackProgramsMain';
 import Header from '@/components/Header/Header';
 import styles from './page.module.css';
 
@@ -54,10 +54,6 @@ export default function CompanyPage() {
 
   const baseUrl = process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL ?? '';
 
-  const [programs, setPrograms] = useState<CashbackProgramRead[]>([]);
-  const [loadingPrograms, setLoadingPrograms] = useState(true);
-  const [errorPrograms, setErrorPrograms] = useState<string | null>(null);
-
   // 1) Fetch company
   useEffect(() => {
     if (!id) return;
@@ -88,21 +84,6 @@ export default function CompanyPage() {
       setShowBanner(true);
     }
   }, [company]);
-
-  useEffect(() => {
-    if (!id) return;
-    setLoadingPrograms(true);
-    listPublicCashbackProgramsByCompany(id)
-      .then(res => {
-        setPrograms(res.data);
-        setErrorPrograms(null);
-      })
-      .catch(err => {
-        console.error(err);
-        setErrorPrograms('Falha ao carregar programas de cashback.');
-      })
-      .finally(() => setLoadingPrograms(false));
-  }, [id]);
 
   // 4) Marker icon (logo or fallback initial)
   const logoIcon = useMemo(() => {
@@ -251,48 +232,9 @@ export default function CompanyPage() {
           </>
         )}
       </div>
-
-      <div className={styles.whiteBox}>
-        <h2 className={styles.sectionTitle}>Programas de Cashback</h2>
-
-        {loadingPrograms ? (
-          <p>Carregando programas…</p>
-        ) : errorPrograms ? (
-          <p className={styles.error}>{errorPrograms}</p>
-        ) : programs.length === 0 ? (
-          <p>Não há programas ativos disponíveis.</p>
-        ) : (
-          <div className={styles.programsGrid}>
-            {programs.map(p => (
-              <div key={p.id} className={styles.programCard}>
-                <div className={styles.programHeader}>
-                  <h3 className={styles.programName}>{p.name}</h3>
-                  <span className={styles.programPercent}>{p.percent}%</span>
-                </div>
-                <p className={styles.programDesc}>{p.description}</p>
-                <div className={styles.programMeta}>
-                  <div>
-                    <strong>Validade:</strong> {p.validity_days} dias
-                  </div>
-                  {p.max_per_user != null && (
-                    <div>
-                      <strong>Máximo por usuário:</strong> {p.max_per_user} uso(s)
-                    </div>
-                  )}
-                  {p.min_cashback_per_user != null && (
-                    <div>
-                      <strong>Mínimo por usuário:</strong> {p.min_cashback_per_user.toLocaleString('pt-BR', {
-                        style: 'currency',
-                        currency: 'BRL'
-                      })}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      
+      <CompanyCashbackProgramsMain companyId={id!} />
+      <PointsCompanyRulesMain companyId={id!} />
 
       {/* CONTATO */}
       <div className={styles.whiteBox}>

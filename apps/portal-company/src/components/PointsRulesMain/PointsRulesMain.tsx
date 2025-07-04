@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import Modal from '@/components/Modal/Modal';
+import Notification from '@/components/Notification/Notification';
 import {
   listPointsRules,
   createPointsRule,
@@ -17,6 +18,7 @@ import styles from './PointsRulesMain.module.css';
 export default function PointsRulesMain() {
   const [rules, setRules] = useState<PointsRuleRead[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedRule, setSelectedRule] = useState<PointsRuleRead | null>(null);
@@ -26,6 +28,7 @@ export default function PointsRulesMain() {
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
+  // busca inicial e resize
   useEffect(() => {
     fetchRules();
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -38,41 +41,62 @@ export default function PointsRulesMain() {
     if (isMobile) setViewMode('card');
   }, [isMobile]);
 
-  const fetchRules = () => {
+  // FETCH
+  const fetchRules = async () => {
     setLoading(true);
-    listPointsRules()
-      .then(res => setRules(res.data))
-      .finally(() => setLoading(false));
+    setError(null);
+    try {
+      const res = await listPointsRules();
+      setRules(res.data);
+    } catch (e: any) {
+      setError(e.response?.data?.detail || 'Erro ao carregar regras');
+    } finally {
+      setLoading(false);
+    }
   };
 
+  // abrir modais
   const openCreate = () => {
+    setError(null);
     setSelectedRule(null);
     setModalOpen(true);
   };
-
   const openEdit = (rule: PointsRuleRead) => {
+    setError(null);
     setSelectedRule(rule);
     setModalOpen(true);
   };
 
+  // DELETE
   const handleDelete = async (id: string) => {
-    if (confirm('Deseja realmente excluir esta regra?')) {
+    if (!confirm('Deseja realmente excluir esta regra?')) return;
+    setError(null);
+    try {
       await deletePointsRule(id);
-      fetchRules();
+      await fetchRules();
+    } catch (e: any) {
+      setError(e.response?.data?.detail || 'Erro ao excluir regra');
     }
   };
 
+  // SAVE (create/update)
   const handleSave = async (data: PointsRuleCreate, id?: string) => {
-    if (id) await updatePointsRule(id, data);
-    else await createPointsRule(data);
-    setModalOpen(false);
-    fetchRules();
+    setError(null);
+    try {
+      if (id) await updatePointsRule(id, data);
+      else await createPointsRule(data);
+      setModalOpen(false);
+      await fetchRules();
+    } catch (e: any) {
+      setError(e.response?.data?.detail || 'Erro ao salvar regra');
+    }
   };
 
   // summary counts
   const total = rules.length;
   const activeCount = rules.filter(r => r.active).length;
   const visibleCount = rules.filter(r => r.visible).length;
+
 
   return (
     <>
@@ -88,6 +112,13 @@ export default function PointsRulesMain() {
               </>
             )}
           </div>
+          {error && (
+            <Notification
+              type="error"
+              message={error}
+              onClose={() => setError(null)}
+            />
+          )}
           <div className={styles.actionsHeader}>
             <button className={styles.addBtn} onClick={openCreate}>
               + Nova Regra

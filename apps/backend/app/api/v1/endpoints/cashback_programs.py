@@ -31,6 +31,7 @@ from app.schemas.admin_cashback import (
     AdminProgramRead,
     AdminCompanyBasic,
 )
+from app.models.cashback import Cashback
 
 router = APIRouter(tags=["cashback_programs"])
 
@@ -106,6 +107,21 @@ def remove_program(
     prog = get_program(db, program_id)
     if not prog or str(prog.company_id) != str(current_company.id):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Programa não encontrado")
+
+    # 2) checar se já existe cashback usado para este programa
+    used_count = (
+        db.query(Cashback)
+          .filter(Cashback.program_id == program_id)
+          .count()
+    )
+    if used_count > 0:
+        # 3) bloquear exclusão se houver histórico
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Não é possível excluir um programa que já possui cashbacks registrados"
+        )
+
+    # 4) prosseguir com exclusão
     delete_program(db, prog)
 
 @router.get(

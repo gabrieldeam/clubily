@@ -1,4 +1,4 @@
-// /components/InventoryItemsMain/InventoryItemModal/InventoryItemModal.tsx
+// src/components/InventoryItemsMain/InventoryItemModal/InventoryItemModal.tsx
 'use client';
 
 import { FormEvent, useState, useEffect } from 'react';
@@ -10,7 +10,10 @@ import Notification from '@/components/Notification/Notification';
 import {
   listProductCategories
 } from '@/services/productCategoryService';
-import type { ProductCategoryRead } from '@/types/productCategory';
+import type {
+  ProductCategoryRead,
+  PaginatedProductCategories
+} from '@/types/productCategory';
 import type { InventoryItemRead, InventoryItemCreate } from '@/types/inventoryItem';
 
 interface Props {
@@ -24,16 +27,29 @@ export default function InventoryItemModal({ item, onSave, onCancel }: Props) {
   const [name, setName] = useState('');
   const [price, setPrice] = useState<number>(0);
   const [selectedCats, setSelectedCats] = useState<string[]>([]);
+
   const [categories, setCategories] = useState<ProductCategoryRead[]>([]);
   const [loadingCats, setLoadingCats] = useState(true);
+  const [catSkip, setCatSkip] = useState(0);
+  const catLimit = 10;
+  const [catTotal, setCatTotal] = useState(0);
+
   const [notification, setNotification] = useState<{type:'error';message:string} | null>(null);
 
+  // fetch de categorias sempre que mudar página (skip)
   useEffect(() => {
-    listProductCategories()
-      .then(res => setCategories(res.data))
+    setLoadingCats(true);
+    listProductCategories(catSkip, catLimit)
+      .then(res => {
+        const data: PaginatedProductCategories = res.data;
+        setCategories(data.items);
+        setCatTotal(data.total);
+      })
+      .catch(console.error)
       .finally(() => setLoadingCats(false));
-  }, []);
+  }, [catSkip]);
 
+  // inicializa campos
   useEffect(() => {
     if (item) {
       setSku(item.sku);
@@ -60,6 +76,9 @@ export default function InventoryItemModal({ item, onSave, onCancel }: Props) {
     }
     onSave({ sku: sku.trim(), name: name.trim(), price, category_ids: selectedCats }, item?.id);
   };
+
+  const canPrev = catSkip > 0;
+  const canNext = catSkip + catLimit < catTotal;
 
   return (
     <form onSubmit={handleSubmit} className={styles.form}>
@@ -102,18 +121,40 @@ export default function InventoryItemModal({ item, onSave, onCancel }: Props) {
         {loadingCats ? (
           <p>Carregando categorias...</p>
         ) : (
-          <div className={styles.catList}>
-            {categories.map(cat => (
-              <label key={cat.id} className={styles.catItem}>
-                <input
-                  type="checkbox"
-                  checked={selectedCats.includes(cat.id)}
-                  onChange={() => toggleCategory(cat.id)}
-                />
-                <span>{cat.name}</span>
-              </label>
-            ))}
-          </div>
+          <>
+            <div className={styles.catList}>
+              {categories.map(cat => (
+                <label key={cat.id} className={styles.catItem}>
+                  <input
+                    type="checkbox"
+                    checked={selectedCats.includes(cat.id)}
+                    onChange={() => toggleCategory(cat.id)}
+                  />
+                  <span>{cat.name}</span>
+                </label>
+              ))}
+            </div>
+
+            <div className={styles.pagination}>
+              <button
+                type="button"
+                onClick={() => setCatSkip(s => Math.max(0, s - catLimit))}
+                disabled={!canPrev}
+              >
+                Anterior
+              </button>
+              <span>
+                Página {catSkip / catLimit + 1} de {Math.ceil(catTotal / catLimit)}
+              </span>
+              <button
+                type="button"
+                onClick={() => setCatSkip(s => s + catLimit)}
+                disabled={!canNext}
+              >
+                Próxima
+              </button>
+            </div>
+          </>
         )}
       </div>
 
