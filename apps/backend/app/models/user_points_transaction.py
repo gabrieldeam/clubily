@@ -9,7 +9,8 @@ from app.db.base import Base
 
 class UserPointsTxType(str, Enum):
     award = "award"
-    adjustment = "adjustment"
+    redeem    = "redeem"      # <— novo
+    adjustment= "adjustment"
 
 class UserPointsTransaction(Base):
     __tablename__ = "user_points_transactions"

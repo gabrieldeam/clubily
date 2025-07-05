@@ -1,3 +1,5 @@
+// src/app/admin/point-plans/page.tsx
+
 'use client';
 
 import { useEffect, useState, FormEvent } from 'react';
