@@ -46,8 +46,10 @@ from app.models.branch import Branch
 from app.models.inventory_item import InventoryItem
 from app.models.purchase_log import PurchaseLog
 from app.models.product_category import ProductCategory, inventory_item_categories
-
-
+from app.models.user_points_stats import UserPointsStats
+from app.models.reward_category import RewardCategory
+from app.models.reward_product import RewardProduct, reward_product_categories
+from app.models.reward_order import OrderStatus, RewardOrder, RewardOrderItem
 
 # ...importe aqui outros models quando criar novos
 

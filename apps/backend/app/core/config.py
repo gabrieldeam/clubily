@@ -55,5 +55,8 @@ class Settings(BaseSettings):
 
     ASAAS_API_KEY: str
     ASAAS_BASE_URL: str
+    
+    # ... as suas outras configurações
+    MEDIA_DIR: str = "./media"
 
 settings = Settings()

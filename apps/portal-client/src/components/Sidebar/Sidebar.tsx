@@ -18,7 +18,8 @@ import {
   ChevronLeft,
   ChevronRight,
   DollarSign,
-  SquareChartGantt
+  SquareChartGantt,
+  ShoppingCart
 } from 'lucide-react';
 import styles from './Sidebar.module.css';
 
@@ -29,11 +30,12 @@ const navItems = [
   { label: 'Créditos', href: '/admin/payments', icon: CreditCard },
   { label: 'Suportes', href: '/admin/suportes', icon: LifeBuoy },
   { label: 'Cashback', href: '/admin/cashback-programs', icon: CreditCard },
-  { label: 'Pontos', href: '/admin/point-plans', icon: Award },
+  { label: 'Pontos', href: '/admin/points', icon: Award },
   { label: 'Planos de Pontos', href: '/admin/point-plans', icon: SquareChartGantt },
   { label: 'Cartão Fidelidade', href: '/admin/programas/cartao-fidelidade', icon: Gift },
   { label: 'Representantes', href: '/admin/referrals', icon: UserCheck },
-  { label: 'Comissões', href: '/admin/commissions', icon: DollarSign }
+  { label: 'Comissões', href: '/admin/commissions', icon: DollarSign },
+  { label: 'Loja de Recompensas', href: '/admin/rewards', icon: ShoppingCart },
 ];
 
 export default function Sidebar() {

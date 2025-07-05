@@ -52,10 +52,13 @@ export default function PointsBalanceCard() {
 
         <div className={styles.cardText}>
           <p className={styles.title}>Saldo de Pontos</p>
-          <div className={styles.balance}>
-            <span>{balanceData ? balanceData.balance : 0}</span>
+          <Link href="/leaderboard">
+            <div className={styles.balance}>
+              <span>{balanceData ? balanceData.balance : 0}</span>
             <p>Pts</p>
           </div>
+          </Link>
+          
           <div className={styles.footer}>
             Atualizado em{' '}
             {balanceData

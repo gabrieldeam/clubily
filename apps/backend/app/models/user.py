@@ -93,3 +93,12 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan"
     )
+
+    points_stats = relationship(
+        "UserPointsStats",
+        back_populates="user",
+        uselist=False,          # 1-para-1
+        cascade="all, delete-orphan"
+    )
+
+    reward_orders = relationship("RewardOrder", back_populates="user")

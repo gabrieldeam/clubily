@@ -7,7 +7,8 @@ from .endpoints import (
     company_payments, admin_payments, asaas_customer, wallet, 
     fee_settings, admin_commissions, commissions, transfer_methods,
     point_purchases, points_wallet, point_plans, admin_point_plans, points,
-    branches, inventory_items, purchases, product_categories, admin_point
+    branches, inventory_items, purchases, product_categories, admin_point,
+    leaderboard, rewards
 )
 
 router = APIRouter()
@@ -38,4 +39,6 @@ router.include_router(inventory_items.router, prefix="/inventory", tags=["invent
 router.include_router(purchases.router, prefix="/purchases", tags=["purchases"])
 router.include_router(product_categories.router, prefix="/product-categories", tags=["product_categories"])
 router.include_router(admin_point.router, prefix="/admin_point", tags=["admin_points"])
+router.include_router(leaderboard.router, prefix="/leaderboard", tags=["leaderboard"])
+router.include_router(rewards.router, prefix="/rewards", tags=["rewards"])
 

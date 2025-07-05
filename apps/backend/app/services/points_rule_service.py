@@ -2,7 +2,7 @@
 
 from sqlalchemy.orm import Session
 from math import floor
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from typing import Dict, Any, List, Tuple
 from app.models.points_rule import PointsRule, RuleType
@@ -37,6 +37,7 @@ def cooldown_ok(db: Session, user_id: str, rule: PointsRule) -> bool:
     cooldown = int(rule.config.get("cooldown_days", 0))
     if cooldown == 0:
         return True
+
     last_tx = (
         db.query(UserPointsTransaction)
           .filter_by(user_id=user_id, rule_id=str(rule.id))
@@ -45,7 +46,12 @@ def cooldown_ok(db: Session, user_id: str, rule: PointsRule) -> bool:
     )
     if not last_tx:
         return True
-    return datetime.utcnow() - last_tx.created_at >= timedelta(days=cooldown)
+
+    # agora usamos datetime.now(timezone.utc)  ➜ ambas aware
+    return (
+        datetime.now(timezone.utc) - last_tx.created_at
+        >= timedelta(days=cooldown)
+    )
 
 # ─── CRUD de regras ───────────────────────────────────────────────────────────
 
