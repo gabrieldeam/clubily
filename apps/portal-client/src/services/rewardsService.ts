@@ -94,6 +94,33 @@ export const adminUpdateRewardProduct = (
 export const adminDeleteRewardProduct = (productId: string) =>
   api.delete<void>(`/rewards/admin/products/${productId}`);
 
+// ► Pesquisar produtos pelo nome (paginado)
+export const searchRewardProducts = (
+  q: string,
+  skip = 0,
+  limit = 10
+) =>
+  api.get<PaginatedRewardProduct>('/rewards/products/search', {
+    params: { q, skip, limit },
+  });
+
+  
+// ► Listar produtos de uma categoria (paginado)
+export const listRewardProductsByCategory = (
+  categoryId: string,
+  skip = 0,
+  limit = 10
+) =>
+  api.get<PaginatedRewardProduct>(
+    `/rewards/categories/${categoryId}/products`,
+    {
+      params: { skip, limit },
+    }
+  );
+
+// ► Obter detalhes de um produto por ID
+export const getRewardProductById = (productId: string) =>
+  api.get<RewardProductRead>(`/rewards/products/${productId}`);
 /* ========== Pedidos (Usuário) ========== */
 
 // ► cria pedido
