@@ -2,7 +2,7 @@
 
 from fastapi import (
     APIRouter, Depends, UploadFile, File, Form,
-    Query, HTTPException, status
+    Query, HTTPException, status, Path
 )
 from sqlalchemy.orm import Session
 from uuid import UUID
@@ -112,6 +112,32 @@ def read_categories(
     total = q.count()
     items = (
         q.order_by(RewardCategory.created_at.desc())
+         .offset(skip)
+         .limit(limit)
+         .all()
+    )
+    return {"total": total, "skip": skip, "limit": limit, "items": items}
+
+@router.get(
+    "/categories/{category_id}/products",
+    response_model=PaginatedRewardProduct,
+    summary="Listar produtos de uma categoria (paginado)"
+)
+def read_products_by_category(
+    category_id: UUID = Path(..., description="ID da categoria"),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, gt=0, le=100),
+    db: Session = Depends(get_db),
+):
+    # certifique-se de que RewardProduct.categories está configurado
+    q = (
+        db.query(RewardProduct)
+          .join(RewardProduct.categories)
+          .filter(RewardCategory.id == category_id)
+    )
+    total = q.count()
+    items = (
+        q.order_by(RewardProduct.created_at.desc())
          .offset(skip)
          .limit(limit)
          .all()
@@ -243,6 +269,43 @@ def read_products(
     )
     return {"total": total, "skip": skip, "limit": limit, "items": items}
 
+
+@router.get(
+    "/products/{product_id}",
+    response_model=RewardProductRead,
+    summary="Obter detalhes de um produto por ID"
+)
+def read_product_by_id(
+    product_id: UUID = Path(..., description="ID do produto"),
+    db: Session = Depends(get_db),
+):
+    product = db.query(RewardProduct).get(product_id)
+    if not product:
+        raise HTTPException(status_code=404, detail="Produto não encontrado")
+    return product
+
+@router.get(
+    "/products/search",
+    response_model=PaginatedRewardProduct,
+    summary="Pesquisar produtos pelo nome (paginado)"
+)
+def search_products_by_name(
+    q: str = Query(..., min_length=1, description="Termo de busca no nome"),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, gt=0, le=100),
+    db: Session = Depends(get_db),
+):
+    q_base = db.query(RewardProduct).filter(
+        RewardProduct.name.ilike(f"%{q}%")
+    )
+    total = q_base.count()
+    items = (
+        q_base.order_by(RewardProduct.created_at.desc())
+              .offset(skip)
+              .limit(limit)
+              .all()
+    )
+    return {"total": total, "skip": skip, "limit": limit, "items": items}
 
 # ─── Usuário: criar e listar pedidos ────────────────────────────────────────────
 

@@ -79,12 +79,24 @@ export default function AdminRewardsPage() {
   const [categoryTotal, setCategoryTotal] = useState(0);
   const lastCategoryPage = Math.ceil(categoryTotal / categoryLimit);
   const [categoryViewMode, setCategoryViewMode] = useState<ViewMode>('table');
+  const [categorySlug, setCategorySlug] = useState('');
 
   // category modal state
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [categoryMode, setCategoryMode] = useState<'create' | 'edit'>('create');
   const [currentCategory, setCurrentCategory] = useState<RewardCategoryRead | null>(null);
   const [categoryName, setCategoryName] = useState('');
+
+  useEffect(() => {
+    setCategorySlug(
+      categoryName
+        .toLowerCase()
+        .trim()
+        .replace(/[^\w\s-]/g, '')
+        .replace(/\s+/g, '-')
+    );
+  }, [categoryName]);
+
 
   useEffect(() => { fetchCategories(); }, [categoryPage]);
   async function fetchCategories() {
@@ -103,12 +115,14 @@ export default function AdminRewardsPage() {
     setCategoryMode('create');
     setCurrentCategory(null);
     setCategoryName('');
+    setCategorySlug('');
     setCategoryModalOpen(true);
   }
   function openEditCategory(cat: RewardCategoryRead) {
     setCategoryMode('edit');
     setCurrentCategory(cat);
     setCategoryName(cat.name);
+    setCategorySlug(cat.slug);
     setCategoryModalOpen(true);
   }
   function closeCategoryModal() { setCategoryModalOpen(false); setCurrentCategory(null); }
@@ -117,11 +131,11 @@ export default function AdminRewardsPage() {
     e.preventDefault();
     try {
       if (categoryMode === 'create') {
-        const payload: RewardCategoryCreate = { name: categoryName } as RewardCategoryCreate;
+        const payload: RewardCategoryCreate = { name: categoryName, slug: categorySlug, } as RewardCategoryCreate;
         await adminCreateRewardCategory(payload);
         setNotification({ type: 'success', message: 'Categoria criada!' });
       } else if (currentCategory) {
-        const payload: RewardCategoryUpdate = { name: categoryName } as RewardCategoryUpdate;
+        const payload: RewardCategoryUpdate = { name: categoryName, slug: categorySlug, } as RewardCategoryUpdate;
         await adminUpdateRewardCategory(currentCategory.id, payload);
         setNotification({ type: 'success', message: 'Categoria atualizada!' });
       }
@@ -335,12 +349,13 @@ export default function AdminRewardsPage() {
           <div className={styles.tableContainer}>
             <table className={styles.table}>
               <thead>
-                <tr><th>Nome</th><th>Ações</th></tr>
+                <tr><th>Nome</th><th>Slug</th><th>Ações</th></tr>
               </thead>
               <tbody>
                 {categories.map(cat => (
                   <tr key={cat.id}>
                     <td data-label="Nome">{cat.name}</td>
+                    <td data-label="Slug">{cat.slug}</td>
                     <td data-label="Ações" className={styles.actions}>
                       <button className={styles.btnDetail} onClick={() => openEditCategory(cat)}>Detalhes</button>
                     </td>
@@ -374,11 +389,18 @@ export default function AdminRewardsPage() {
           <h2>{categoryMode === 'create' ? 'Nova Categoria' : 'Editar Categoria'}</h2>
           <form className={styles.form} onSubmit={handleSaveCategory}>
             <FloatingLabelInput id="cat-name" label="Nome" value={categoryName} onChange={e => setCategoryName(e.target.value)} required />
+            <FloatingLabelInput
+              id="cat-slug"
+              label="Slug"
+              value={categorySlug}
+              onChange={e => setCategorySlug(e.target.value)}
+              required
+            />
             <div className={styles.formActions}>
               {categoryMode === 'edit' && (
                 <Button bgColor="#ef4444" onClick={handleDeleteCategory} type="button">Excluir</Button>
               )}
-              <Button bgColor="#3b82f6" type="submit">Salvar</Button>
+              <Button type="submit">Salvar</Button>
             </div>
           </form>
         </div>
