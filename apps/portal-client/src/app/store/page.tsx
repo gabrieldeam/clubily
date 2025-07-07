@@ -34,37 +34,44 @@ export default function StorePage() {
   const { user } = useAuth();
   const { items: cartItems, addItem } = useCart();
 
-  const [showAllCats, setShowAllCats] = useState(false);
-  const [balance, setBalance] = useState(0);
+  // categorias
   const [categories, setCategories] = useState<RewardCategoryRead[]>([]);
-  const [featuredProducts, setFeaturedProducts] = useState<RewardProductRead[]>([]);
+  const [showAllCats, setShowAllCats] = useState(false);
+  const [catsPerPage, setCatsPerPage] = useState(10);
+
+  // produtos e destaques
   const [electronics, setElectronics] = useState<PaginatedRewardProduct>({
-    total: 0,
-    skip: 0,
-    limit: 12,
-    items: [],
+    total: 0, skip: 0, limit: 12, items: []
   });
+  const [featuredProducts, setFeaturedProducts] = useState<RewardProductRead[]>([]);
   const [allProducts, setAllProducts] = useState<PaginatedRewardProduct>({
-    total: 0,
-    skip: 0,
-    limit: 12,
-    items: [],
+    total: 0, skip: 0, limit: 12, items: []
   });
   const [skipAll, setSkipAll] = useState(0);
 
-  // refs e estados de visibilidade
+  // saldo e carrinho
+  const [balance, setBalance] = useState(0);
+  const cartCount = cartItems.reduce((sum, i) => sum + i.quantity, 0);
+
+  // responsivo: quantos cards mostrar
   const gridRef = useRef<HTMLDivElement>(null);
   const [visibleCount, setVisibleCount] = useState(7);
-
   const highlightRef = useRef<HTMLDivElement>(null);
   const [visibleHighlights, setVisibleHighlights] = useState(FEATURED_PRODUCT_IDS.length);
 
+  const baseUrl = process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL ?? '';
   const limitAll = 12;
   const totalPagesAll = Math.ceil(allProducts.total / limitAll);
-  const cartCount = cartItems.reduce((sum, i) => sum + i.quantity, 0);
-  const baseUrl = process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL ?? '';
 
-  // carregamentos iniciais
+  // ajusta catsPerPage em ≤1024px
+  useEffect(() => {
+    const update = () => setCatsPerPage(window.innerWidth <= 1024 ? 4 : 10);
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+
+  // fetch inicial
   useEffect(() => {
     listRewardCategories(0, 100).then(res => setCategories(res.data.items));
     getUserPointsBalance().then(res => setBalance(res.data.balance));
@@ -81,7 +88,7 @@ export default function StorePage() {
       FEATURED_PRODUCT_IDS.map(id =>
         getRewardProductById(id).then(res => res.data)
       )
-    ).then(products => setFeaturedProducts(products));
+    ).then(setFeaturedProducts);
   }, []);
 
   // observa largura do grid de eletrônicos
@@ -90,8 +97,7 @@ export default function StorePage() {
     const obs = new ResizeObserver(entries => {
       for (let { contentRect } of entries) {
         const width = contentRect.width;
-        const cardMin = 100;
-        const gap = 10;
+        const cardMin = 100, gap = 10;
         const count = Math.floor((width + gap) / (cardMin + gap));
         setVisibleCount(Math.max(1, count));
       }
@@ -100,14 +106,13 @@ export default function StorePage() {
     return () => obs.disconnect();
   }, []);
 
-  // observa largura do container de destaque
+  // observa largura do destaque
   useEffect(() => {
     if (!highlightRef.current) return;
     const obs = new ResizeObserver(entries => {
       for (let { contentRect } of entries) {
         const width = contentRect.width;
-        const cardMin = 180;  // min-width do highlightCard
-        const gap = 12;       // gap em .bottomRow
+        const cardMin = 180, gap = 12;
         const count = Math.floor((width + gap) / (cardMin + gap));
         setVisibleHighlights(Math.max(1, count));
       }
@@ -116,8 +121,7 @@ export default function StorePage() {
     return () => obs.disconnect();
   }, []);
 
-  const imgSrc = (path?: string) =>
-    path ? `${baseUrl}${path}` : '/placeholder.png';
+  const imgSrc = (path?: string) => path ? `${baseUrl}${path}` : '/placeholder.png';
 
   return (
     <>
@@ -165,7 +169,7 @@ export default function StorePage() {
               </div>
               <div className={styles.electronicsBox}>
                 <header className={styles.sectionHeader}>
-                  <h2>Produtos de Eletrônicos</h2>
+                  <h2>Eletrônicos</h2>
                   <Icons.ArrowRight size={20} />
                 </header>
                 <div ref={gridRef} className={styles.productsGrid}>
@@ -234,7 +238,9 @@ export default function StorePage() {
           </main>
 
           {/* Painel direito */}
-          <aside className={styles.panel}>
+          
+          <div className={styles.twoSection}>
+            <aside className={styles.panel}>
             {user && (
               <div className={styles.userInfo}>
                 <Icons.User className={styles.userIcon} />
@@ -283,6 +289,28 @@ export default function StorePage() {
               <a href="/contato" className={styles.footerLink}>Fale Conosco</a>
             </div>
           </aside>
+          <aside className={styles.sidebarTwo}>
+            <ul className={styles.categoryList}>
+              {(showAllCats ? categories : categories.slice(0, 7)).map(cat => {
+                const Icon = getIconBySlug(cat.slug);
+                return (
+                  <li key={cat.id} className={styles.categoryItem}>
+                    <Icon />
+                    <span>{cat.name}</span>
+                  </li>
+                );
+              })}
+              {categories.length > 7 && (
+                <li
+                  className={styles.showAllItem}
+                  onClick={() => setShowAllCats(!showAllCats)}
+                >
+                  {showAllCats ? 'Ver menos' : 'Ver todos'}
+                </li>
+              )}
+            </ul>
+          </aside>
+          </div>
         </div>
 
         {/* Todos os produtos */}
