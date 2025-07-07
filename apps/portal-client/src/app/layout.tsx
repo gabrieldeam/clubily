@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { AuthProvider } from '@/context/AuthContext';
 import { AddressProvider } from '@/context/AddressContext';
 import FloatingMenu from '@/components/FloatingMenu/FloatingMenu';
+import { CartProvider } from '@/context/CartContext';
 import 'leaflet/dist/leaflet.css';
 
 export default function RootLayout({
@@ -21,9 +22,11 @@ export default function RootLayout({
       <body>
         <AuthProvider>
           <AddressProvider>
-            {/* Só exibe o FloatingMenu quando NÃO estivermos em /admin */}
-            {!isAdmin && <FloatingMenu />}
-            {children}
+             <CartProvider>
+              {/* Só exibe o FloatingMenu quando NÃO estivermos em /admin */}
+              {!isAdmin && <FloatingMenu />}
+              {children}
+             </CartProvider>            
           </AddressProvider>
         </AuthProvider>
       </body>
