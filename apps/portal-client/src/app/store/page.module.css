@@ -20,6 +20,17 @@
   position: relative;
 }
 
+
+.sidebarTwo {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  padding: 10px;
+  overflow: hidden;
+  position: relative;
+  display: none;
+}
+
 .categoryList {
   list-style: none;
   margin: 0;
@@ -312,13 +323,13 @@
 
 .panelSection h4 {
   margin: 0 0 6px;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: #333;
 }
 
 .panelSection p {
   margin: 0;
-  font-size: 10px;
+  font-size: 13px;
   color: #555;
 }
 
@@ -328,7 +339,6 @@
   gap: 6px;
   margin-top: auto;
   padding-top: 12px;
-  border-top: 1px solid #eee;
 }
 
 .footerLink {
@@ -353,15 +363,30 @@
   .topRow {
     grid-template-columns: 1fr;
   }
+    .sidebarTwo {
+    display: flex;
+  }
+  .panelSection {
+    display: none;
+  }
+  .twoSection {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 19px;
+  }
 }
 
 @media (max-width: 768px) {
-  .actions {
-    justify-content: flex-start;
-  }
+
   .electronicsImage,
   .productCard img {
-    height: 60px;
+    height: 150px;
   }
   .highlightCard img {
     height: 150px;
@@ -381,10 +406,5 @@
   .panel {
     padding: 12px;
   }
-  .panelSection h4 {
-    font-size: 0.75rem;
-  }
-  .panelSection p {
-    font-size: 0.75rem;
-  }
+
 }

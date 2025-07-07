@@ -39,3 +39,16 @@
 
 .nav:first-of-type { left: 8px; }
 .nav:last-of-type { right: 8px; }
+
+
+@media (max-width: 1024px) {
+.nav {
+  width: 25px;
+  height: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+}
+}
