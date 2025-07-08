@@ -6,6 +6,7 @@ import { getIconBySlug } from '@/utils/getIconBySlug';
 import * as Icons from 'lucide-react';
 import Header from '@/components/Header/Header';
 import Slider from '@/components/Slider/Slider';
+import ProductDetailModal from '@/components/ProductDetailModal/ProductDetailModal';
 import {
   listRewardCategories,
   listRewardProducts,
@@ -28,6 +29,7 @@ const FEATURED_PRODUCT_IDS = [
   '627d20cd-b31c-4f13-a1ed-fdb228199a22',
   'f760151d-e84d-4ab7-aa18-1d437b608091',
   '9fec41c7-ebf4-4ea9-9e3a-03ffdd901bf5',
+  '6722b3de-f6ba-427d-b555-95047cbcd905'
 ];
 
 export default function StorePage() {
@@ -62,6 +64,9 @@ export default function StorePage() {
   const baseUrl = process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL ?? '';
   const limitAll = 12;
   const totalPagesAll = Math.ceil(allProducts.total / limitAll);
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
 
   // ajusta catsPerPage em ≤1024px
   useEffect(() => {
@@ -174,7 +179,7 @@ export default function StorePage() {
                 </header>
                 <div ref={gridRef} className={styles.productsGrid}>
                   {electronics.items.slice(0, visibleCount).map(p => (
-                    <div key={p.id} className={styles.productCard}>
+                    <div key={p.id} className={styles.productCard} onClick={() => {setSelectedProductId(p.id); setModalOpen(true);}}>
                       <img
                         className={styles.electronicsImage}
                         src={imgSrc(p.image_url ?? undefined)}
@@ -208,7 +213,7 @@ export default function StorePage() {
             {/* Linha de baixo: destaque */}
             <section ref={highlightRef} className={styles.bottomRow}>
               {featuredProducts.slice(0, visibleHighlights).map(p => (
-                <div key={p.id} className={styles.highlightCard}>
+                <div key={p.id} className={styles.highlightCard} onClick={() => {setSelectedProductId(p.id); setModalOpen(true);}}>
                   <img
                     src={imgSrc(p.image_url ?? undefined)}
                     alt={p.name}
@@ -318,13 +323,13 @@ export default function StorePage() {
           <h2 className={styles.allProductsHeader}>Todos os produtos</h2>
           <div className={styles.productsGridAll}>
             {allProducts.items.map(p => (
-              <div key={p.id} className={styles.productCard}>
+              <div key={p.id} className={styles.productCardAll} onClick={() => {setSelectedProductId(p.id); setModalOpen(true);}}>
                 <img
                   src={imgSrc(p.image_url ?? undefined)}
                   alt={p.name}
                 />
                 <p className={styles.prodName}>{p.name}</p>
-                <p className={styles.prodCost}>{p.points_cost} pts</p>
+                <p className={styles.prodCost}>{p.points_cost}pts</p>
                 <button
                   className={styles.resgatarBtn}
                   disabled={balance < p.points_cost}
@@ -360,6 +365,11 @@ export default function StorePage() {
           )}
         </section>
       </div>
+      <ProductDetailModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        productId={selectedProductId}
+      />
     </>
   );
 }
