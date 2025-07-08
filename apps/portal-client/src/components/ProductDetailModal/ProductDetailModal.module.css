@@ -1,0 +1,76 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-family: sans-serif;
+  background-color: white;
+  padding: 20px;
+  border-radius: 20px;
+}
+
+.header {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.image {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #f5f5f5;
+}
+
+.info {
+  flex: 1;
+}
+
+.name {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.sku,
+.cost {
+  margin: 4px 0;
+  color: #555;
+}
+
+.shortDesc {
+  font-style: italic;
+}
+
+.longDesc h4,
+.categories h4 {
+  margin-bottom: 8px;
+  font-size: 1.1rem;
+}
+
+.longDesc,
+.categories {
+  background: #fafafa;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+.categories ul {
+  list-style: disc inside;
+  margin: 0;
+  padding: 0;
+}
+
+.pdf a {
+  color: #0066cc;
+  text-decoration: underline;
+}
+
+.createdAt {
+  font-size: 0.85rem;
+  color: #888;
+  text-align: right;
+}
+
+.error {
+  color: #c00;
+}
