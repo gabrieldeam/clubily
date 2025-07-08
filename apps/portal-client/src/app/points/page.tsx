@@ -2,6 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Header from '@/components/Header/Header';
 import Link from 'next/link';
 import { getUserPointsTransactions } from '@/services/pointsUserService';
@@ -15,7 +16,7 @@ export default function PointsTransactionsPage() {
   const [data, setData] = useState<PaginatedUserPointsTransactions | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
+  const router = useRouter();
   const [page, setPage] = useState(1);
   const limit = 10;
 
@@ -41,7 +42,7 @@ export default function PointsTransactionsPage() {
 
   return (
     <>
-      <Header />
+      <Header onSearch={q => router.push(`/search?name=${encodeURIComponent(q)}`)}/>
       <div className={styles.container}>
         <main className={styles.main}>
           <h2 className={styles.title}>Extrato de Pontos</h2>

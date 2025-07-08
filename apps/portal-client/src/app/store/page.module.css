@@ -157,6 +157,8 @@
   background-color: white;
   padding: 10px;
   border-radius: 10px;
+  
+  cursor: pointer;
 }
 
 .productCardAll {
@@ -172,6 +174,8 @@
   border-radius: 10px;
   min-height: 310px;
   height: 100%;
+  
+  cursor: pointer;
 }
   .productCardAll img {
     height: 150px;
@@ -252,6 +256,14 @@
   margin-bottom: 12px;
   font-size: 1.2rem;
   font-weight: bold;
+}
+
+.clearFilter {
+  margin-left: 8px;
+  background: transparent;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
 }
 
 .productsGridAll {

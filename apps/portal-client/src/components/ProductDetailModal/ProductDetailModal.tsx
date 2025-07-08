@@ -60,7 +60,7 @@ export default function ProductDetailModal({
               />
               <div className={styles.info}>
                 <h2 className={styles.name}>{product.name}</h2>
-                <p className={styles.sku}>SKU: {product.sku}</p>
+                {/* <p className={styles.sku}>SKU: {product.sku}</p> */}
                 <p className={styles.cost}>{product.points_cost} pts</p>
               </div>
             </header>

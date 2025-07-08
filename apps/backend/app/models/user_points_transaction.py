@@ -18,7 +18,7 @@ class UserPointsTransaction(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     wallet_id = Column(UUID(as_uuid=True), ForeignKey("user_points_wallets.id", ondelete="CASCADE"), nullable=False, index=True)
     user_id = Column(UUID(as_uuid=True), nullable=False, index=True)
-    company_id  = Column(UUID(as_uuid=True), ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True)
+    company_id  = Column(UUID(as_uuid=True), ForeignKey("companies.id", ondelete="CASCADE"), nullable=True, index=True)
     rule_id = Column(UUID(as_uuid=True), ForeignKey("points_rules.id", ondelete="SET NULL"), nullable=True)
     type = Column(PgEnum(UserPointsTxType), nullable=False)
     amount = Column(Integer, nullable=False)

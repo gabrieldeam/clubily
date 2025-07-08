@@ -24,6 +24,7 @@ class RewardProductBase(BaseModel):
     long_desc:  Optional[str] = None
     points_cost: int
     category_ids: List[UUID] = []
+    active: bool = True
 
 class RewardProductCreate(RewardProductBase): ...
 
@@ -35,6 +36,7 @@ class RewardProductRead(RewardProductBase):
     pdf_url:   Optional[str]
     created_at: datetime
     categories: List[RewardCategoryRead]
+    active: bool
     model_config = ConfigDict(from_attributes=True)
 
 # ---------- Pedidos ----------

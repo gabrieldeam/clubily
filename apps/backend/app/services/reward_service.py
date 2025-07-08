@@ -54,7 +54,7 @@ def create_product(db: Session, payload, image_url, pdf_url):
     prod = RewardProduct(
         **payload.model_dump(exclude={"category_ids"}),
         image_url=image_url,
-        pdf_url=pdf_url
+        pdf_url=pdf_url, active=payload.active
     )
     if cat_ids:
         cats = db.query(RewardCategory).filter(RewardCategory.id.in_(cat_ids)).all()
@@ -63,7 +63,7 @@ def create_product(db: Session, payload, image_url, pdf_url):
     return prod
 
 def list_products(db: Session):
-    return db.query(RewardProduct).all()
+    return db.query(RewardProduct).filter_by(active=True).all()
 
 def update_product(
     db: Session,
@@ -83,6 +83,7 @@ def update_product(
             detail="Não é possível editar: produto já foi solicitado em um pedido"
         )
     prod.name        = payload.name
+    prod.active      = payload.active
     prod.sku         = payload.sku
     prod.points_cost = payload.points_cost
     prod.short_desc  = payload.short_desc

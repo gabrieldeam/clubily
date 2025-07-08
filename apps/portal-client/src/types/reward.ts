@@ -30,6 +30,7 @@ export interface RewardProductBase {
   long_desc?:  string | null;
   points_cost: number;
   category_ids: string[];
+  active:     boolean;
 }
 
 export interface RewardProductCreate  extends RewardProductBase {}

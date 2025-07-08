@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header/Header';
+import { useRouter } from 'next/navigation';
 import {
   getLeaderboardOverall,
   getLeaderboardToday,
@@ -17,7 +18,7 @@ export default function RankingPage() {
   const [data, setData] = useState<PaginatedLeaderboard | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
+    const router = useRouter();
   // Para modo “mês”:
   const today = new Date();
   const [year, setYear] = useState<number>(today.getUTCFullYear());
@@ -47,7 +48,7 @@ export default function RankingPage() {
 
   return (
     <>    
-      <Header />
+      <Header onSearch={q => router.push(`/search?name=${encodeURIComponent(q)}`)}/>
       <div className={styles.container}>
       <header className={styles.header}>
         <h1 className={styles.title}>Ranking de Pontos</h1>

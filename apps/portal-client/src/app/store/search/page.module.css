@@ -1,0 +1,106 @@
+.container {
+  margin-top: 92px;
+  margin-bottom: 120px;
+}
+
+/* --- cópia de allProductsSection e afins --- */
+
+.allProductsSection {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  padding: 20px;
+  margin-top: 10px;
+}
+
+.allProductsHeader {
+  margin-bottom: 12px;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.productsGridAll {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.productCardAll {
+  flex: 1 1 0;
+  min-width: 100px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 5px;
+  border: 1px solid #ddd;
+  padding: 10px;
+  border-radius: 10px;
+  min-height: 310px;
+  height: 100%;
+}
+
+.productCardAll img {
+  height: 150px;
+  object-fit: cover;
+}
+
+.prodName {
+  flex-grow: 1;
+  font-size: 12px;
+}
+
+.prodCost {
+  font-weight: bold;
+}
+
+.resgatarBtn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  white-space: nowrap;
+  font-size: 12px;
+  background: #FF4C00;
+  color: white;
+}
+
+.resgatarBtn:disabled {
+  background: #f9f9f9;
+  cursor: not-allowed;
+  color: rgb(165, 165, 165);
+}
+
+.paginationAll {
+  text-align: center;
+  margin-top: 16px;
+}
+
+.pageAll {
+  margin: 0 4px;
+  padding: 6px 10px;
+  border: 1px solid #bbb;
+  background: #fff;
+  border-radius: 20px;
+  cursor: pointer;
+}
+
+.pageAll:hover {
+  background: #f0f0f0;
+}
+
+.pageAllActive {
+  background: #ddd;
+  font-weight: bold;
+}
+
+/* mensagens e erros */
+
+.error {
+  color: red;
+  margin: 1rem 0;
+}
+
+.message {
+  margin: 1rem 0;
+}

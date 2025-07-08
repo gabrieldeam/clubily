@@ -2,11 +2,13 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { getIconBySlug } from '@/utils/getIconBySlug';
 import * as Icons from 'lucide-react';
 import Header from '@/components/Header/Header';
 import Slider from '@/components/Slider/Slider';
 import ProductDetailModal from '@/components/ProductDetailModal/ProductDetailModal';
+import CategoryListModal from '@/components/CategoryListModal/CategoryListModal';
 import {
   listRewardCategories,
   listRewardProducts,
@@ -34,12 +36,16 @@ const FEATURED_PRODUCT_IDS = [
 
 export default function StorePage() {
   const { user } = useAuth();
+  const router = useRouter();
   const { items: cartItems, addItem } = useCart();
 
   // categorias
   const [categories, setCategories] = useState<RewardCategoryRead[]>([]);
   const [showAllCats, setShowAllCats] = useState(false);
-  const [catsPerPage, setCatsPerPage] = useState(10);
+  const [catsPerPage, setCatsPerPage] = useState(10);  
+  const [catModalOpen, setCatModalOpen] = useState(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [selectedCategoryName, setSelectedCategoryName] = useState<string>('');
 
   // produtos e destaques
   const [electronics, setElectronics] = useState<PaginatedRewardProduct>({
@@ -49,7 +55,11 @@ export default function StorePage() {
   const [allProducts, setAllProducts] = useState<PaginatedRewardProduct>({
     total: 0, skip: 0, limit: 12, items: []
   });
+  const [catProducts, setCatProducts] = useState<PaginatedRewardProduct>({ total:0, skip:0, limit:12, items:[] });
   const [skipAll, setSkipAll] = useState(0);
+  const [skipCat, setSkipCat] = useState(0);
+  const limit = 12;
+
 
   // saldo e carrinho
   const [balance, setBalance] = useState(0);
@@ -62,8 +72,11 @@ export default function StorePage() {
   const [visibleHighlights, setVisibleHighlights] = useState(FEATURED_PRODUCT_IDS.length);
 
   const baseUrl = process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL ?? '';
-  const limitAll = 12;
-  const totalPagesAll = Math.ceil(allProducts.total / limitAll);
+
+  const itemsPerPage = visibleCount * 2;
+  
+  const totalPagesAll = Math.ceil(allProducts.total / itemsPerPage);
+  const totalPagesCat = Math.ceil(catProducts.total / itemsPerPage);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
@@ -80,8 +93,15 @@ export default function StorePage() {
   useEffect(() => {
     listRewardCategories(0, 100).then(res => setCategories(res.data.items));
     getUserPointsBalance().then(res => setBalance(res.data.balance));
-    listRewardProducts(skipAll, limitAll).then(res => setAllProducts(res.data));
-  }, [skipAll]);
+    listRewardProducts(skipAll, itemsPerPage).then(res => setAllProducts(res.data));
+  }, [skipAll, itemsPerPage]);
+
+  useEffect(() => {
+    if (selectedCategoryId) {
+      listRewardProductsByCategory(selectedCategoryId, skipCat, itemsPerPage)
+        .then(res => setCatProducts(res.data));
+    }
+  }, [selectedCategoryId, skipCat, itemsPerPage]);
 
   useEffect(() => {
     listRewardProductsByCategory(FEATURED_CATEGORY_ID, 0, 12)
@@ -126,11 +146,21 @@ export default function StorePage() {
     return () => obs.disconnect();
   }, []);
 
-  const imgSrc = (path?: string) => path ? `${baseUrl}${path}` : '/placeholder.png';
+const imgSrc = (path: string | null | undefined) =>
+  path ? `${baseUrl}${path}` : '/placeholder.png';
+
+  const handleCategoryClick = (id: string, name: string) => {
+    setSelectedCategoryId(id);
+    setSelectedCategoryName(name);
+    setSkipCat(0);
+    setCatModalOpen(false);
+  };
+
+  const clearCategory = () => setSelectedCategoryId(null);
 
   return (
     <>
-      <Header />
+      <Header onSearch={q => router.push(`/store/search?name=${encodeURIComponent(q)}`)} />
       <div className={styles.container}>
         <div className={styles.header}>
           {/* Sidebar de categorias */}
@@ -139,7 +169,7 @@ export default function StorePage() {
               {(showAllCats ? categories : categories.slice(0, 10)).map(cat => {
                 const Icon = getIconBySlug(cat.slug);
                 return (
-                  <li key={cat.id} className={styles.categoryItem}>
+                  <li key={cat.id} className={styles.categoryItem} onClick={() => handleCategoryClick(cat.id, cat.name)}>
                     <Icon />
                     <span>{cat.name}</span>
                   </li>
@@ -148,9 +178,9 @@ export default function StorePage() {
               {categories.length > 10 && (
                 <li
                   className={styles.showAllItem}
-                  onClick={() => setShowAllCats(!showAllCats)}
+                  onClick={() => setCatModalOpen(true)}
                 >
-                  {showAllCats ? 'Ver menos' : 'Ver todos'}
+                  Ver todos
                 </li>
               )}
             </ul>
@@ -192,15 +222,16 @@ export default function StorePage() {
                       <button
                         className={styles.resgatarBtn}
                         disabled={balance < p.points_cost}
-                        onClick={() =>
+                        onClick={(e) => {
+                          e.stopPropagation();            // impede o clique de “subir” para o card
                           addItem({
                             id: p.id,
                             name: p.name,
                             image_url: p.image_url ?? undefined,
                             points_cost: p.points_cost,
                             quantity: 1,
-                          })
-                        }
+                          });
+                        }}                        
                       >
                         {balance >= p.points_cost ? 'Resgatar' : 'Sem pontos'}
                       </button>
@@ -225,15 +256,16 @@ export default function StorePage() {
                   <button
                     className={styles.resgatarBtn}
                     disabled={balance < p.points_cost}
-                    onClick={() =>
+                    onClick={(e) => {
+                      e.stopPropagation();            // impede o clique de “subir” para o card
                       addItem({
                         id: p.id,
                         name: p.name,
                         image_url: p.image_url ?? undefined,
                         points_cost: p.points_cost,
                         quantity: 1,
-                      })
-                    }
+                      });
+                    }}
                   >
                     {balance >= p.points_cost ? 'Resgatar' : 'Sem pontos'}
                   </button>
@@ -258,14 +290,14 @@ export default function StorePage() {
             <div className={styles.actions}>
               <button
                 className={styles.iconButton}
-                onClick={() => window.location.href = '/cart'}
+                onClick={() => window.location.href = '/store/cart'}
               >
                 <Icons.ShoppingCart />
                 {cartCount > 0 && <span className={styles.badge}>{cartCount}</span>}
               </button>
               <button
                 className={styles.iconButton}
-                onClick={() => window.location.href = '/orders'}
+                onClick={() => window.location.href = '/store/orders'}
               >
                 <Icons.Package />
               </button>
@@ -319,56 +351,124 @@ export default function StorePage() {
         </div>
 
         {/* Todos os produtos */}
-        <section className={styles.allProductsSection}>
-          <h2 className={styles.allProductsHeader}>Todos os produtos</h2>
-          <div className={styles.productsGridAll}>
-            {allProducts.items.map(p => (
-              <div key={p.id} className={styles.productCardAll} onClick={() => {setSelectedProductId(p.id); setModalOpen(true);}}>
-                <img
-                  src={imgSrc(p.image_url ?? undefined)}
-                  alt={p.name}
-                />
-                <p className={styles.prodName}>{p.name}</p>
-                <p className={styles.prodCost}>{p.points_cost}pts</p>
-                <button
-                  className={styles.resgatarBtn}
-                  disabled={balance < p.points_cost}
-                  onClick={() =>
-                    addItem({
-                      id: p.id,
-                      name: p.name,
-                      image_url: p.image_url ?? undefined,
-                      points_cost: p.points_cost,
-                      quantity: 1,
-                    })
-                  }
-                >
-                  {balance >= p.points_cost ? 'Resgatar' : 'Sem pontos'}
-                </button>
-              </div>
-            ))}
-          </div>
-          {totalPagesAll > 1 && (
-            <div className={styles.paginationAll}>
-              {Array.from({ length: totalPagesAll }).map((_, i) => (
-                <button
-                  key={i}
-                  className={`${styles.pageAll} ${
-                    skipAll / limitAll === i ? styles.pageAllActive : ''
-                  }`}
-                  onClick={() => setSkipAll(i * limitAll)}
-                >
-                  {i + 1}
-                </button>
-              ))}
-            </div>
-          )}
-        </section>
+        {selectedCategoryId ? (
+  // Seção de produtos da categoria selecionada
+  <section className={styles.allProductsSection}>
+    <h2 className={styles.allProductsHeader}>
+      Produtos em “{selectedCategoryName}”
+      <button
+        className={styles.clearFilter}
+        onClick={clearCategory}
+      >
+        ×
+      </button>
+    </h2>
+
+    <div className={styles.productsGridAll}>
+      {catProducts.items.map(p => (
+        <div
+          key={p.id}
+          className={styles.productCardAll}
+          onClick={() => { setSelectedProductId(p.id); setModalOpen(true); }}
+        >
+          <img src={imgSrc(p.image_url)} alt={p.name} />
+          <p className={styles.prodName}>{p.name}</p>
+          <p className={styles.prodCost}>{p.points_cost} pts</p>
+          <button
+            className={styles.resgatarBtn}
+            disabled={balance < p.points_cost}
+            onClick={(e) => {
+              e.stopPropagation();            // impede o clique de “subir” para o card
+              addItem({
+                id: p.id,
+                name: p.name,
+                image_url: p.image_url ?? undefined,
+                points_cost: p.points_cost,
+                quantity: 1,
+              });
+            }}
+          >
+            {balance >= p.points_cost ? 'Resgatar' : 'Sem pontos'}
+          </button>
+        </div>
+      ))}
+    </div>
+
+    {Math.ceil(catProducts.total / limit) > 1 && (
+      <div className={styles.paginationAll}>
+        {Array.from({ length: totalPagesCat }).map((_, i) => (
+          <button
+            key={i}
+            className={skipCat / itemsPerPage === i ? styles.pageAllActive : ''}
+            onClick={() => setSkipCat(i * itemsPerPage)}
+          >
+            {i + 1}
+          </button>
+        ))}
+      </div>
+    )}
+  </section>
+) : (
+  // Seção de todos os produtos
+  <section className={styles.allProductsSection}>
+    <h2 className={styles.allProductsHeader}>Todos os produtos</h2>
+
+    <div className={styles.productsGridAll}>
+      {allProducts.items.map(p => (
+        <div
+          key={p.id}
+          className={styles.productCardAll}
+          onClick={() => { setSelectedProductId(p.id); setModalOpen(true); }}
+        >
+          <img src={imgSrc(p.image_url)} alt={p.name} />
+          <p className={styles.prodName}>{p.name}</p>
+          <p className={styles.prodCost}>{p.points_cost} pts</p>
+          <button
+            className={styles.resgatarBtn}
+            disabled={balance < p.points_cost}
+            onClick={(e) => {
+              e.stopPropagation();            // impede o clique de “subir” para o card
+              addItem({
+                id: p.id,
+                name: p.name,
+                image_url: p.image_url ?? undefined,
+                points_cost: p.points_cost,
+                quantity: 1,
+              });
+            }}
+          >
+            {balance >= p.points_cost ? 'Resgatar' : 'Sem pontos'}
+          </button>
+        </div>
+      ))}
+    </div>
+
+    {Math.ceil(allProducts.total / limit) > 1 && (
+      <div className={styles.paginationAll}>
+        {Array.from({ length: totalPagesAll }).map((_, i) => (
+          <button
+            key={i}
+            className={skipAll / itemsPerPage === i ? styles.pageAllActive : ''}
+            onClick={() => setSkipAll(i * itemsPerPage)}
+          >
+            {i + 1}
+          </button>
+        ))}
+      </div>
+    )}
+  </section>
+)}
+
       </div>
       <ProductDetailModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         productId={selectedProductId}
+      />
+      <CategoryListModal
+        open={catModalOpen}
+        onClose={() => setCatModalOpen(false)}
+        onSelectCategory={handleCategoryClick}
       />
     </>
   );

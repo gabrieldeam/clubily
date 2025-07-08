@@ -46,6 +46,7 @@ interface ProductForm {
   category_ids: string[];
   image?: File | null;
   pdf?: File | null;
+  active: boolean;
 }
 
 const badgeClass = (status: string) => {
@@ -179,6 +180,7 @@ export default function AdminRewardsPage() {
     category_ids: [],
     image: null,
     pdf: null,
+    active: true,
   });
   const updateProductField = (field: keyof ProductForm, value: any) => setProductForm(prev => ({ ...prev, [field]: value }));
 
@@ -208,6 +210,7 @@ export default function AdminRewardsPage() {
       category_ids: [],
       image: null,
       pdf: null,
+      active: true,
     });
     setProductModalOpen(true);
   }
@@ -223,6 +226,7 @@ export default function AdminRewardsPage() {
       category_ids: p.categories?.map(c => c.id) ?? [],
       image: null,
       pdf: null,
+      active: p.active,
     });
     setProductModalOpen(true);
   }
@@ -257,10 +261,8 @@ export default function AdminRewardsPage() {
   }
 
   // ─── ORDERS STATE & ACTIONS ──────────────────────────────────────────────
-  type RewardOrderView = RewardOrderRead & {
-    product?: RewardProductRead;
-    company?: { id: string; name: string; email: string; phone: string };
-  };
+  type RewardOrderView = RewardOrderRead;
+const baseUrl = process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL ?? '';
 
   const [orders, setOrders] = useState<RewardOrderView[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
@@ -281,7 +283,7 @@ export default function AdminRewardsPage() {
       const skip = (orderPage - 1) * orderLimit;
       const statusParam = (orderStatusFilter || undefined) as OrderStatus | undefined;
       const res = await adminListRewardOrders(statusParam, skip, orderLimit);
-      setOrders(res.data.items as RewardOrderView[]);
+      setOrders(res.data.items);
       setOrderTotal(res.data.total);
     } catch (e: any) {
       setNotification({ type: 'error', message: e.message || 'Erro ao buscar pedidos' });
@@ -471,9 +473,37 @@ export default function AdminRewardsPage() {
             <FloatingLabelInput id="prod-name" label="Nome" value={productForm.name} onChange={e => updateProductField('name', e.target.value)} required />
             <FloatingLabelInput id="prod-sku" label="SKU" value={productForm.sku} onChange={e => updateProductField('sku', e.target.value)} required />
             <FloatingLabelInput id="prod-points" label="Pontos" type="number" value={productForm.points_cost} onChange={e => updateProductField('points_cost', parseInt(e.target.value, 10) || 0)} required />
-            <FloatingLabelInput id="prod-short" label="Descrição Curta" value={productForm.short_desc ?? ''} onChange={e => updateProductField('short_desc', e.target.value)} />
-            <FloatingLabelInput id="prod-long" label="Descrição Longa" value={productForm.long_desc ?? ''} onChange={e => updateProductField('long_desc', e.target.value)} />
+             {/* Descrição Curta com limite e contador */}
+          <div className={styles.fieldGroup}>
+            <label htmlFor="prod-short" className={styles.label}>Descrição Curta</label>
+            <textarea
+              id="prod-short"
+              className={styles.textarea}
+              maxLength={255}
+              rows={3}
+              value={productForm.short_desc ?? ''}
+              onChange={e => updateProductField('short_desc', e.target.value)}
+            />
+            <div className={styles.charCount}>
+              {(productForm.short_desc ?? '').length} / 255
+            </div>
+          </div>
 
+          {/* Descrição Longa com limite e contador */}
+          <div className={styles.fieldGroup}>
+            <label htmlFor="prod-long" className={styles.label}>Descrição Longa</label>
+            <textarea
+              id="prod-long"
+              className={styles.textarea}
+              maxLength={1000}
+              rows={6}
+              value={productForm.long_desc ?? ''}
+              onChange={e => updateProductField('long_desc', e.target.value)}
+            />
+            <div className={styles.charCount}>
+              {(productForm.long_desc ?? '').length} / 1000
+            </div>
+          </div>
             {/* Categorias */}
             <label className={styles.subText}><strong>Categorias</strong></label>
             <select multiple value={productForm.category_ids} onChange={e => {
@@ -488,7 +518,16 @@ export default function AdminRewardsPage() {
             <input type="file" accept="image/*" onChange={e => updateProductField('image', e.target.files?.[0] ?? null)} />
             <label className={styles.subText}><strong>PDF (opcional)</strong></label>
             <input type="file" accept="application/pdf" onChange={e => updateProductField('pdf', e.target.files?.[0] ?? null)} />
-
+            <div className={styles.fieldGroup}>
+              <label className={styles.label}>
+                <input
+                  type="checkbox"
+                  checked={productForm.active}
+                  onChange={e => updateProductField('active', e.target.checked)}
+                />{' '}
+                Ativo
+              </label>
+            </div>
             <div className={styles.formActions}>
               {productMode === 'edit' && (
                 <Button bgColor="#ef4444" type="button" onClick={handleDeleteProduct}>Excluir</Button>
@@ -522,14 +561,16 @@ export default function AdminRewardsPage() {
           <div className={styles.tableContainer}>
             <table className={styles.table}>
               <thead>
-                <tr><th>ID</th><th>Produto</th><th>Empresa</th><th>Status</th><th>Criado</th><th>Ações</th></tr>
+                <tr><th>ID</th><th>Destinatário</th><th>Endereço</th><th>Status</th><th>Criado</th><th>Ações</th></tr>
               </thead>
               <tbody>
                 {orders.map(o => (
                   <tr key={o.id}>
                     <td data-label="ID">{o.id.slice(0,8)}…</td>
-                    <td data-label="Produto">{o.product?.name ?? '-'}</td>
-                    <td data-label="Empresa">{o.company?.name ?? '-'}</td>
+                    <td data-label="Destinatário">{o.recipient}</td>
+                    <td data-label="Endereço">
+                      {`${o.street}, ${o.number}${o.complement ? `, ${o.complement}` : ''} – ${o.neighborhood}, ${o.city}/${o.state}`}
+                    </td>
                     <td data-label="Status"><span className={badgeClass(o.status)}>{o.status}</span></td>
                     <td data-label="Criado">{new Date(o.created_at).toLocaleDateString('pt-BR')}</td>
                     <td data-label="Ações" className={styles.actions}><button className={styles.btnDetail} onClick={() => openOrderDetails(o)}>Detalhes</button></td>
@@ -543,8 +584,8 @@ export default function AdminRewardsPage() {
             {orders.map(o => (
               <div key={o.id} className={styles.card}>
                 <div className={styles.cardBody}>
-                  <h3>{o.product?.name ?? '—'}</h3>
-                  <p className={styles.subText}>{o.company?.name}</p>
+                  <h3>{o.recipient}</h3>
+                  <p>{`${o.street}, ${o.number}${o.complement ? `, ${o.complement}` : ''} – ${o.neighborhood}, ${o.city}/${o.state}`}</p>
                   <p><span className={badgeClass(o.status)}>{o.status}</span></p>
                   <p className={styles.subText}>{new Date(o.created_at).toLocaleDateString('pt-BR')}</p>
                   <button className={styles.btnDetail} onClick={() => openOrderDetails(o)}>Detalhes</button>
@@ -561,35 +602,82 @@ export default function AdminRewardsPage() {
       </section>
 
       {/* Modal Pedido */}
-      <Modal open={orderModalOpen} onClose={closeOrderModal} width={600}>
-        {currentOrder && (
-          <div className={styles.detail}>
-            <h2>Pedido {currentOrder.id.slice(0,8)}…</h2>
-            <section>
-              <h3>Produto</h3>
-              <p><strong>Nome:</strong> {currentOrder.product?.name}</p>
-              <p><strong>Pontos:</strong> {currentOrder.product?.points_cost}</p>
-            </section>
-            <section>
-              <h3>Empresa</h3>
-              <p><strong>Nome:</strong> {currentOrder.company?.name}</p>
-              <p><strong>Email:</strong> {currentOrder.company?.email}</p>
-              <p><strong>Telefone:</strong> {currentOrder.company?.phone}</p>
-            </section>
-            <section>
-              <h3>Status</h3>
-              <p><span className={badgeClass(currentOrder.status)}>{currentOrder.status}</span></p>
-              <p><strong>Criado em:</strong> {new Date(currentOrder.created_at).toLocaleString('pt-BR')}</p>
-            </section>
-            {currentOrder.status === 'pending' && (
-              <div className={styles.formActions}>
-                <Button bgColor="#10b981" type="button" onClick={approveOrder}>Aprovar</Button>
-                <Button bgColor="#ef4444" type="button" onClick={refuseOrder}>Recusar</Button>
+<Modal open={orderModalOpen} onClose={closeOrderModal} width={600}>
+  {currentOrder && (
+    <div className={styles.detail}>
+      <h2>Pedido {currentOrder.id.slice(0, 8)}…</h2>
+
+      <section>
+        <h3>Produtos</h3>
+        <ul className={styles.orderItems}>
+          {currentOrder.items.map((it, idx) => (
+            <li key={idx} className={styles.orderItem}>
+              {/* Imagem do produto */}
+              {it.product.image_url && (
+                <img
+                  src={`${baseUrl}${it.product.image_url}`}
+                  alt={it.product.name}
+                  className={styles.productImage}
+                />
+              )}
+              <div className={styles.productInfo}>
+                <p>
+                  <strong>Nome:</strong> {it.product.name}
+                </p>
+                <p>
+                  <strong>SKU:</strong> {it.product.sku}
+                </p>
+                <p>
+                  <strong>Quantidade:</strong> {it.quantity}
+                </p>
               </div>
-            )}
-          </div>
-        )}
-      </Modal>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section>
+        <h3>Destinatário & Endereço</h3>
+        <p>
+          <strong>Destinatário:</strong> {currentOrder.recipient}
+        </p>
+        <p>
+          <strong>Endereço:</strong>{' '}
+          {`${currentOrder.street}, ${currentOrder.number}${
+            currentOrder.complement ? `, ${currentOrder.complement}` : ''
+          }`}
+          <br />
+          {`${currentOrder.neighborhood}, ${currentOrder.city}/${currentOrder.state} – CEP ${currentOrder.postal_code}`}
+        </p>
+      </section>
+
+      <section>
+        <h3>Status</h3>
+        <p>
+          <span className={badgeClass(currentOrder.status)}>
+            {currentOrder.status}
+          </span>
+        </p>
+        <p>
+          <strong>Criado em:</strong>{' '}
+          {new Date(currentOrder.created_at).toLocaleString('pt-BR')}
+        </p>
+      </section>
+
+      {currentOrder.status === 'pending' && (
+        <div className={styles.formActions}>
+          <Button bgColor="#10b981" type="button" onClick={approveOrder}>
+            Aprov​ar
+          </Button>
+          <Button bgColor="#ef4444" type="button" onClick={refuseOrder}>
+            Recusar
+          </Button>
+        </div>
+      )}
+    </div>
+  )}
+</Modal>
+
     </div>
   );
 }

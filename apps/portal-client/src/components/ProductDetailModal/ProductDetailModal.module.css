@@ -2,7 +2,6 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  font-family: sans-serif;
   background-color: white;
   padding: 20px;
   border-radius: 20px;
@@ -38,7 +37,7 @@
 }
 
 .shortDesc {
-  font-style: italic;
+  font-size: 12px;
 }
 
 .longDesc h4,
@@ -52,6 +51,7 @@
   background: #fafafa;
   padding: 12px;
   border-radius: 8px;
+  font-size: 13px;
 }
 
 .categories ul {

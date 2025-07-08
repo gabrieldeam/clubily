@@ -1,6 +1,6 @@
 # app/models/reward_product.py
 from uuid import uuid4
-from sqlalchemy import Column, String, Integer, Text, Numeric, DateTime, ForeignKey, Table
+from sqlalchemy import Column, String, Integer, Text, Boolean, DateTime, ForeignKey, Table
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
@@ -24,6 +24,7 @@ class RewardProduct(Base):
     points_cost = Column(Integer, nullable=False)
     image_url   = Column(String(255), nullable=True)
     pdf_url     = Column(String(255), nullable=True)
+    active      = Column(Boolean, nullable=False, server_default="true", index=True)
     created_at  = Column(DateTime(timezone=True), server_default=func.now())
 
     categories  = relationship(

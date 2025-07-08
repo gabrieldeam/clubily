@@ -1,4 +1,3 @@
-// src/components/Slider/Slider.tsx
 'use client';
 
 import React, {
@@ -13,7 +12,7 @@ import styles from './Slider.module.css';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface SliderProps {
-  children: ReactElement<any>[];  // <-- aqui
+  children: ReactElement<any>[];
   interval?: number; // ms
 }
 
@@ -39,7 +38,10 @@ export default function Slider({
       <button className={styles.nav} onClick={goPrev}>
         <ChevronLeft />
       </button>
-      <div className={styles.viewport}>
+      <div
+        className={styles.viewport}
+        style={{ transform: `translateX(-${current * 100}%)` }}
+      >
         {Children.map(children, (child, idx) =>
           isValidElement(child)
             ? cloneElement(child as ReactElement<any>, {

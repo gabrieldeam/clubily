@@ -132,8 +132,9 @@ def read_products_by_category(
     # certifique-se de que RewardProduct.categories está configurado
     q = (
         db.query(RewardProduct)
-          .join(RewardProduct.categories)
-          .filter(RewardCategory.id == category_id)
+            .filter(RewardProduct.active == True)
+            .join(RewardProduct.categories)
+            .filter(RewardCategory.id == category_id)
     )
     total = q.count()
     items = (
@@ -214,6 +215,7 @@ def admin_update_product(
     short_desc: Optional[str] = Form(None),
     long_desc:  Optional[str] = Form(None),
     category_ids: str = Form("", description="IDs separados por vírgula"),
+    active: bool        = Form(..., description="Produto ativo?"),
     image: UploadFile = File(None),
     pdf: UploadFile   = File(None),
     db: Session = Depends(get_db),
@@ -228,7 +230,8 @@ def admin_update_product(
         points_cost=points_cost,
         short_desc=short_desc,
         long_desc=long_desc,
-        category_ids=[UUID(cid) for cid in category_ids.split(",") if cid]
+        category_ids=[UUID(cid) for cid in category_ids.split(",") if cid],
+        active=active 
     )
     return update_product(db, product_id, payload, img_url, pdf_url)
 
@@ -250,6 +253,29 @@ def admin_delete_product(
 # ─── Público: produtos ─────────────────────────────────────────────────────────
 
 @router.get(
+    "/products/search",
+    response_model=PaginatedRewardProduct,
+    summary="Pesquisar produtos pelo nome (paginado)"
+)
+def search_products_by_name(
+    q: str = Query(..., min_length=1, description="Termo de busca no nome"),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, gt=0, le=100),
+    db: Session = Depends(get_db),
+):
+    q_base = db.query(RewardProduct).filter(
+        RewardProduct.name.ilike(f"%{q}%")
+    ).filter(RewardProduct.active == True)
+    total = q_base.count()
+    items = (
+        q_base.order_by(RewardProduct.created_at.desc())
+              .offset(skip)
+              .limit(limit)
+              .all()
+    )
+    return {"total": total, "skip": skip, "limit": limit, "items": items}
+
+@router.get(
     "/products",
     response_model=PaginatedRewardProduct,
     summary="Listar produtos disponíveis (paginado)"
@@ -259,7 +285,7 @@ def read_products(
     limit: int = Query(10, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
-    q = db.query(RewardProduct)
+    q = db.query(RewardProduct).filter(RewardProduct.active == True)
     total = q.count()
     items = (
         q.order_by(RewardProduct.created_at.desc())
@@ -284,28 +310,6 @@ def read_product_by_id(
         raise HTTPException(status_code=404, detail="Produto não encontrado")
     return product
 
-@router.get(
-    "/products/search",
-    response_model=PaginatedRewardProduct,
-    summary="Pesquisar produtos pelo nome (paginado)"
-)
-def search_products_by_name(
-    q: str = Query(..., min_length=1, description="Termo de busca no nome"),
-    skip: int = Query(0, ge=0),
-    limit: int = Query(10, gt=0, le=100),
-    db: Session = Depends(get_db),
-):
-    q_base = db.query(RewardProduct).filter(
-        RewardProduct.name.ilike(f"%{q}%")
-    )
-    total = q_base.count()
-    items = (
-        q_base.order_by(RewardProduct.created_at.desc())
-              .offset(skip)
-              .limit(limit)
-              .all()
-    )
-    return {"total": total, "skip": skip, "limit": limit, "items": items}
 
 # ─── Usuário: criar e listar pedidos ────────────────────────────────────────────
 
