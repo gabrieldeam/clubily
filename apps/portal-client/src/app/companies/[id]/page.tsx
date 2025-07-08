@@ -117,19 +117,19 @@ export default function CompanyPage() {
   if (authLoading) return null;
   if (loading) return (
     <section className={styles.container}>
-      <Header />
+      <Header onSearch={q => router.push(`/search?name=${encodeURIComponent(q)}`)}/>
       <p className={styles.message}>Carregando dados…</p>
     </section>
   );
   if (error) return (
     <section className={styles.container}>
-      <Header />
+      <Header onSearch={q => router.push(`/search?name=${encodeURIComponent(q)}`)}/>
       <p className={styles.error}>{error}</p>
     </section>
   );
   if (!company) return (
     <section className={styles.container}>
-      <Header />
+      <Header onSearch={q => router.push(`/search?name=${encodeURIComponent(q)}`)}/>
       <p className={styles.message}>Empresa não encontrada.</p>
     </section>
   );

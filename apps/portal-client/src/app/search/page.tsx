@@ -47,9 +47,11 @@ export default function SearchResultsPage() {
   if (authLoading) return null;
 
   return (
-    <div className={styles.container}>
+    <>
+     <Header onSearch={q => router.push(`/search?name=${encodeURIComponent(q)}`)} />
+      <div className={styles.container}>
       {/* Faz o Header redirecionar à própria página de busca */}
-      <Header onSearch={q => router.push(`/search?name=${encodeURIComponent(q)}`)} />
+     
 
       <main className={styles.main}>
         <h3>Resultados para “{name}”</h3>
@@ -89,5 +91,6 @@ export default function SearchResultsPage() {
         </ul>
       </main>
     </div>
+    </>    
   );
 }

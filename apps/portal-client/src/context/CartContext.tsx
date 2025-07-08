@@ -1,3 +1,4 @@
+// CartContext.tsx
 'use client';
 
 import React, { createContext, useState, ReactNode, useContext, useEffect } from 'react';
@@ -13,18 +14,14 @@ export interface CartItem {
 interface CartContextType {
   items: CartItem[];
   addItem: (item: CartItem) => void;
+  incrementItem: (id: string) => void;
+  decrementItem: (id: string) => void;
   removeItem: (id: string) => void;
   clearCart: () => void;
   totalPoints: number;
 }
 
-const CartContext = createContext<CartContextType>({
-  items: [],
-  addItem: () => {},
-  removeItem: () => {},
-  clearCart: () => {},
-  totalPoints: 0,
-});
+const CartContext = createContext<CartContextType>(null!);
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
@@ -50,6 +47,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const incrementItem = (id: string) => {
+    setItems(prev =>
+      prev.map(i => i.id === id ? { ...i, quantity: i.quantity + 1 } : i)
+    );
+  };
+
+  const decrementItem = (id: string) => {
+    setItems(prev =>
+      prev
+        .map(i => i.id === id ? { ...i, quantity: i.quantity - 1 } : i)
+        .filter(i => i.quantity > 0)
+    );
+  };
+
   const removeItem = (id: string) => {
     setItems(prev => prev.filter(i => i.id !== id));
   };
@@ -59,7 +70,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const totalPoints = items.reduce((sum, i) => sum + i.points_cost * i.quantity, 0);
 
   return (
-    <CartContext.Provider value={{ items, addItem, removeItem, clearCart, totalPoints }}>
+    <CartContext.Provider value={{
+      items,
+      addItem,
+      incrementItem,
+      decrementItem,
+      removeItem,
+      clearCart,
+      totalPoints
+    }}>
       {children}
     </CartContext.Provider>
   );

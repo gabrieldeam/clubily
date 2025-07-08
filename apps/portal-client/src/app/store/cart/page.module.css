@@ -1,11 +1,54 @@
-.container {
-  max-width: 800px;
-  margin: 40px auto;
-  padding: 0 16px;
+
+.pageWrapper {
+  min-height: calc(100vh - /* altura do header se fixa */ 92px - 120px);
+  display: flex;
+  flex-direction: column;  
+  align-items: center;     
+  justify-content: flex-start;
+  padding: 92px 0 120px;     
 }
 
-h1 {
-  margin-bottom: 24px;
+.container {
+  margin: 92px auto 120px;
+  min-width: 800px;
+  max-width: 800px;
+  background: #fff;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.wallet {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  background: linear-gradient(90deg, #FFA600, #FF4C00);
+  color: #fff;
+  border-radius: 12px;
+  padding: 16px 24px;
+  margin-bottom: 32px;
+}
+
+.walletLabel {
+  font-size: 1rem;
+  opacity: 0.9;
+}
+
+.walletBalance {
+  font-size: 1.75rem;
+  font-weight: bold;
+}
+
+.title {
+  margin-bottom: 16px;
+  font-size: 1.25rem;
+  color: #333;
+}
+
+.empty {
+  text-align: center;
+  color: #666;
+  padding: 40px 0;
 }
 
 .list {
@@ -15,49 +58,224 @@ h1 {
 }
 
 .item {
-  display: flex;
+  display: grid;
+  grid-template-columns: 80px 1fr auto;
+  gap: 16px;
   align-items: center;
-  border-bottom: 1px solid #ddd;
-  padding: 12px 0;
+  border-bottom: 1px solid #eee;
+  padding: 16px 0;
 }
 
-.item img {
+.imageWrapper {
   width: 80px;
   height: 80px;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.imageWrapper img {
+  width: 100%;
+  height: 100%;
   object-fit: cover;
-  border-radius: 4px;
-  margin-right: 16px;
 }
 
 .info {
-  flex: 1;
+  cursor: pointer;
+}
+
+.info h2 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  color: #222;
+}
+
+.info p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #555;
 }
 
 .remove {
   background: none;
   border: none;
   cursor: pointer;
+  color: #999;
+}
+
+.remove:hover {
+  color: #e00;
+}
+
+.warning {
+  margin: 16px 0;
+  color: #d00;
+  font-weight: 500;
+  text-align: center;
 }
 
 .footer {
   margin-top: 24px;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 16px;
 }
 
-.clear, .checkout {
-  padding: 8px 16px;
+.total {
+  font-size: 1rem;
+  color: #333;
+}
+
+.actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.clear,
+.checkout {
+  flex: 1;
+  padding: 12px 0;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
+  font-size: 1rem;
   cursor: pointer;
+  transition: background 0.2s;
 }
 
 .clear {
-  background: #ccc;
+  background: #f0f0f0;
+  color: #555;
+}
+
+.clear:hover {
+  background: #e0e0e0;
 }
 
 .checkout {
-  background: #0070f3;
+  background: #FFA600;
   color: #fff;
+}
+
+.checkout:disabled {
+  background: #bbb;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+
+/* ... código existente ... */
+
+.qtyControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0;
+}
+
+.qtyBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: #eee;
+  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.qtyBtn:hover {
+  background: #ddd;
+}
+
+.qty {
+  min-width: 20px;
+  text-align: center;
+}
+
+
+
+
+/* botão que inicia o checkout */
+.startCheckout {
+  display: flex;
+  justify-content: center;
+  margin-top: 24px;
+}
+
+/* formulário de checkout */
+.checkoutForm {
+  margin-top: 32px;
+  padding: 24px;
+  border-top: 1px solid #eee;
+}
+
+.checkoutForm h4 {
+  margin-bottom: 16px;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+/* grupos de input */
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 16px;
+}
+
+.formGroup label {
+  margin-bottom: 4px;
+  font-size: 0.9rem;
+  color: #222;
+}
+
+.formGroup input {
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+/* ações do formulário */
+.formActions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.errorMsg {
+  color: #d00;
+  margin-bottom: 16px;
+}
+
+.formGroup select {
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+
+/* Container geral: espaça todas as entradas em 10px */
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+/* Linha específica: Rua, Número e Bairro lado a lado */
+.rowFields {
+  display: flex;
+  gap: 10px;
+}
+
+
+/* Tablets (até 768px) */
+@media (max-width: 768px) {
+  .container {
+  min-width: 100%;
+  max-width: 100%;
+}
 }
