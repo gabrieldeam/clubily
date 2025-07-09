@@ -69,3 +69,26 @@
   background: #f0f4f8;
   border-radius: 4px;
 }
+
+
+/* PointsCompanyRulesMain.module.css */
+
+.checkBtn {
+  display: inline-block;
+  color: #bbbbbb;                  /* texto branco */
+  border: none;
+  padding: 0.5rem 0rem;         /* altura e espaçamento interno */
+  font-size: 0.875rem;          /* texto um pouco menor que o padrão */
+  font-weight: 500;
+  border-radius: 0.375rem;      /* cantos levemente arredondados */
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.checkBtn:hover {
+  color: #000000;    /* fica um pouco mais escuro no hover */
+}
+
+.checkBtn:active {
+  transform: scale(0.98);       /* leve “aperto” no clique */
+}

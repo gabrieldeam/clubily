@@ -38,3 +38,10 @@ export interface PointsRuleRead extends PointsRuleBase {
   updated_at: string; // ISO datetime
 }
 
+
+// Retorno da checagem de elegibilidade
+export interface RuleStatusRead {
+  rule_id: string;
+  already_awarded: boolean;
+  message: string;
+}

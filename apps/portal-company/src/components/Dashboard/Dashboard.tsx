@@ -6,6 +6,8 @@ import Header from '@/components/Header/Header';
 import { getCompanyMetrics } from '@/services/cashbackMetricsService';
 import type { CompanyMetrics } from '@/types/cashbackMetrics';
 import CalendarRange from '@/components/CalendarRange/CalendarRange';
+import MetricsPoints from '@/components/MetricsPoints/MetricsPoints';
+import MetricsPurchase from '@/components/MetricsPurchase/MetricsPurchase';
 import Metrics from '../MonthlyCharts/MonthlyCharts';
 import Modal from '@/components/Modal/Modal';
 import styles from './Dashboard.module.css';
@@ -164,7 +166,11 @@ export default function Dashboard() {
           {/* passa o mesmo período para os gráficos */}
           <Metrics startDate={startDate} endDate={endDate} />
         </main>
+        
+      <MetricsPoints />
+      <MetricsPurchase />
       </div>
+      
     </>
   );
 }

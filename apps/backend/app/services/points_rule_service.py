@@ -15,8 +15,10 @@ from app.services.fee_setting_service import get_effective_fee
 from app.models.fee_setting import SettingTypeEnum
 from datetime import timedelta
 from app.models.company import Company
-
+from app.services.purchase_log_service import count_purchases
 from app.models.purchase_log import PurchaseLog
+
+
 
 GENERATIVE = {
     RuleType.value_spent,
@@ -241,9 +243,7 @@ def evaluate_all_rules(
         elif rule.rule_type == RuleType.frequency:
             window = int(cfg.get("window_days", 0))
             threshold = int(cfg.get("threshold", 0))
-            from app.services.purchase_log_service import count_purchases
             purchases = count_purchases(db, user_id, company_id, window)
-            from app.services.points_rule_service import cooldown_ok
             if purchases >= threshold and cooldown_ok(db, user_id, rule):
                 pts = int(cfg.get("bonus_points", 0))
 
@@ -276,7 +276,6 @@ def evaluate_all_rules(
                 if count >= threshold_per:
                     streak += 1
 
-            from app.services.points_rule_service import cooldown_ok
             if streak >= consecutive_periods and cooldown_ok(db, user_id, rule):
                 pts = bonus
 
@@ -365,7 +364,6 @@ def evaluate_all_rules(
             return 0
 
         # 7) credita usuário
-        from app.services.points_rule_service import credit_user_points
         credit_user_points(db, user_id, company_id, str(rule.id), pts, description=rule.name)
 
         return pts
@@ -392,3 +390,199 @@ def evaluate_all_rules(
                 breakdown.append({"rule_id": str(r.id), "points": pts})
 
     return total_awarded, breakdown
+
+
+def check_rule_eligibility(
+    db: Session,
+    user_id: str,
+    rule: PointsRule
+) -> dict:
+    """
+    Retorna um dict com:
+      - already_awarded: se já recebeu pontos desta regra (apenas frequency/recurrence),
+      - message: texto explicando onde o usuário está no progresso.
+    """
+
+    cfg   = rule.config
+    now   = datetime.utcnow()
+    rid   = str(rule.id)
+
+    # ─── First Purchase ───────────────────────────────────
+    if rule.rule_type == RuleType.first_purchase:
+        # conta total de compras do usuário nessa empresa
+        total = (
+            db.query(PurchaseLog)
+              .filter_by(user_id=user_id, company_id=rule.company_id)
+              .count()
+        )
+        if total == 0:
+            return {
+                "already_awarded": False,
+                "message": "Você ainda não fez nenhuma compra. Na sua primeira compra, ganha "
+                           f"{cfg.get('bonus_points', 0)} pontos!"
+            }
+        else:
+            # verifica se já recebeu esse bônus
+            already = (
+                db.query(UserPointsTransaction)
+                  .filter_by(
+                      user_id=user_id,
+                      rule_id=rid,
+                      type=UserPointsTxType.award
+                  )
+                  .first()
+            )
+            if already:
+                return {
+                    "already_awarded": True,
+                    "message": (
+                        f"Você já recebeu {already.amount} pontos de primeira compra "
+                        f"em {already.created_at.date()}."
+                    )
+                }
+            else:
+                return {
+                    "already_awarded": False,
+                    "message": (
+                        "Parabéns! Você já fez sua primeira compra e pode receber "
+                        f"{cfg.get('bonus_points', 0)} pontos."
+                    )
+                }
+
+    # ─── Frequency ────────────────────────────────────────
+    if rule.rule_type == RuleType.frequency:
+        window    = int(cfg.get("window_days", 0))
+        threshold = int(cfg.get("threshold", 0))
+        start     = now - timedelta(days=window)
+
+        # quantas compras no período
+        count = (
+            db.query(PurchaseLog)
+              .filter(
+                  PurchaseLog.user_id    == user_id,
+                  PurchaseLog.company_id == rule.company_id,
+                  PurchaseLog.created_at >= start
+              )
+              .count()
+        )
+
+        if count == 0:
+            return {
+                "already_awarded": False,
+                "message": (
+                    f"Você ainda não fez nenhuma compra nos últimos {window} dias."
+                )
+            }
+
+        # já foi premiado?
+        already = (
+            db.query(UserPointsTransaction)
+              .filter(
+                  UserPointsTransaction.user_id    == user_id,
+                  UserPointsTransaction.rule_id    == rid,
+                  UserPointsTransaction.type       == UserPointsTxType.award,
+                  UserPointsTransaction.created_at >= start
+              )
+              .first()
+        )
+        if already:
+            return {
+                "already_awarded": True,
+                "message": (
+                    f"Você já recebeu {already.amount} pontos por atingir a meta "
+                    f"de {threshold} compras em {window} dias "
+                    f"({already.created_at.date()})."
+                )
+            }
+
+        # chegou na meta?
+        if count >= threshold:
+            return {
+                "already_awarded": False,
+                "message": (
+                    f"Você fez {count} compras nos últimos {window} dias — "
+                    f"atingiu a meta de {threshold} e agora pode receber "
+                    f"{cfg.get('bonus_points', 0)} pontos!"
+                )
+            }
+
+        # quantas faltam?
+        remaining = threshold - count
+        return {
+            "already_awarded": False,
+            "message": (
+                f"Você fez {count} compras nos últimos {window} dias. "
+                f"Faltam {remaining} para atingir a meta de {threshold} e "
+                f"receber {cfg.get('bonus_points', 0)} pontos."
+            )
+        }
+
+    # ─── Recurrence ───────────────────────────────────────
+    if rule.rule_type == RuleType.recurrence:
+        period_days         = int(cfg.get("period_days", 7))
+        threshold_per       = int(cfg.get("threshold_per_period", 1))
+        consecutive_periods = int(cfg.get("consecutive_periods", 1))
+        bonus               = int(cfg.get("bonus_points", 0))
+
+        streak = 0
+        # para cada período consecutivo
+        for i in range(consecutive_periods):
+            window_end   = now - timedelta(days=period_days * i)
+            window_start = window_end - timedelta(days=period_days)
+
+            count = (
+                db.query(PurchaseLog)
+                  .filter(
+                      PurchaseLog.user_id    == user_id,
+                      PurchaseLog.company_id == rule.company_id,
+                      PurchaseLog.created_at >= window_start,
+                      PurchaseLog.created_at <  window_end
+                  )
+                  .count()
+            )
+            if count >= threshold_per:
+                streak += 1
+
+        # já recebeu?
+        already = (
+            db.query(UserPointsTransaction)
+              .filter(
+                  UserPointsTransaction.user_id    == user_id,
+                  UserPointsTransaction.rule_id    == rid,
+                  UserPointsTransaction.type       == UserPointsTxType.award
+              )
+              .first()
+        )
+        if already:
+            return {
+                "already_awarded": True,
+                "message": (
+                    f"Você já recebeu {already.amount} pontos de recorrência "
+                    f"({already.created_at.date()})."
+                )
+            }
+
+        if streak >= consecutive_periods:
+            return {
+                "already_awarded": False,
+                "message": (
+                    f"Você completou {streak} períodos de {period_days} dias "
+                    f"com ≥{threshold_per} compras cada — agora pode receber "
+                    f"{bonus} pontos!"
+                )
+            }
+
+        periods_left = consecutive_periods - streak
+        return {
+            "already_awarded": False,
+            "message": (
+                f"Você completou {streak}/{consecutive_periods} períodos de "
+                f"{period_days} dias. Faltam {periods_left} para ganhar {bonus} pontos."
+            )
+        }
+
+    # ─── Outros tipos não contemplados aqui ───────────────
+    return {
+        "already_awarded": False,
+        "message": "Esta regra não depende de histórico de compras."
+    }
