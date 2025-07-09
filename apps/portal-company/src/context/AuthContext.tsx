@@ -61,7 +61,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (
           status === 401 &&
           !url.includes('/companies/login') &&
-          !url.includes('/companies/me')
+          !url.includes('/companies/me') &&
+          !url.includes('/companies/logout')
         ) {
           logout()
         }

@@ -5,14 +5,14 @@ from typing import List
 from uuid import UUID
 from app.api.deps import get_db, get_current_company, get_current_user
 from app.schemas.points_rule import (
-    PointsRuleCreate, PointsRuleRead, PointsRuleUpdate
+    PointsRuleCreate, PointsRuleRead, PointsRuleUpdate, RuleStatusRead
 )
 from app.schemas.user_points import (
     UserPointsWalletRead, PaginatedUserPointsTransactions
 )
 from app.services.points_rule_service import (
     get_company_rules, get_visible_rules, get_rule,
-    create_rule,
+    create_rule, check_rule_eligibility,
     get_or_create_user_points_wallet,
     list_user_points_transactions,
 )
@@ -194,3 +194,28 @@ def list_active_rules(
     current_company=Depends(get_current_company)
 ):
     return get_visible_rules(db, str(current_company.id))
+
+
+@router.get(
+    "/rules/{rule_id}/status",
+    response_model=RuleStatusRead,
+    summary="Verifica status de elegibilidade para uma regra específica"
+)
+def check_rule_status(
+    rule_id: UUID = Path(..., description="ID da regra"),
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    rule = get_rule(db, str(rule_id))
+    if not rule or not rule.active:
+        raise HTTPException(status_code=404, detail="Regra não encontrada ou inativa")
+
+    status = check_rule_eligibility(
+        db,
+        str(current_user.id),
+        rule
+    )
+    return {
+        "rule_id": rule_id,
+        **status
+    }

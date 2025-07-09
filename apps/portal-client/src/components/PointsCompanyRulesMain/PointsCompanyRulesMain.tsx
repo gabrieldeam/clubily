@@ -1,66 +1,99 @@
 // src/components/PointsCompanyRulesMain/PointsCompanyRulesMain.tsx
 'use client';
 
-import { useEffect, useState } from 'react'
-import { listCompanyVisibleRules } from '@/services/pointsService'
-import type { PointsRuleRead } from '@/types/pointsRule'
-import { RuleType } from '@/types/pointsRule'
-import { getRuleTypeLabel } from '@/utils/ruleType'
-import styles from './PointsCompanyRulesMain.module.css'
+import { useEffect, useState } from 'react';
+import { listCompanyVisibleRules, checkRuleStatus } from '@/services/pointsService';
+import type { PointsRuleRead } from '@/types/pointsRule';
+import { RuleType } from '@/types/pointsRule';
+import { getRuleTypeLabel } from '@/utils/ruleType';
+import RuleEligibilityModal from '@/components/RuleEligibilityModal/RuleEligibilityModal';
+import styles from './PointsCompanyRulesMain.module.css';
 
 interface Props {
-  companyId: string
+  companyId: string;
 }
 
+const ELIGIBLE_RULE_TYPES = [
+  RuleType.frequency,
+  RuleType.first_purchase,
+  RuleType.recurrence
+] as const;
+
 export default function PointsCompanyRulesMain({ companyId }: Props) {
-  const [rules, setRules] = useState<PointsRuleRead[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [rules, setRules] = useState<PointsRuleRead[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // estados para o modal de elegibilidade
+  const [openModal, setOpenModal] = useState(false);
+  const [selectedRule, setSelectedRule] = useState<PointsRuleRead | null>(null);
 
   useEffect(() => {
     listCompanyVisibleRules(companyId)
       .then(r => setRules(r.data))
       .catch(() => setError('Não foi possível carregar regras.'))
-      .finally(() => setLoading(false))
-  }, [companyId])
+      .finally(() => setLoading(false));
+  }, [companyId]);
 
-  // enquanto carrega ou ocorre erro ou não há nenhuma regra: não renderiza nada
-  if (loading || error || rules.length === 0) return null
+  if (loading || error || rules.length === 0) return null;
 
-  // só chega aqui se houver ao menos uma regra válida
+  const handleOpenModal = (rule: PointsRuleRead) => {
+    setSelectedRule(rule);
+    setOpenModal(true);
+  };
+  const handleCloseModal = () => {
+    setSelectedRule(null);
+    setOpenModal(false);
+  };
+
   return (
-    <div className={styles.whiteBox}>
-      <h2 className={styles.sectionTitle}>Regras de Pontos</h2>
-      <div className={styles.container}>
-        {rules.map(rule => (
-          <div key={rule.id} className={styles.card}>
-            <div className={styles.header}>
-              <h3 className={styles.name}>{rule.name}</h3>
-              <span className={styles.badge}>
-                {getRuleTypeLabel(rule.rule_type as RuleType)}
-              </span>
+    <>
+      <div className={styles.whiteBox}>
+        <h2 className={styles.sectionTitle}>Regras de Pontos</h2>
+        <div className={styles.container}>
+          {rules.map(rule => (
+            <div key={rule.id} className={styles.card}>
+              <div className={styles.header}>
+                <h3 className={styles.name}>{rule.name}</h3>
+                <span className={styles.badge}>
+                  {getRuleTypeLabel(rule.rule_type as RuleType)}
+                </span>
+              </div>
+              {rule.description && (
+                <p className={styles.description}>{rule.description}</p>
+              )}
+              <div className={styles.explanation}>
+                {renderConfigExplanation(rule)}
+              </div>
+
+              {/* Só renderiza o botão se o tipo da regra estiver na lista */}
+              {ELIGIBLE_RULE_TYPES.includes(rule.rule_type as typeof ELIGIBLE_RULE_TYPES[number]) && (
+                <div className={styles.footer}>
+                  <button
+                    className={styles.checkBtn}
+                    onClick={() => handleOpenModal(rule)}
+                  >
+                    Verificar elegibilidade
+                  </button>
+                </div>
+              )}
             </div>
-            {rule.description && (
-              <p className={styles.description}>{rule.description}</p>
-            )}
-            <div className={styles.explanation}>
-              {/* aqui entra a renderConfigExplanation que você já definiu */}
-              {renderConfigExplanation(rule)}
-            </div>
-            {/* <div className={styles.footer}>
-              <span className={styles.flag}>
-                {rule.active ? 'Ativa' : 'Inativa'}
-              </span>
-              <span className={styles.flag}>
-                {rule.visible ? 'Visível' : 'Oculta'}
-              </span>
-            </div> */}
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
-    </div>
-  )
+
+      {selectedRule && (
+        <RuleEligibilityModal
+          open={openModal}
+          onClose={handleCloseModal}
+          rule={selectedRule}
+          checkRuleStatus={checkRuleStatus}
+        />
+      )}
+    </>
+  );
 }
+
 
 // não esqueça de exportar também sua função renderConfigExplanation
 function renderConfigExplanation(rule: PointsRuleRead) {

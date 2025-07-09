@@ -48,7 +48,6 @@ export default function MonthlyCharts({ startDate, endDate }: MonthlyChartsProps
 
   return (
     <div className={styles.container}>
-      <h3 className={styles.title}>Indicadores Diários</h3>
       <div className={styles.grid}>
         {/* Gastos por Dia */}
         <div className={styles.chartBox}>

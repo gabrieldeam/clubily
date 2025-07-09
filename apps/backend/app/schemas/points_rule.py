@@ -1,8 +1,9 @@
 # backend/app/schemas/points_rule.py
 from uuid import UUID
 from enum import Enum
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 from datetime import datetime
+from decimal import Decimal
 from pydantic import BaseModel, ConfigDict
 
 class RuleType(str, Enum):
@@ -40,3 +41,12 @@ class PointsRuleRead(PointsRuleBase):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+
+class RuleStatusRead(BaseModel):
+    rule_id: UUID
+    already_awarded: bool
+    message: str
+
+    model_config = ConfigDict()
