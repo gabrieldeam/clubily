@@ -11,7 +11,7 @@ class InventoryItem(Base):
 
     id          = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     company_id  = Column(UUID(as_uuid=True), ForeignKey("companies.id", ondelete="CASCADE"), index=True, nullable=False)
-    sku         = Column(String(64), nullable=False, unique=True)
+    sku         = Column(String(64), nullable=False,)
     name        = Column(String(255), nullable=False)
     price       = Column(Numeric(14,2), nullable=False)
     created_at  = Column(DateTime(timezone=True), server_default=func.now())

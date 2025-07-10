@@ -224,8 +224,12 @@
   gap: 0.5rem;
 }
 .cardActions .view {
-  flex: 1;
-  text-align: center;
+  background: #e4fee2;
+  color: #41b91c;
+  border: none;
+  padding: 0.4rem;
+  border-radius: 6px;
+  cursor: pointer;
 }
 .cardActions .edit {
   background: #e0f2fe;

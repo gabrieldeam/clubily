@@ -172,7 +172,7 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
       await redeemReferral({ referral_code: referralCode } as ReferralRedeem);
       setReferralNotification({
         type: 'success',
-        message: 'Código resgatado com sucesso!',
+        message: 'Código registrado com sucesso!',
       });
       setTimeout(onSuccess, 800);
     } catch (err: any) {
@@ -204,7 +204,7 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
           onChange={e => setReferralCode(e.target.value)}
         />
         <div className={styles.actions}>
-          <Button onClick={handleRedeem}>Resgatar</Button>
+          <Button onClick={handleRedeem}>Registrar indicação</Button>
           <Button bgColor="#AAA" onClick={handleSkipReferral}>
             Não tenho código
           </Button>

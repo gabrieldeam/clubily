@@ -19,7 +19,6 @@
 .topBar h2 {
   margin: 0;
   font-size: 1.5rem;
-  color: #111827;
 }
 
 .actionsHeader {
@@ -50,7 +49,7 @@
   transition: background 0.2s;
 }
 .addBtn:hover {
-  background: #059e6e;
+  background: #e59400;
 }
 
 .loading {
@@ -67,9 +66,12 @@
 .empty h2 {
   margin-bottom: 0.5rem;
 }
+.empty p {
+  margin-bottom: 1rem;
+}
 .empty .createBtn {
   padding: 8px 16px;
-  background: #10b981;
+  background: #ffa600;
   border: none;
   border-radius: 4px;
   color: #fff;
@@ -204,6 +206,15 @@
   background: #fecaca;
 }
 
+.cardActions .view {
+  background: #e4fee2;
+  color: #41b91c;
+  border: none;
+  padding: 0.4rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
 /* cores específicas para os botões de editar e excluir em list view */
 .actions .edit {
   background: #e0f2fe;
@@ -221,6 +232,14 @@
   background: #fecaca;
 }
 
+.actions .view {
+  background: #e4fee2;
+  color: #41b91c;
+  border: none;
+  padding: 0.4rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
 
 /* VIEW-MODE MODAL */
 .viewModeModal {

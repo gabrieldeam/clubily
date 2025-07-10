@@ -8,6 +8,7 @@ import type {
   PointsRedeemedByDay,
   TxUserStatsByDay,
   AvgPointsPerTxByDay,
+  PaginatedRuleTransactions
 } from '@/types/pointsMetrics';
 
 const BASE = '/points_metrics';
@@ -75,3 +76,17 @@ export const getAvgPointsPerTxChart = (
   api.get<AvgPointsPerTxByDay[]>(`${BASE}/points/chart/avg-per-tx`, {
     params: { start_date, end_date },
   });
+
+
+  /** Admin: listar transações de pontos por regra (paginado) */
+export const getRuleTransactions = (
+  ruleId: string,
+  skip: number = 0,
+  limit: number = 50
+) =>
+  api.get<PaginatedRuleTransactions>(
+    `${BASE}/rules/${ruleId}/transactions`,
+    {
+      params: { skip, limit },
+    }
+  );

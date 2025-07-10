@@ -93,12 +93,12 @@ export default function StorePage() {
   useEffect(() => {
     listRewardCategories(0, 100).then(res => setCategories(res.data.items));
     getUserPointsBalance().then(res => setBalance(res.data.balance));
-    listRewardProducts(skipAll, itemsPerPage).then(res => setAllProducts(res.data));
+    listRewardProducts(skipAll, limit).then(res => setAllProducts(res.data));
   }, [skipAll, itemsPerPage]);
 
   useEffect(() => {
     if (selectedCategoryId) {
-      listRewardProductsByCategory(selectedCategoryId, skipCat, itemsPerPage)
+      listRewardProductsByCategory(selectedCategoryId, skipCat, limit)
         .then(res => setCatProducts(res.data));
     }
   }, [selectedCategoryId, skipCat, itemsPerPage]);
@@ -399,8 +399,8 @@ const imgSrc = (path: string | null | undefined) =>
         {Array.from({ length: totalPagesCat }).map((_, i) => (
           <button
             key={i}
-            className={skipCat / itemsPerPage === i ? styles.pageAllActive : ''}
-            onClick={() => setSkipCat(i * itemsPerPage)}
+            className={skipCat / limit === i ? styles.pageAllActive : ''}
+            onClick={() => setSkipCat(i * limit)}
           >
             {i + 1}
           </button>
@@ -448,8 +448,8 @@ const imgSrc = (path: string | null | undefined) =>
         {Array.from({ length: totalPagesAll }).map((_, i) => (
           <button
             key={i}
-            className={skipAll / itemsPerPage === i ? styles.pageAllActive : ''}
-            onClick={() => setSkipAll(i * itemsPerPage)}
+            className={skipAll / limit === i ? styles.pageAllActive : ''}
+            onClick={() => setSkipAll(i * limit)}
           >
             {i + 1}
           </button>

@@ -1,5 +1,5 @@
 # backend/app/api/v1/endpoints/points_metrics.py
-from fastapi import APIRouter, Depends, Path, Query
+from fastapi import APIRouter, Depends, Path, Query, status
 from sqlalchemy.orm import Session
 from uuid import UUID
 from datetime import date
@@ -14,6 +14,7 @@ from app.services.points_metrics_service import (
     get_points_redeemed_chart,
     get_tx_vs_users_chart,
     get_avg_points_per_tx_chart,
+    get_transactions_by_rule
 )
 from app.schemas.points_metrics import (
     RuleMetricRead,
@@ -22,6 +23,7 @@ from app.schemas.points_metrics import (
     PointsRedeemedByDay,
     TxUserStatsByDay,
     AvgPointsPerTxByDay,
+    PaginatedRuleTransactions
 )
 
 router = APIRouter(tags=["points_metrics"])
@@ -44,6 +46,33 @@ def admin_metric_single_rule(
     company     = Depends(get_current_company),
 ):
     return get_single_rule_metric(db, str(company.id), str(rule_id), start_date, end_date)
+
+@router.get(
+    "/rules/{rule_id}/transactions",
+    response_model=PaginatedRuleTransactions,
+    status_code=status.HTTP_200_OK,
+    summary="Admin: listar transações de pontos por regra (paginado)"
+)
+def admin_rule_transactions(
+    rule_id: UUID = Path(..., description="ID da regra"),
+    skip: int = Query(0, ge=0, description="Quantos registros pular"),
+    limit: int = Query(50, ge=1, le=200, description="Máximo de registros"),
+    db: Session = Depends(get_db),
+    company = Depends(get_current_company),
+):
+    total, items = get_transactions_by_rule(
+        db,
+        str(company.id),
+        str(rule_id),
+        skip,
+        limit
+    )
+    return {
+        "total": total,
+        "skip": skip,
+        "limit": limit,
+        "items": items
+    }
 
 @router.get("/points", response_model=PointsMetricRead, summary="Métricas gerais de pontos")
 def admin_metrics_points(

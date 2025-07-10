@@ -2,8 +2,8 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from datetime import date, datetime
-from typing import List
-
+from typing import Tuple, List
+from app.models.user import User
 from app.models.user_points_transaction import UserPointsTransaction, UserPointsTxType
 from app.models.points_rule import PointsRule
 from app.models.purchase_log import PurchaseLog
@@ -241,3 +241,56 @@ def get_avg_points_per_tx_chart(
         AvgPointsPerTxByDay(day=r.day.date(), avg_points=float(r.avg_pts or 0))
         for r in rows
     ]
+
+
+
+def get_transactions_by_rule(
+    db: Session,
+    company_id: str,
+    rule_id: str,
+    skip: int = 0,
+    limit: int = 100
+) -> Tuple[int, List[dict]]:
+    """
+    Retorna total e lista paginada de transações (award) de uma regra,
+    incluindo nome do usuário.
+    """
+    base_q = (
+        db.query(
+            UserPointsTransaction.id,
+            UserPointsTransaction.user_id,
+            User.name.label("user_name"),
+            UserPointsTransaction.amount,
+            UserPointsTransaction.description,
+            UserPointsTransaction.created_at,
+        )
+        .join(User, User.id == UserPointsTransaction.user_id)
+        .filter(
+            UserPointsTransaction.company_id == company_id,
+            UserPointsTransaction.rule_id    == rule_id,
+            UserPointsTransaction.type       == UserPointsTxType.award,
+        )
+    )
+
+    total = base_q.count()
+    rows = (
+        base_q
+        .order_by(UserPointsTransaction.created_at.desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+
+    # transforma em lista de dicts compatível com Pydantic
+    items = [
+        {
+            "id":          r.id,
+            "user_id":     r.user_id,
+            "user_name":   r.user_name,
+            "amount":      r.amount,
+            "description": r.description,
+            "created_at":  r.created_at,
+        }
+        for r in rows
+    ]
+    return total, items

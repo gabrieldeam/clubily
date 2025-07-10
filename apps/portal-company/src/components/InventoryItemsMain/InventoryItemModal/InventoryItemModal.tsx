@@ -2,6 +2,7 @@
 'use client';
 
 import { FormEvent, useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import styles from './InventoryItemModal.module.css';
 import FloatingLabelInput from '@/components/FloatingLabelInput/FloatingLabelInput';
 import Button from '@/components/Button/Button';
@@ -27,7 +28,7 @@ export default function InventoryItemModal({ item, onSave, onCancel }: Props) {
   const [name, setName] = useState('');
   const [price, setPrice] = useState<number>(0);
   const [selectedCats, setSelectedCats] = useState<string[]>([]);
-
+  const router = useRouter(); 
   const [categories, setCategories] = useState<ProductCategoryRead[]>([]);
   const [loadingCats, setLoadingCats] = useState(true);
   const [catSkip, setCatSkip] = useState(0);
@@ -118,9 +119,10 @@ export default function InventoryItemModal({ item, onSave, onCancel }: Props) {
 
       <div className={styles.catSection}>
         <label className={styles.catLabel}>Categorias:</label>
+
         {loadingCats ? (
           <p>Carregando categorias...</p>
-        ) : (
+        ) : categories.length > 0 ? (
           <>
             <div className={styles.catList}>
               {categories.map(cat => (
@@ -155,8 +157,16 @@ export default function InventoryItemModal({ item, onSave, onCancel }: Props) {
               </button>
             </div>
           </>
+        ) : (
+          <div className={styles.noCategories}>
+            <p>Nenhuma categoria encontrada.</p>
+            <Button type="button" onClick={() => router.push('/register?section=categories')}>
+              Cadastrar Categoria
+            </Button>
+          </div>
         )}
       </div>
+
 
       <div className={styles.actions}>
         <Button type="submit">{item ? 'Salvar' : 'Criar'}</Button>
