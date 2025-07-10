@@ -1,0 +1,143 @@
+/* src/components/MetricsPoints/MetricsPoints.module.css */
+
+.card {
+  background: white;
+  padding: 24px 32px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin: 10px 0;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.25rem;
+  color: var(--clr-text);
+}
+
+.rangeBtn {
+  border: 1px solid var(--clr-border);
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.rangeBtn:hover {
+  background: var(--clr-bg);
+}
+
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.metricCard {
+  background: #f9fafb;
+  padding: 1.25rem;
+  border-radius: 8px;
+  text-align: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.metricCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.metricCard h4 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  color: #555;
+}
+
+.metricCard p {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111;
+}
+
+/* três colunas lado a lado */
+.chartsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  padding: 24px;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.chartBox {
+  background: var(--clr-panel);
+  padding: 16px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s ease;
+}
+.chartBox:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+.chartBox h5 {
+  margin: 0 0 12px;
+  color: var(--clr-text);
+  text-align: center;
+}
+
+.message {
+  text-align: center;
+  padding: 24px;
+  color: var(--clr-text-light);
+}
+
+.error {
+  color: #c00;
+  text-align: center;
+  margin-top: 1rem;
+}
+
+.calendarDropdown {
+  background: #fff;
+  border: 1px solid #ddd;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.presetsWrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.presetBtn {
+  flex: 1 1 calc(33% - 0.5rem);
+  padding: 0.5rem;
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.presetBtn:hover {
+  background: #e0e0e0;
+}
+
+.activePresetBtn {
+  background-color: #FF4C00;
+  color: #fff;
+  border-color: #aa3a0b;
+}
