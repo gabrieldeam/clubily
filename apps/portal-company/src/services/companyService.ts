@@ -29,9 +29,9 @@ export const forgotPasswordCompany = (email: string) =>
     params: { email },
   });
 
-export const resetPasswordCompany = (token: string, newPassword: string) =>
+export const resetPasswordCompany = (code: string, newPassword: string) =>
   api.post<TokenResponse>('/companies/reset-password', null, {
-    params: { token, new_password: newPassword },
+    params: { code, new_password: newPassword },
   });
 
 // 3. Clientes da empresa

@@ -110,3 +110,11 @@ def create(db: Session, obj_in: UserCreate) -> User:
     db.commit()
     db.refresh(user)
     return user
+
+def get_by_email(db: Session, email: str) -> User | None:
+    """Retorna o usuário ativo cujo e-mail corresponda (case-insensitive)."""
+    return (
+        db.query(User)
+          .filter(User.email == email.lower(), User.pre_registered == False)
+          .first()
+    )

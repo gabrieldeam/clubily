@@ -14,7 +14,7 @@ from ....schemas.company import CompanyCreate, CompanyRead, CompanyLogin, Compan
 from ....schemas.token import Token
 from ....services.company_service import create, authenticate
 from ....core.config import settings
-from ....core.email_utils import send_email
+from ....core.email_utils import send_email, send_templated_email
 from jose import jwt
 from app.core.security import create_access_token 
 from app.models.user import User
@@ -25,6 +25,7 @@ from ...deps import get_current_company, get_db, require_admin
 from app.models.association import user_companies
 from ....schemas.referral import ReferralRedeem, ReferralRead
 from ....services.referral_service import redeem_referral_code
+from ....services import company_password_reset_service as comp_reset
 
 router = APIRouter(tags=["companies"])
 
@@ -89,14 +90,19 @@ def register_company(
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
 
-    # 7) Dispara envio de e-mail de verificação em background
-    verify_url = f"{settings.FRONTEND_ORIGINS[0]}/companies/verify-email?token={token}"
+    # 7) envia e-mail de boas-vindas + verificação
+    verify_url = f"{settings.FRONTEND_ORIGINS[0]}/verify-email?token={token}"
+
     background.add_task(
-        send_email,
+        send_templated_email,
         to=company.email,
-        subject="Confirme sua conta empresarial",
-        html=f"<p>Clique <a href='{verify_url}'>aqui</a> para confirmar sua conta.</p>",
+        subject="Bem-vindo ao Clubily – Confirme seu e-mail",
+        template_name="welcome_company.html",
+        company_name=company.name,
+        verify_url=verify_url,
+        logo_url=f"{settings.FRONTEND_ORIGINS[0]}/static/logo.png",  # opcional
     )
+
 
     # 8) Retorna o token no JSON
     return {"access_token": token}
@@ -157,39 +163,49 @@ def read_current_company(
     return current_company
 
 @router.post("/forgot-password", status_code=202)
-def forgot_password_company(email: str, background: BackgroundTasks, db: Session = Depends(get_db)):
+def forgot_password_company(
+    email: str,
+    background: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
     """
-    Envia link de reset de senha para e-mail cadastrado.
+    Envia código de 6 dígitos para o e-mail cadastrado da empresa.
     """
     comp = db.query(Company).filter(Company.email == email.lower()).first()
     if comp:
-        token = jwt.encode({"sub": str(comp.id)}, settings.SECRET_KEY, algorithm="HS256")
-        reset_url = f"{settings.FRONTEND_ORIGINS[0]}/companies/reset-password?token={token}"
+        code = comp_reset.create_code(db, comp, minutes=30)
+        html = f"""
+        <p>Use o código abaixo para redefinir a senha da sua empresa (válido por 30 min):</p>
+        <h2 style="font-family:monospace;">{code}</h2>
+        """
         background.add_task(
             send_email,
             to=comp.email,
-            subject="Redefinição de senha empresarial",
-            html=f"<p>Clique <a href='{reset_url}'>aqui</a> para redefinir sua senha.</p>",
+            subject="Código para redefinição de senha empresarial",
+            html=html,
         )
     return {"msg": "Se o e-mail existir, enviaremos instruções."}
 
+# ---------- RESET COM CÓDIGO ----------
 @router.post("/reset-password", status_code=200)
-def reset_password_company(token: str, new_password: str, response: Response, db: Session = Depends(get_db)):
+def reset_password_company(
+    code: str,
+    new_password: str,
+    response: Response,
+    db: Session = Depends(get_db),
+):
     """
-    Reseta a senha da empresa usando token de reset.
+    Reseta a senha da empresa usando o código de verificação de 6 dígitos.
     """
-    try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-        comp_id = payload.get("sub")
-    except Exception:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Token inválido")
-    comp = db.query(Company).get(comp_id)
+    comp = comp_reset.verify_and_consume(db, code)
     if not comp:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Empresa não encontrada")
+        raise HTTPException(400, "Código inválido ou expirado")
+
     from app.core.security import hash_password
     comp.hashed_password = hash_password(new_password)
     db.commit()
-    # opcional: já autenticar e devolver token
+
+    # já autentica a empresa
     new_token = jwt.encode({"sub": str(comp.id)}, settings.SECRET_KEY, algorithm="HS256")
     response.set_cookie(
         key=settings.COOKIE_NAME,
