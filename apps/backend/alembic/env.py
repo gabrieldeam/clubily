@@ -50,6 +50,8 @@ from app.models.user_points_stats import UserPointsStats
 from app.models.reward_category import RewardCategory
 from app.models.reward_product import RewardProduct, reward_product_categories
 from app.models.reward_order import OrderStatus, RewardOrder, RewardOrderItem
+from app.models.password_reset_code import PasswordResetCode
+from app.models.company_password_reset_code import CompanyPasswordResetCode
 
 # ...importe aqui outros models quando criar novos
 

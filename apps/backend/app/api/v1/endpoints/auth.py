@@ -11,10 +11,11 @@ from ....core.cpf_utils import normalize_cpf
 from app.core.security import hash_password, create_access_token  # ← importar create_access_token aqui
 from ....schemas.user import UserCreate, LeadCreate, UserRead
 from ....schemas.token import Token
-from ....services import user_service, auth_service, lead_service
+from ....services import user_service, auth_service, password_reset_service
+from ....services.password_reset_service import create_code
 from ....services.sms_service import send_phone_code, verify_phone_code
 from ....core.config import settings
-from ....core.email_utils import send_email
+from ....core.email_utils import send_email, send_templated_email
 from app.models.user import User
 from app.models.company import Company
 from datetime import datetime
@@ -161,14 +162,27 @@ def register(
     user = user_service.create(db, payload)
     token = create_access_token(str(user.id))
 
-    # 6) Envia e‐mail de verificação em background
-    verify_url = f"{settings.FRONTEND_ORIGINS[0]}/verify?token={token}"
+    
+    explore_url = f"{settings.FRONTEND_ORIGINS[0]}/"
+
     background.add_task(
-        send_email,
+        send_templated_email,
         to=user.email,
-        subject="Confirme seu cadastro",
-        html=f"<p>Confirme seu cadastro <a href='{verify_url}'>clicando aqui</a></p>",
+        subject="Bem-vindo(a) ao Clubily!",
+        template_name="welcome_user.html",
+        user_name=user.name or user.name or "cliente",
+        explore_url=explore_url,
+        logo_url=f"{settings.FRONTEND_ORIGINS[0]}/static/logo.png",
     )
+
+    # 6) Envia e‐mail de verificação em background
+    # verify_url = f"{settings.FRONTEND_ORIGINS[0]}/verify?token={token}"
+    # background.add_task(
+    #     send_email,
+    #     to=user.email,
+    #     subject="Confirme seu cadastro",
+    #     html=f"<p>Confirme seu cadastro <a href='{verify_url}'>clicando aqui</a></p>",
+    # )
 
     # 7) Seta cookie de autenticação
     response.set_cookie(
@@ -219,68 +233,36 @@ def login(
 
 
 @router.post("/forgot-password", status_code=202)
-def forgot_password(
-    *,
-    email: str,
-    background: BackgroundTasks,
-    db: Session = Depends(get_db),
-):
-    """
-    Envia link para redefinição de senha, se o e-mail existir.
-    """
+def forgot_password(*, email: str, background: BackgroundTasks, db: Session = Depends(get_db)):
     user = user_service.get_by_email(db, email.lower())
     if user:
-        token, _ = auth_service.authenticate(db, user.email, user.hashed_password)
-        reset_url = f"{settings.FRONTEND_ORIGINS[0]}/reset-password?token={token}"
-        background.add_task(
-            send_email,
-            to=user.email,
-            subject="Redefinição de senha",
-            html=f"<p>Redefina sua senha <a href='{reset_url}'>clicando aqui</a></p>",
-        )
+        code = create_code(db, user, minutes=30)   # 6 dígitos, 30 min
+        html = f"""
+        <p>Use o código abaixo para redefinir sua senha (válido por 30 min):</p>
+        <h2 style="font-family:monospace;">{code}</h2>
+        """
+        background.add_task(send_email, to=user.email,
+                            subject="Código para redefinição de senha", html=html)
     return {"msg": "Se o e-mail existir, enviaremos instruções"}
 
 
-@router.post(
-    "/reset-password",
-    response_model=Token,
-    status_code=status.HTTP_200_OK,
-    summary="Reseta a senha do usuário via token enviado por e-mail",
-)
-def reset_password_user(
-    *,
-    token: str,
-    new_password: str,
-    response: Response,
-    db: Session = Depends(get_db),
-):
-    """
-    Valida o JWT de reset e atualiza o hash da nova senha.
-    Em seguida gera um novo access_token e o seta no cookie.
-    """
-    try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-        user_id = payload.get("sub")
-    except JWTError:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Token inválido")
 
-    user = db.query(User).get(user_id)
+@router.post("/reset-password", response_model=Token)
+def reset_by_code(*, code: str, new_password: str, response: Response,
+                  db: Session = Depends(get_db)):
+    user = password_reset_service.verify_and_consume(db, code)
     if not user:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Usuário não encontrado")
+        raise HTTPException(400, "Código inválido ou expirado")
 
     user.hashed_password = hash_password(new_password)
     db.commit()
 
-    new_token = create_access_token(str(user.id))
-    response.set_cookie(
-        key=settings.COOKIE_NAME,
-        value=new_token,
-        httponly=True,
-        secure=False,
-        samesite="lax",
-        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-    )
-    return {"access_token": new_token}
+    token = create_access_token(str(user.id))      # JWT normal de login
+    response.set_cookie(key=settings.COOKIE_NAME, value=token, httponly=True,
+                        secure=False, samesite="lax",
+                        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60)
+    return {"access_token": token}
+
 
 
 @router.get("/verify", status_code=200)

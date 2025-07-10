@@ -58,10 +58,10 @@ export const forgotPasswordUser = (email: string) =>
   });
 
 
-export const resetPasswordUser = (token: string, newPassword: string) =>
-api.post<TokenResponse>('/auth/reset-password', null, {
-  params: { token, new_password: newPassword },
-});
+export const resetPasswordUser = (code: string, newPassword: string) =>
+  api.post<TokenResponse>('/auth/reset-password', null, {
+    params: { code, new_password: newPassword },   // <-- muda “token” → “code”
+  });
 
 // 5. SMS (Twilio Verify)
 export const requestPhoneCodeUser = (phone: string) =>
