@@ -45,3 +45,20 @@ export interface AvgPointsPerTxByDay {
   day: string;           // ex: "2025-07-09"
   avg_points: number;
 }
+
+
+export interface RuleTransactionRead {
+  id: string;           // UUID
+  user_id: string;      // UUID
+  user_name: string;  
+  amount: number;
+  description?: string;
+  created_at: string;   // ISO timestamp
+}
+
+export interface PaginatedRuleTransactions {
+  total: number;
+  skip: number;
+  limit: number;
+  items: RuleTransactionRead[];
+}

@@ -2,6 +2,7 @@
 'use client';
 
 import { FormEvent, useState, useEffect,useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { RuleType } from '@/types/points';
 import type { PointsRuleRead, PointsRuleCreate } from '@/types/points';
 import type { BranchRead } from '@/types/branch';
@@ -22,9 +23,11 @@ interface Props {
 }
 
 export default function PointsRuleModal({ rule, onSave, onCancel }: Props) {
+  const router = useRouter();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [ruleType, setRuleType] = useState<RuleType>(RuleType.value_spent);
+  const hiddenRuleTypes = [RuleType.event, RuleType.digital_behavior];
   const [config, setConfig] = useState<Record<string, any>>({});
   const [active, setActive] = useState(true);
   const [visible, setVisible] = useState(true);
@@ -170,6 +173,18 @@ export default function PointsRuleModal({ rule, onSave, onCancel }: Props) {
           </>
         );
       case RuleType.category:
+        // Se não houver nenhuma categoria carregada…
+        if (categories.length === 0) {
+          return (
+            <div className={styles.field}>
+              <Button onClick={() => router.push('/register?section=categories')}>
+                Cadastrar categoria
+              </Button>
+            </div>
+          );
+        }
+
+        // Caso contrário, renderiza o select normal:
         return (
           <div className={styles.field}>
             <label>Categorias</label>
@@ -330,98 +345,124 @@ export default function PointsRuleModal({ rule, onSave, onCancel }: Props) {
           </>
         );
       case RuleType.geolocation:
-  return (
-    <div className={styles.field}>
-      <label>Filial</label>
-      <select
-        className={styles.select}
-        value={config.branch_id || ''}
-        onChange={e => setConfig({ ...config, branch_id: e.target.value })}
-      >
-        <option value="">Nenhuma selecionada</option>
-        {branches.map(b => (
-          <option key={b.id} value={b.id}>
-            {b.name}
-          </option>
-        ))}
-      </select>
-      <FloatingLabelInput
-        label="Pontos"
-        type="number"
-        value={config.points ?? ''}
-        onChange={e => setConfig({ ...config, points: Number(e.target.value) })}
-      />
-    </div>
-  );
-  case RuleType.inventory:
-  return (
-    <div className={styles.field}>
-      <label>Itens de Inventário</label>
-      <select
-        multiple
-        size={Math.min(items.length, 10)}
-        className={styles.multiSelect}
-        value={config.item_ids || []}
-        onChange={() => {}}
-      >
-        {items.map(it => (
-          <option
-            key={it.id}
-            value={it.id}
-            onMouseDown={e => {
-              e.preventDefault();
-              const arr: string[] = config.item_ids || [];
-              const next = arr.includes(it.id)
-                ? arr.filter(x => x !== it.id)
-                : [...arr, it.id];
-              setConfig({ ...config, item_ids: next });
-            }}
-          >
-            {it.name}
-          </option>
-        ))}
-      </select>
-
-      {/* controles de paginação */}
-      <div className={styles.paginationControls}>
-        <button
-          type="button"
-          disabled={itemSkip === 0}
-          onClick={() => setItemSkip(itemSkip - itemLimit)}
-        >
-          Anterior
-        </button>
-        <span>
-          Página {Math.floor(itemSkip / itemLimit) + 1} de{' '}
-          {Math.ceil(itemTotal / itemLimit)}
-        </span>
-        <button
-          type="button"
-          disabled={itemSkip + itemLimit >= itemTotal}
-          onClick={() => setItemSkip(itemSkip + itemLimit)}
-        >
-          Próximo
-        </button>
-      </div>
-
-      {/* nomes selecionados */}
-      <div className={styles.selectedText}>
-        {(config.item_ids || [])
-          .map((id: string) => items.find(i => i.id === id)?.name)
-          .filter(Boolean)
-          .join(', ') || 'Nenhum selecionado'}
-      </div>
-
-      <FloatingLabelInput
-        label="Multiplicador"
-        type="number"
-        value={config.multiplier ?? ''}
-        onChange={e =>
-          setConfig({ ...config, multiplier: Number(e.target.value) })
+        // Se não houver filiais, mostra botão de cadastro
+        if (branches.length === 0) {
+          return (
+            <div className={styles.field}>
+              <Button onClick={() => router.push('/register')}>
+                Cadastrar filial
+              </Button>
+            </div>
+          );
         }
-      />
-    </div>
-  );
+
+        // Senão, renderiza o select normalmente
+        return (
+          <div className={styles.field}>
+            <label>Filial</label>
+            <select
+              className={styles.select}
+              value={config.branch_id || ''}
+              onChange={e => setConfig({ ...config, branch_id: e.target.value })}
+            >
+              <option value="">Nenhuma selecionada</option>
+              {branches.map(b => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+            <FloatingLabelInput
+              label="Pontos"
+              type="number"
+              value={config.points ?? ''}
+              onChange={e => setConfig({ ...config, points: Number(e.target.value) })}
+            />
+          </div>
+        );
+
+  case RuleType.inventory:
+    // Se não houver itens, exibe botão de cadastro
+    if (items.length === 0) {
+      return (
+        <div className={styles.field}>
+          <Button onClick={() => router.push('/register?section=inventory')}>
+            Cadastrar item de inventário
+          </Button>
+        </div>
+      );
+    }
+
+    // Caso haja itens, renderiza o select normalmente
+    return (
+      <div className={styles.field}>
+        <label>Itens de Inventário</label>
+        <select
+          multiple
+          size={Math.min(items.length, 10)}
+          className={styles.multiSelect}
+          value={config.item_ids || []}
+          onChange={() => {}}
+        >
+          {items.map(it => (
+            <option
+              key={it.id}
+              value={it.id}
+              onMouseDown={e => {
+                e.preventDefault();
+                const arr: string[] = config.item_ids || [];
+                const next = arr.includes(it.id)
+                  ? arr.filter(x => x !== it.id)
+                  : [...arr, it.id];
+                setConfig({ ...config, item_ids: next });
+              }}
+            >
+              {it.name}
+            </option>
+          ))}
+        </select>
+
+        {/* controles de paginação */}
+        <div className={styles.paginationControls}>
+          <button
+            type="button"
+            disabled={itemSkip === 0}
+            onClick={() => setItemSkip(itemSkip - itemLimit)}
+          >
+            Anterior
+          </button>
+          <span>
+            Página {Math.floor(itemSkip / itemLimit) + 1} de{' '}
+            {Math.ceil(itemTotal / itemLimit)}
+          </span>
+          <button
+            type="button"
+            disabled={itemSkip + itemLimit >= itemTotal}
+            onClick={() => setItemSkip(itemSkip + itemLimit)}
+          >
+            Próximo
+          </button>
+        </div>
+
+        {/* nomes selecionados */}
+        <div className={styles.selectedText}>
+          {(config.item_ids || [])
+            .map((id: string) => items.find(i => i.id === id)?.name)
+            .filter(Boolean)
+            .join(', ') || 'Nenhum selecionado'}
+        </div>
+
+        <FloatingLabelInput
+          label="Multiplicador"
+          type="number"
+          value={config.multiplier ?? ''}
+          onChange={e =>
+            setConfig({ ...config, multiplier: Number(e.target.value) })
+          }
+        />
+      </div>
+    );
+
       default:
         return <p>Configuração não implementada para este tipo.</p>;
     }
@@ -454,10 +495,12 @@ export default function PointsRuleModal({ rule, onSave, onCancel }: Props) {
           onChange={e => setRuleType(e.target.value as RuleType)}
           className={styles.select}
         >
-          {Object.values(RuleType).map(rt => (
-            <option key={rt} value={rt}>
-              {getRuleTypeLabel(rt)}
-            </option>
+          {Object.values(RuleType)
+            .filter(rt => !hiddenRuleTypes.includes(rt))
+            .map(rt => (
+              <option key={rt} value={rt}>
+                {getRuleTypeLabel(rt)}
+              </option>
           ))}
         </select>
       </div>

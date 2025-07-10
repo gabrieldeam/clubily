@@ -49,3 +49,26 @@
   padding: 0 0 0 10px;
   overflow-y: auto;
 }
+
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  .layout {
+    flex-direction: column;
+    gap: 10px;
+}
+}
+
+@media (max-width: 767px) {
+  .layout {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .sidebar {
+    width: 100%;
+    flex-direction: row;
+  }
+  .content {
+    padding: 0;
+    width: 100%;
+  }
+}

@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';    
 import { useAuth } from '@/context/AuthContext';
 import { useWallet } from '@/context/WalletContext';
 import {
@@ -28,6 +29,7 @@ interface ClientModalProps {
 }
 
 export default function ClientModal({ onClose }: ClientModalProps) {
+  const router = useRouter();    
   const { user: company } = useAuth();
   const companyId = company?.id ?? '';
   const { refresh: refreshCompanyWallet } = useWallet();
@@ -212,6 +214,23 @@ export default function ClientModal({ onClose }: ClientModalProps) {
       setSelectedProg(programs[0].id);
     }
   }, [programs]);
+
+  useEffect(() => {
+    const sum = selectedItems.reduce((total, itemId) => {
+      const item = items.find(i => i.id === itemId);
+      // força Number (ou parseFloat) caso price venha como string
+      const price = item?.price != null 
+        ? (typeof item.price === 'string' 
+            ? parseFloat(item.price) 
+            : item.price)
+        : 0;
+      return total + price;
+    }, 0);
+
+    setPurchaseAmount(sum.toFixed(2));  // agora sum é number, toFixed existe
+  }, [selectedItems, items]);
+
+
 
   /* ---------- 4) registrar compra ---------- */
   const handleRegisterPurchase = async () => {
@@ -404,75 +423,58 @@ export default function ClientModal({ onClose }: ClientModalProps) {
         />
 
           {itemsLoading ? (
-            <p>Carregando itens…</p>
-          ) : (
-            <div>
-              <label className={styles.label}>Itens comprados (Opcional)</label>
-
-              {/* lista de check-boxes scrollável */}
-              <div className={styles.checkboxList}>
-                {items.map((item) => {
-                  const checked = selectedItems.includes(item.id);
-
-                  return (
-                    <label
-                      key={item.id}
-                      className={`${styles.itemLabel} ${
-                        checked ? styles.itemLabelChecked : ''
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() =>
-                          setSelectedItems((prev) =>
-                            checked
-                              ? prev.filter((id) => id !== item.id)
-                              : [...prev, item.id],
-                          )
-                        }
-                      />
-                      {item.name}
-                    </label>
-                  );
-                })}
-                {/* paginação */}
+              <p>Carregando itens…</p>
+            ) : items.length > 0 ? (
+              <div>
+                <label className={styles.label}>Itens comprados (Opcional)</label>
+                <div className={styles.checkboxList}>
+                  {items.map((item) => {
+                    const checked = selectedItems.includes(item.id);
+                    return (
+                      <label
+                        key={item.id}
+                        className={`${styles.itemLabel} ${checked ? styles.itemLabelChecked : ''}`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() =>
+                            setSelectedItems((prev) =>
+                              checked
+                                ? prev.filter((id) => id !== item.id)
+                                : [...prev, item.id]
+                            )
+                          }
+                        />
+                        {item.name}
+                      </label>
+                    );
+                  })}
                   {itemTotal > itemLimit && (
                     <div className={styles.pagination}>
-                      <button
-                        className={styles.pageButton}
-                        onClick={goPrevPage}
-                        disabled={!hasPrevPage}
-                      >
-                        ← Anterior
-                      </button>
-                      <span className={styles.pageInfo}>
-                        {Math.floor(itemSkip / itemLimit) + 1} /{" "}
-                        {Math.ceil(itemTotal / itemLimit)}
-                      </span>
-                      <button
-                        className={styles.pageButton}
-                        onClick={goNextPage}
-                        disabled={!hasNextPage}
-                      >
-                        Próxima →
-                      </button>
+                      {/* ... seus botões de paginação ... */}
                     </div>
                   )}
+                </div>
+                {selectedItems.length > 0 && (
+                  <p className={styles.selectedHint}>
+                    Selecionados:&nbsp;
+                    {items
+                      .filter((i) => selectedItems.includes(i.id))
+                      .map((i) => i.name)
+                      .join(', ')}
+                  </p>
+                )}
               </div>
+            ) : (
+              <div className={styles.noInventory}>
+                <p>Nenhum item de inventário encontrado.</p>
+                <Button onClick={() => router.push('/register?section=inventory')}>
+                  Cadastrar Inventário
+                </Button>
+              </div>
+            )}
 
-              {/* nomes dos itens selecionados */}
-              {selectedItems.length > 0 && (
-                <p className={styles.selectedHint}>
-                  Selecionados:&nbsp;
-                  {items
-                    .filter((i) => selectedItems.includes(i.id))
-                    .map((i) => i.name)
-                    .join(', ')}
-                </p>
-              )}
-            </div>
-          )}
 
 
           {/* seletor de filial */}

@@ -2,6 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import Modal from '@/components/Modal/Modal';
 import Notification from '@/components/Notification/Notification';
 import {
@@ -138,7 +139,11 @@ export default function PointsRulesMain() {
           <p className={styles.loading}>Carregando regras...</p>
         ) : rules.length === 0 ? (
           <div className={styles.empty}>
-            <h2>Nenhuma regra criada</h2>
+            <h2>Nenhuma regra criada ainda</h2>
+            <p>
+              Crie sua primeira regra de pontuação para começar a fidelizar
+              seus clientes!
+            </p>
             <button className={styles.createBtn} onClick={openCreate}>
               Criar Regra
             </button>
@@ -160,6 +165,7 @@ export default function PointsRulesMain() {
                   <div>{r.active ? 'Sim' : 'Não'}</div>
                   <div>{r.visible ? 'Sim' : 'Não'}</div>
                   <div className={styles.actions}>
+                    <Link href={`/programs/rules/${r.id}/${r.name}`} className={styles.view}>🔍</Link>
                     <button
                       className={styles.edit}
                       onClick={() => openEdit(r)}
@@ -194,6 +200,7 @@ export default function PointsRulesMain() {
                   <p><strong>Visível:</strong> {r.visible ? 'Sim' : 'Não'}</p>
                 </div>
                 <div className={styles.cardActions}>
+                  <Link href={`/programs/rules/${r.id}/${r.name}`} className={styles.view}>🔍 Ver</Link>
                   <button className={styles.edit}>✏️ Editar</button>
                   <button
                     className={styles.delete}
