@@ -498,14 +498,14 @@ export default function ClientModal({ onClose }: ClientModalProps) {
           ) : null}
 
 
-        <FloatingLabelInput
+        {/* <FloatingLabelInput
           id="event"
           name="event"
           label="Evento (opcional)"
           type="text"
           value={eventValue}
           onChange={(e) => setEventValue(e.target.value)}
-        />
+        /> */}
 
         {/* checkbox para associar cashback */}
         {programs.length > 0 && (

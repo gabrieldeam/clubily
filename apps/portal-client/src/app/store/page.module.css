@@ -147,7 +147,8 @@
 
 .productCard {
   flex: 1 1 0;
-  min-width: 100px;
+  max-width: 130px;
+  min-width: 120px;
   text-align: center;
   display: flex;
   flex-direction: column;
@@ -160,6 +161,7 @@
   
   cursor: pointer;
 }
+
 
 .productCardAll {
   flex: 1 1 0;
@@ -392,6 +394,26 @@
 .footerLink:hover {
   color: #FF4C00;
 }
+
+
+/* page.module.css */
+
+.emptySlide {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;         /* garante que ocupe toda a altura do container */
+  width: 100%;          /* idem para a largura */
+  background-color: #fff; /* opcional: fundo branco ou outra cor */
+}
+
+.emptyLogo {
+  max-width: 50%;
+  max-height: 50%;
+  object-fit: contain;
+  filter: brightness(70%);
+}
+
 
 /* MEDIA QUERIES */
 @media (max-width: 1024px) {

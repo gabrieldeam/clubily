@@ -1,3 +1,4 @@
+// src/components/LoginForm/LoginForm.tsx
 'use client';
 
 import { FormEvent, useState } from 'react';
@@ -5,6 +6,7 @@ import styles from './LoginForm.module.css';
 import FloatingLabelInput from '@/components/FloatingLabelInput/FloatingLabelInput';
 import Notification from '@/components/Notification/Notification';
 import Button from '@/components/Button/Button';
+import axios from 'axios';
 import {
   loginUser,
   forgotPasswordUser,
@@ -23,64 +25,84 @@ interface LoginFormProps {
 
 export default function LoginForm({ onSuccess }: LoginFormProps) {
   const [mode, setMode] = useState<'login' | 'forgot' | 'reset'>('login');
-  const [identifier, setIdentifier] = useState('');        // para login
-  const [password, setPassword] = useState('');            // para login
-  const [email, setEmail] = useState('');                  // para forgot
-  const [code, setCode] = useState('');                    // para reset
-  const [newPassword, setNewPassword] = useState('');      // para reset
+  const [identifier, setIdentifier] = useState('');   // para login
+  const [password, setPassword] = useState('');       // para login
+  const [email, setEmail] = useState('');             // para forgot
+  const [code, setCode] = useState('');               // para reset
+  const [newPassword, setNewPassword] = useState(''); // para reset
   const [notification, setNotification] = useState<NotificationData | null>(null);
 
-  const clearAll = () => {
-    setIdentifier(''); setPassword('');
-    setEmail(''); setCode(''); setNewPassword('');
+  function clearAll() {
+    setIdentifier('');
+    setPassword('');
+    setEmail('');
+    setCode('');
+    setNewPassword('');
     setNotification(null);
-  };
+  }
 
-  const handleLogin = async (e: FormEvent) => {
+  // Helper to extract error detail from Axios responses
+  function extractErrorDetail(error: unknown): string | undefined {
+    if (axios.isAxiosError(error)) {
+      const data = error.response?.data;
+      if (data && typeof (data as Record<string, unknown>).detail === 'string') {
+        return (data as { detail: string }).detail;
+      }
+    }
+    return undefined;
+  }
+
+  async function handleLogin(e: FormEvent) {
     e.preventDefault();
     setNotification(null);
     try {
       await loginUser({ identifier, password });
       setNotification({ type: 'success', message: 'Login realizado!' });
       onSuccess();
-    } catch (err: any) {
-      const detail = err.response?.data?.detail || 'Falha no login.';
+    } catch (err: unknown) {
+      let detail = 'Credenciais incorretas, falha no login.';
+      const serverDetail = extractErrorDetail(err);
+      if (serverDetail) {
+        detail = serverDetail;
+      }
       setNotification({ type: 'error', message: detail });
     }
-  };
+  }
 
-  const handleForgot = async (e: FormEvent) => {
+  async function handleForgot(e: FormEvent) {
     e.preventDefault();
     setNotification(null);
     try {
       await forgotPasswordUser(email);
-      setNotification({
-        type: 'info',
-        message: 'Código enviado para seu e-mail.',
-      });
+      setNotification({ type: 'info', message: 'Código enviado para seu e-mail.' });
       setMode('reset');
-    } catch (err: any) {
-      const detail = err.response?.data?.detail || 'Erro ao enviar código.';
+    } catch (err: unknown) {
+      let detail = 'Erro ao enviar código.';
+      const serverDetail = extractErrorDetail(err);
+      if (serverDetail) {
+        detail = serverDetail;
+      }
       setNotification({ type: 'error', message: detail });
     }
-  };
+  }
 
-  const handleReset = async (e: FormEvent) => {
+  async function handleReset(e: FormEvent) {
     e.preventDefault();
     setNotification(null);
     try {
       await resetPasswordUser(code, newPassword);
-      setNotification({
-        type: 'success',
-        message: 'Senha redefinida com sucesso!',
-      });
+      setNotification({ type: 'success', message: 'Senha redefinida com sucesso!' });
       setMode('login');
       clearAll();
-    } catch (err: any) {
-      const detail = err.response?.data?.detail || 'Erro na redefinição.';
+    } catch (err: unknown) {
+      let detail = 'Erro na redefinição.';
+      const serverDetail = extractErrorDetail(err);
+      if (serverDetail) {
+        detail = serverDetail;
+      }
       setNotification({ type: 'error', message: detail });
     }
-  };
+  }
 
   return (
     <form
@@ -147,11 +169,11 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
         <FloatingLabelInput
           id="forgot-email"
           name="email"
-          label="E-mail cadastrado"
-          type="email"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          required
+            label="E-mail cadastrado"
+            type="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            required
         />
       )}
 

@@ -8,7 +8,6 @@ import type {
   WalletRead,
   WalletOperation,
   PaginatedWalletTransactions,
-  AdminWalletTransaction,
 } from '@/types/wallet';
 
 /**

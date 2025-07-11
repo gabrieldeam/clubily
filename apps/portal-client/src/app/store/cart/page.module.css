@@ -1,6 +1,6 @@
 
 .pageWrapper {
-  min-height: calc(100vh - /* altura do header se fixa */ 92px - 120px);
+  min-height: calc(100dvh - /* altura do header se fixa */ 92px - 120px);
   display: flex;
   flex-direction: column;  
   align-items: center;     

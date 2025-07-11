@@ -1,7 +1,7 @@
 // src/app/cashbacks/page.tsx
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -14,7 +14,6 @@ import {
 import { getMyCompanyWallet, listWalletDebits } from '@/services/walletService';
 import type {
   UserCashbackCompany,
-  CashbackRead,
   PaginatedCashbacks,
 } from '@/types/cashback';
 import type { WalletTransactionRead } from '@/types/wallet';
@@ -52,14 +51,15 @@ export default function CashbacksPage() {
   const [loadingDebits, setLoadingDebits] = useState(false);
   const [errorDebits, setErrorDebits] = useState<string | null>(null);
 
-  // —— Selecção / modo de visão ——
+  // —— Seleção / modo de visão ——
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('cashbacks');
 
   // Carrega mais empresas
-  const loadMoreCompanies = async () => {
+  const loadMoreCompanies = useCallback(async () => {
     if (loadingCompanies) return;
     if (compTotal && compSkip >= compTotal) return;
+
     setLoadingCompanies(true);
     try {
       const res = await listCashbackCompanies(compSkip, compLimit);
@@ -72,19 +72,19 @@ export default function CashbacksPage() {
         );
         return [...prev, ...filtered];
       });
-    } catch (e) {
-      console.error(e);
+    } catch (error: unknown) {
+      console.error(error);
     } finally {
       setLoadingCompanies(false);
     }
-  };
+  }, [compSkip, compTotal, loadingCompanies]);
 
   // Inicial
   useEffect(() => {
     if (didLoadRef.current) return;
     didLoadRef.current = true;
     loadMoreCompanies();
-  }, []);
+  }, [loadMoreCompanies]);
 
   // Infinite scroll horizontal
   useEffect(() => {
@@ -99,7 +99,7 @@ export default function CashbacksPage() {
       el.addEventListener('scroll', onScroll);
       return () => el.removeEventListener('scroll', onScroll);
     }
-  }, [compSkip, compTotal]);
+  }, [loadMoreCompanies]);
 
   // Busca cashbacks
   useEffect(() => {
@@ -109,15 +109,12 @@ export default function CashbacksPage() {
       setCashbacks(null);
       const skip = (page - 1) * cbLimit;
       try {
-        let res;
-        if (selectedCompany) {
-          res = await listCashbacksByCompany(selectedCompany, skip, cbLimit);
-        } else {
-          res = await listCashbacks(skip, cbLimit);
-        }
+        const res = selectedCompany
+          ? await listCashbacksByCompany(selectedCompany, skip, cbLimit)
+          : await listCashbacks(skip, cbLimit);
         setCashbacks(res.data);
-      } catch (e) {
-        console.error(e);
+      } catch (error: unknown) {
+        console.error(error);
       } finally {
         setLoadingCashbacks(false);
       }
@@ -147,7 +144,6 @@ export default function CashbacksPage() {
   // Handler de clique na empresa
   const handleCompanyClick = (companyId: string) => {
     if (selectedCompany === companyId) {
-      // Deseleciona e volta ao estado inicial
       setSelectedCompany(null);
       setViewMode('cashbacks');
       setPage(1);
@@ -240,7 +236,7 @@ export default function CashbacksPage() {
           )}
         </section>
 
-                {/* —— Seletor de Visão só aparece quando há empresa selecionada —— */}
+        {/* —— Seletor de Visão só aparece quando há empresa selecionada —— */}
         {selectedCompany && (
           <div className={styles.viewToggle}>
             <button
@@ -323,36 +319,33 @@ export default function CashbacksPage() {
               </>
             )
           ) : (
-            // viewMode === 'debits'
-            <>
-              {loadingDebits ? (
-                <p>Carregando débitos…</p>
-              ) : errorDebits ? (
-                <p className={styles.error}>{errorDebits}</p>
-              ) : !debits?.length ? (
-                <p>Nenhum débito encontrado.</p>
-              ) : (
-                <ul className={styles.cashbacksList}>
-                  {debits.map(d => (
-                    <li key={d.id} className={styles.cashbackItem}>
-                      <div className={styles.cashbackDetails}>
-                        <div>
-                          <strong>Valor:</strong>{' '}
-                          {d.amount.toLocaleString('pt-BR', {
-                            style: 'currency',
-                            currency: 'BRL',
-                          })}
-                        </div>
-                        <div>
-                          <strong>Data:</strong>{' '}
-                          {new Date(d.created_at).toLocaleDateString('pt-BR')}
-                        </div>
+            loadingDebits ? (
+              <p>Carregando débitos…</p>
+            ) : errorDebits ? (
+              <p className={styles.error}>{errorDebits}</p>
+            ) : !debits?.length ? (
+              <p>Nenhum débito encontrado.</p>
+            ) : (
+              <ul className={styles.cashbacksList}>
+                {debits.map(d => (
+                  <li key={d.id} className={styles.cashbackItem}>
+                    <div className={styles.cashbackDetails}>
+                      <div>
+                        <strong>Valor:</strong>{' '}
+                        {d.amount.toLocaleString('pt-BR', {
+                          style: 'currency',
+                          currency: 'BRL',
+                        })}
                       </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </>
+                      <div>
+                        <strong>Data:</strong>{' '}
+                        {new Date(d.created_at).toLocaleDateString('pt-BR')}
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )
           )}
         </section>
       </div>

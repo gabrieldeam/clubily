@@ -16,7 +16,8 @@ import {
   UserCheck,
   DollarSign,
   SquareChartGantt,
-  ShoppingCart
+  ShoppingCart,
+  GalleryThumbnails
 } from 'lucide-react';
 
 const navItems = [
@@ -32,6 +33,7 @@ const navItems = [
   { label: 'Representantes', href: '/admin/referrals', icon: UserCheck },
   { label: 'Comissões', href: '/admin/commissions', icon: DollarSign },
   { label: 'Loja de Recompensas', href: '/admin/rewards', icon: ShoppingCart },
+  { label: 'Slides', href: '/admin/slides', icon: GalleryThumbnails },
 ];
 
 export default function AdminWelcomePage() {

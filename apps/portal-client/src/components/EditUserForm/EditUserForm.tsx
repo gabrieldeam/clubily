@@ -1,3 +1,5 @@
+// src/components/EditUserForm/EditUserForm.tsx
+// src/components/EditUserForm/EditUserForm.tsx
 'use client';
 
 import { useEffect, useState, FormEvent } from 'react';
@@ -11,7 +13,7 @@ import {
   forgotPasswordUser,
   resetPasswordUser,
 } from '@/services/userService';
-import type { UserRead, UserUpdate } from '@/types/user';
+import type { UserUpdate } from '@/types/user';
 
 type NotificationType = 'success' | 'error' | 'info';
 type NotificationData = { type: NotificationType; message: string };
@@ -43,10 +45,11 @@ export default function EditUserForm({
           email: data.email,
           phone: data.phone ?? '',
         });
-        // já pré-preenche o e-mail no form de reset
         setEmailForReset(data.email);
       })
-      .catch(() => setNotification({ type: 'error', message: 'Erro ao carregar perfil.' }))
+      .catch(() =>
+        setNotification({ type: 'error', message: 'Erro ao carregar perfil.' })
+      )
       .finally(() => setLoading(false));
   }, []);
 
@@ -61,10 +64,20 @@ export default function EditUserForm({
     try {
       await updateCurrentUser(form);
       setNotification({ type: 'success', message: 'Perfil atualizado com sucesso.' });
-      onSaved();   // não passa parâmetro
+      onSaved();
       onClose();
-    } catch (err: any) {
-      const detail = err.response?.data?.detail || 'Erro ao atualizar perfil.';
+    } catch (err: unknown) {
+      let detail = 'Erro ao atualizar perfil.';
+      if (typeof err === 'object' && err !== null) {
+        const response = (err as { response?: unknown }).response;
+        if (typeof response === 'object' && response !== null) {
+          const data = (response as { data?: unknown }).data;
+          const dataObj = data as { detail?: unknown };
+          if (typeof dataObj.detail === 'string') {
+            detail = dataObj.detail;
+          }
+        }
+      }
       setNotification({ type: 'error', message: detail });
     }
   };
@@ -82,8 +95,18 @@ export default function EditUserForm({
       await forgotPasswordUser(emailForReset);
       setResetNotification({ type: 'info', message: 'E-mail de redefinição enviado.' });
       setMode('reset');
-    } catch (err: any) {
-      const detail = err.response?.data?.detail || 'Erro ao enviar e-mail.';
+    } catch (err: unknown) {
+      let detail = 'Erro ao enviar e-mail.';
+      if (typeof err === 'object' && err !== null) {
+        const response = (err as { response?: unknown }).response;
+        if (typeof response === 'object' && response !== null) {
+          const data = (response as { data?: unknown }).data;
+          const dataObj = data as { detail?: unknown };
+          if (typeof dataObj.detail === 'string') {
+            detail = dataObj.detail;
+          }
+        }
+      }
       setResetNotification({ type: 'error', message: detail });
     }
   };
@@ -96,8 +119,18 @@ export default function EditUserForm({
       setResetNotification({ type: 'success', message: 'Senha redefinida com sucesso!' });
       clearResetFields();
       setMode('forgot');
-    } catch (err: any) {
-      const detail = err.response?.data?.detail || 'Erro na redefinição.';
+    } catch (err: unknown) {
+      let detail = 'Erro na redefinição.';
+      if (typeof err === 'object' && err !== null) {
+        const response = (err as { response?: unknown }).response;
+        if (typeof response === 'object' && response !== null) {
+          const data = (response as { data?: unknown }).data;
+          const dataObj = data as { detail?: unknown };
+          if (typeof dataObj.detail === 'string') {
+            detail = dataObj.detail;
+          }
+        }
+      }
       setResetNotification({ type: 'error', message: detail });
     }
   };
@@ -125,7 +158,6 @@ export default function EditUserForm({
             onChange={handleChange}
             required
           />
-
           <FloatingLabelInput
             id="field-email"
             name="email"
@@ -135,7 +167,6 @@ export default function EditUserForm({
             onChange={handleChange}
             required
           />
-
           <FloatingLabelInput
             id="field-phone"
             name="phone"
@@ -151,8 +182,6 @@ export default function EditUserForm({
             </Button>
           </div>
         </div>
-
-        
       </form>
 
       {/* === Form de redefinição de senha === */}
@@ -173,7 +202,7 @@ export default function EditUserForm({
             />
           )}
 
-          {mode === 'forgot' && (
+          {mode === 'forgot' ? (
             <FloatingLabelInput
               id="reset-email"
               name="emailForReset"
@@ -183,9 +212,7 @@ export default function EditUserForm({
               onChange={e => setEmailForReset(e.target.value)}
               required
             />
-          )}
-
-          {mode === 'reset' && (
+          ) : (
             <>
               <FloatingLabelInput
                 id="reset-code"
@@ -230,4 +257,5 @@ export default function EditUserForm({
       </div>
     </div>
   );
+
 }

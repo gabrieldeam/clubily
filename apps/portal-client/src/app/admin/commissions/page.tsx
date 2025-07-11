@@ -1,7 +1,7 @@
 // src/app/admin/commissions/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   listWithdrawals,
   approveWithdrawal,
@@ -23,30 +23,33 @@ export default function AdminCommissionsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedWithdrawal, setSelectedWithdrawal] = useState<CommissionWithdrawalRead | null>(null);
 
-  useEffect(() => {
-    fetchWithdrawals();
-  }, [page]);
-
-  async function fetchWithdrawals() {
+  // Memoiza fetchWithdrawals
+  const fetchWithdrawals = useCallback(async () => {
     setLoading(true);
     try {
       const skip = (page - 1) * limit;
       const res = await listWithdrawals(skip, limit);
       setWithdrawals(res.data);
-    } catch (e: any) {
-      setNotification({ type: 'error', message: e.message || 'Erro ao buscar saques' });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erro ao buscar saques';
+      setNotification({ type: 'error', message });
     } finally {
       setLoading(false);
     }
-  }
+  }, [page, limit]);
+
+  useEffect(() => {
+    fetchWithdrawals();
+  }, [fetchWithdrawals]);
 
   async function handleApprove(id: string) {
     try {
       await approveWithdrawal(id);
       setNotification({ type: 'success', message: 'Saque aprovado com sucesso!' });
       fetchWithdrawals();
-    } catch (e: any) {
-      setNotification({ type: 'error', message: e.message || 'Erro ao aprovar saque' });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erro ao aprovar saque';
+      setNotification({ type: 'error', message });
     }
   }
 
@@ -55,8 +58,9 @@ export default function AdminCommissionsPage() {
       await rejectWithdrawal(id);
       setNotification({ type: 'success', message: 'Saque rejeitado com sucesso!' });
       fetchWithdrawals();
-    } catch (e: any) {
-      setNotification({ type: 'error', message: e.message || 'Erro ao rejeitar saque' });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erro ao rejeitar saque';
+      setNotification({ type: 'error', message });
     }
   }
 
@@ -110,11 +114,15 @@ export default function AdminCommissionsPage() {
                       : '—'}
                   </td>
                   <td data-label="Status">
-                    <span className={
-                      w.status === 'approved' ? styles.badgeSuccess
-                      : w.status === 'rejected' ? styles.badgeError
-                      : styles.badgePending
-                    }>
+                    <span
+                      className={
+                        w.status === 'approved'
+                          ? styles.badgeSuccess
+                          : w.status === 'rejected'
+                          ? styles.badgeError
+                          : styles.badgePending
+                      }
+                    >
                       {w.status}
                     </span>
                   </td>
@@ -166,71 +174,72 @@ export default function AdminCommissionsPage() {
       </div>
 
       {/* Modal de Detalhes */}
-<Modal open={modalOpen} onClose={closeModal} width={600}>
-  {selectedWithdrawal && (
-    <div className={styles.details}>
-      <header className={styles.header}>
-        <h2>Detalhes do Saque</h2>
-      </header>
+      <Modal open={modalOpen} onClose={closeModal} width={600}>
+        {selectedWithdrawal && (
+          <div className={styles.details}>
+            <header className={styles.header}>
+              <h2>Detalhes do Saque</h2>
+            </header>
 
-      <dl className={styles.grid}>
-        <div className={styles.row}>
-          <dt>ID</dt>
-          <dd>{selectedWithdrawal.id}</dd>
-        </div>
-        <div className={styles.row}>
-          <dt>Usuário</dt>
-          <dd>
-            {selectedWithdrawal.user.name} <br/>
-            <small>({selectedWithdrawal.user.email})</small>
-          </dd>
-        </div>
-        <div className={styles.row}>
-          <dt>Valor</dt>
-          <dd>R$ {selectedWithdrawal.amount.toFixed(2)}</dd>
-        </div>
-        <div className={styles.row}>
-          <dt>Status</dt>
-          <dd>
-            <span className={`${styles.badge} ${styles[selectedWithdrawal.status]}`}>
-              {selectedWithdrawal.status.charAt(0).toUpperCase() + selectedWithdrawal.status.slice(1)}
-            </span>
-          </dd>
-        </div>
-        <div className={styles.row}>
-          <dt>Data</dt>
-          <dd>{new Date(selectedWithdrawal.created_at).toLocaleString()}</dd>
-        </div>
-      </dl>
+            <dl className={styles.grid}>
+              <div className={styles.row}>
+                <dt>ID</dt>
+                <dd>{selectedWithdrawal.id}</dd>
+              </div>
+              <div className={styles.row}>
+                <dt>Usuário</dt>
+                <dd>
+                  {selectedWithdrawal.user.name}
+                  <br />
+                  <small>({selectedWithdrawal.user.email})</small>
+                </dd>
+              </div>
+              <div className={styles.row}>
+                <dt>Valor</dt>
+                <dd>R$ {selectedWithdrawal.amount.toFixed(2)}</dd>
+              </div>
+              <div className={styles.row}>
+                <dt>Status</dt>
+                <dd>
+                  <span className={`${styles.badge} ${styles[selectedWithdrawal.status]}`}>
+                    {selectedWithdrawal.status.charAt(0).toUpperCase() +
+                      selectedWithdrawal.status.slice(1)}
+                  </span>
+                </dd>
+              </div>
+              <div className={styles.row}>
+                <dt>Data</dt>
+                <dd>{new Date(selectedWithdrawal.created_at).toLocaleString()}</dd>
+              </div>
+            </dl>
 
-      {selectedWithdrawal.transfer_method ? (
-        <>
-          <h3 className={styles.subheader}>Método de Transferência</h3>
-          <dl className={styles.grid}>
-            <div className={styles.row}>
-              <dt>Nome</dt>
-              <dd>{selectedWithdrawal.transfer_method.name}</dd>
-            </div>
-            <div className={styles.row}>
-              <dt>Chave</dt>
-              <dd>
-                {selectedWithdrawal.transfer_method.key_type}:<br/>
-                <strong>{selectedWithdrawal.transfer_method.key_value}</strong>
-              </dd>
-            </div>
-            <div className={styles.row}>
-              <dt>Criado em</dt>
-              <dd>{new Date(selectedWithdrawal.transfer_method.created_at).toLocaleString()}</dd>
-            </div>
-          </dl>
-        </>
-      ) : (
-        <p className={styles.noMethod}>Nenhum método de transferência cadastrado.</p>
-      )}
-    </div>
-  )}
-</Modal>
-
+            {selectedWithdrawal.transfer_method ? (
+              <>
+                <h3 className={styles.subheader}>Método de Transferência</h3>
+                <dl className={styles.grid}>
+                  <div className={styles.row}>
+                    <dt>Nome</dt>
+                    <dd>{selectedWithdrawal.transfer_method.name}</dd>
+                  </div>
+                  <div className={styles.row}>
+                    <dt>Chave</dt>
+                    <dd>
+                      {selectedWithdrawal.transfer_method.key_type}:<br />
+                      <strong>{selectedWithdrawal.transfer_method.key_value}</strong>
+                    </dd>
+                  </div>
+                  <div className={styles.row}>
+                    <dt>Criado em</dt>
+                    <dd>{new Date(selectedWithdrawal.transfer_method.created_at).toLocaleString()}</dd>
+                  </div>
+                </dl>
+              </>
+            ) : (
+              <p className={styles.noMethod}>Nenhum método de transferência cadastrado.</p>
+            )}
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

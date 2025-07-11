@@ -1,7 +1,9 @@
+// src/components/ProductDetailModal/ProductDetailModal.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Modal from '@/components/Modal/Modal';
+import Image from 'next/image';
 import { getRewardProductById } from '@/services/rewardsService';
 import type { RewardProductRead } from '@/types/reward';
 import styles from './ProductDetailModal.module.css';
@@ -53,14 +55,18 @@ export default function ProductDetailModal({
         {product && (
           <>
             <header className={styles.header}>
-              <img
-                src={imgSrc(product.image_url)}
-                alt={product.name}
-                className={styles.image}
-              />
+              <div className={styles.imageWrapper}>
+                <Image
+                  loader={({ src }) => src}
+                  src={imgSrc(product.image_url)}
+                  alt={product.name}
+                  width={300}
+                  height={300}
+                  className={styles.image}
+                />
+              </div>
               <div className={styles.info}>
                 <h2 className={styles.name}>{product.name}</h2>
-                {/* <p className={styles.sku}>SKU: {product.sku}</p> */}
                 <p className={styles.cost}>{product.points_cost} pts</p>
               </div>
             </header>
@@ -85,13 +91,18 @@ export default function ProductDetailModal({
             )}
             {product.pdf_url && (
               <p className={styles.pdf}>
-                <a href={product.pdf_url} target="_blank" rel="noopener noreferrer">
+                <a
+                  href={product.pdf_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   Ver PDF do produto
                 </a>
               </p>
             )}
             <p className={styles.createdAt}>
-              Criado em: {new Date(product.created_at).toLocaleDateString('pt-BR')}
+              Criado em:{' '}
+              {new Date(product.created_at).toLocaleDateString('pt-BR')}
             </p>
           </>
         )}

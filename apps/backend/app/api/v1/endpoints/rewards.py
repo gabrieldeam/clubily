@@ -14,7 +14,7 @@ from app.models.reward_product import RewardProduct
 from app.models.reward_order import RewardOrder, OrderStatus
 from app.schemas.rewards import (
     RewardCategoryCreate, RewardCategoryRead, PaginatedRewardCategory,
-    RewardProductCreate, RewardProductUpdate, RewardProductRead, PaginatedRewardProduct,
+    RewardProductCreate, RewardProductUpdate, RewardProductRead, PaginatedRewardProduct,PaginatedRewardProductWithCategory,
     RewardOrderCreate, RewardOrderRead, PaginatedRewardOrder
 )
 from app.services.file_service import save_upload
@@ -120,8 +120,8 @@ def read_categories(
 
 @router.get(
     "/categories/{category_id}/products",
-    response_model=PaginatedRewardProduct,
-    summary="Listar produtos de uma categoria (paginado)"
+    response_model=PaginatedRewardProductWithCategory,
+    summary="Listar produtos de uma categoria (paginado) com dados da categoria"
 )
 def read_products_by_category(
     category_id: UUID = Path(..., description="ID da categoria"),
@@ -129,12 +129,17 @@ def read_products_by_category(
     limit: int = Query(10, gt=0, le=100),
     db: Session = Depends(get_db),
 ):
-    # certifique-se de que RewardProduct.categories está configurado
+    # 1) busca a categoria
+    cat = db.get(RewardCategory, category_id)
+    if not cat:
+        raise HTTPException(status_code=404, detail="Categoria não encontrada")
+
+    # 2) faz a query de produtos ativos nessa categoria
     q = (
         db.query(RewardProduct)
-            .filter(RewardProduct.active == True)
-            .join(RewardProduct.categories)
-            .filter(RewardCategory.id == category_id)
+          .filter(RewardProduct.active == True)
+          .join(RewardProduct.categories)
+          .filter(RewardCategory.id == category_id)
     )
     total = q.count()
     items = (
@@ -143,7 +148,15 @@ def read_products_by_category(
          .limit(limit)
          .all()
     )
-    return {"total": total, "skip": skip, "limit": limit, "items": items}
+
+    # 3) devolve o resultado + categoria
+    return {
+        "total": total,
+        "skip": skip,
+        "limit": limit,
+        "category": cat,
+        "items": items
+    }
 
 
 # ─── Admin: produtos ───────────────────────────────────────────────────────────

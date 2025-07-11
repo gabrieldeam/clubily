@@ -84,9 +84,19 @@ class PaginatedRewardProduct(BaseModel):
     items: List[RewardProductRead]
     model_config = ConfigDict(from_attributes=True)
 
+
 class PaginatedRewardOrder(BaseModel):
     total: int
     skip: int
-    limit: int
+    limit: int    
     items: List[RewardOrderRead]
+    model_config = ConfigDict(from_attributes=True)
+
+class PaginatedRewardProductWithCategory(BaseModel):
+    total: int
+    skip: int
+    limit: int
+    category: RewardCategoryRead
+    items: List[RewardProductRead]
+
     model_config = ConfigDict(from_attributes=True)

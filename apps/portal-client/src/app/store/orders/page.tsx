@@ -1,13 +1,16 @@
+// src/app/store/orders/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
-import { listMyRewardOrders } from '@/services/rewardsService';
-import type { PaginatedRewardOrder, RewardOrderRead } from '@/types/reward';
-import OrderDetailModal from '@/components/OrderDetailModal/OrderDetailModal';
+import { useRouter } from 'next/navigation';
 import Header from '@/components/Header/Header';
+import OrderDetailModal from '@/components/OrderDetailModal/OrderDetailModal';
+import { listMyRewardOrders } from '@/services/rewardsService';
+import type { RewardOrderRead } from '@/types/reward';
 import styles from './page.module.css';
 
 export default function OrdersPage() {
+  const router = useRouter();
   const [orders, setOrders] = useState<RewardOrderRead[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<RewardOrderRead | null>(null);
@@ -22,9 +25,19 @@ export default function OrdersPage() {
   const openModal = (order: RewardOrderRead) => setSelectedOrder(order);
   const closeModal = () => setSelectedOrder(null);
 
+  // Tipo para agrupar os itens do pedido sem usar "any"
+  type ItemGroup = {
+    product: RewardOrderRead['items'][number]['product'];
+    quantity: number;
+  };
+
   return (
     <>
-      <Header onSearch={q => {/* reutilize sua lógica de redirecionamento */}} />
+      <Header
+        onSearch={q =>
+          router.push(`/store/search?name=${encodeURIComponent(q)}`)
+        }
+      />
 
       <div className={styles.pageWrapper}>
         <div className={styles.container}>
@@ -37,17 +50,22 @@ export default function OrdersPage() {
           ) : (
             <ul className={styles.list}>
               {orders.map(order => {
-                // exibe apenas até o primeiro hífen
+                // exibe só a parte antes do primeiro hífen
                 const displayId = order.id.split('-')[0];
-                // agrupa itens por produto
-                const grouped = order.items.reduce<Record<string, { product: any; quantity: number }>>((acc, cur) => {
-                  if (acc[cur.product.id]) {
-                    acc[cur.product.id].quantity += cur.quantity;
-                  } else {
-                    acc[cur.product.id] = { product: cur.product, quantity: cur.quantity };
-                  }
-                  return acc;
-                }, {});
+
+                // agrupa por produto
+                const grouped = order.items.reduce<Record<string, ItemGroup>>(
+                  (acc, cur) => {
+                    const key = cur.product.id;
+                    if (acc[key]) {
+                      acc[key].quantity += cur.quantity;
+                    } else {
+                      acc[key] = { product: cur.product, quantity: cur.quantity };
+                    }
+                    return acc;
+                  },
+                  {}
+                );
                 const items = Object.values(grouped);
 
                 return (
