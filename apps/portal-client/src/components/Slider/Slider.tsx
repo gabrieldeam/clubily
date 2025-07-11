@@ -1,3 +1,4 @@
+// src/components/Slider/Slider.tsx
 'use client';
 
 import React, {
@@ -12,7 +13,8 @@ import styles from './Slider.module.css';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface SliderProps {
-  children: ReactElement<any>[];
+  // Declaramos que cada filho é um ReactElement que aceita `className`
+  children: ReactElement<{ className?: string }>[];
   interval?: number; // ms
 }
 
@@ -38,18 +40,21 @@ export default function Slider({
       <button className={styles.nav} onClick={goPrev}>
         <ChevronLeft />
       </button>
+
       <div
         className={styles.viewport}
         style={{ transform: `translateX(-${current * 100}%)` }}
       >
         {Children.map(children, (child, idx) =>
-          isValidElement(child)
-            ? cloneElement(child as ReactElement<any>, {
+          isValidElement<{ className?: string }>(child)
+            ? cloneElement(child, {
+                // Agora `className` é reconhecida
                 className: `${styles.slide} ${idx === current ? styles.active : ''}`,
               })
             : child
         )}
       </div>
+
       <button className={styles.nav} onClick={goNext}>
         <ChevronRight />
       </button>

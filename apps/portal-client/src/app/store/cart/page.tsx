@@ -1,10 +1,12 @@
+// src/app/store/cart/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import Image from 'next/image';
+import Header from '@/components/Header/Header';
 import { useCart } from '@/context/CartContext';
 import { useAddress } from '@/context/AddressContext';
-import { useRouter } from 'next/navigation';
-import Header from '@/components/Header/Header';
 import ProductDetailModal from '@/components/ProductDetailModal/ProductDetailModal';
 import FloatingLabelInput from '@/components/FloatingLabelInput/FloatingLabelInput';
 import { getUserPointsBalance } from '@/services/pointsUserService';
@@ -14,34 +16,46 @@ import { Trash2, Plus, Minus } from 'lucide-react';
 import styles from './page.module.css';
 
 export default function CartPage() {
+  /* ───────────── context/data ───────────── */
   const {
     items,
     incrementItem,
     decrementItem,
     removeItem,
     clearCart,
-    totalPoints
+    totalPoints,
   } = useCart();
-  const { addresses, selectedAddress, loading: loadingAddresses, selectAddress } = useAddress();
+
+  const {
+    addresses,
+    selectedAddress,
+    loading: loadingAddresses,
+    selectAddress,
+  } = useAddress();
+
   const router = useRouter();
-  const baseUrl = process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL ?? '';
+  const baseUrl =
+    process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL ?? '';
 
-  // Modal de detalhes
+  /* ───────────── modal de detalhes ───────────── */
   const [modalOpen, setModalOpen] = useState(false);
-  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  const [selectedProductId, setSelectedProductId] =
+    useState<string | null>(null);
 
-  // Saldo de pontos
+  /* ───────────── saldo de pontos ───────────── */
   const [balance, setBalance] = useState(0);
   const [loadingBalance, setLoadingBalance] = useState(true);
+
   useEffect(() => {
     getUserPointsBalance()
-      .then(res => setBalance(res.data.balance))
+      .then((res) => setBalance(res.data.balance))
       .catch(() => setBalance(0))
       .finally(() => setLoadingBalance(false));
   }, []);
+
   const canCheckout = totalPoints <= balance;
 
-  // Fluxo de checkout
+  /* ───────────── fluxo de checkout ───────────── */
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [address, setAddress] = useState({
     recipient: '',
@@ -51,15 +65,15 @@ export default function CartPage() {
     city: '',
     state: '',
     postal_code: '',
-    country: ''
+    country: '',
   });
+
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Pré-preenche o form quando troca selectedAddress
   useEffect(() => {
     if (selectedAddress) {
-      setAddress(prev => ({
+      setAddress((prev) => ({
         ...prev,
         street: selectedAddress.street || '',
         number: selectedAddress.number || '',
@@ -67,11 +81,12 @@ export default function CartPage() {
         city: selectedAddress.city || '',
         state: selectedAddress.state || '',
         postal_code: selectedAddress.postal_code || '',
-        country: selectedAddress.country || ''
+        country: selectedAddress.country || '',
       }));
     }
   }, [selectedAddress]);
 
+  /* ───────────── helpers ───────────── */
   const openModal = (id: string) => {
     setSelectedProductId(id);
     setModalOpen(true);
@@ -86,13 +101,20 @@ export default function CartPage() {
     setCheckoutOpen(true);
   };
 
-  const handleSelectAddress = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const addr = addresses.find(a => a.id === e.target.value);
+  const handleSelectAddress = async (
+    e: React.ChangeEvent<HTMLSelectElement>,
+  ) => {
+    const addr = addresses.find((a) => a.id === e.target.value);
     if (addr) await selectAddress(addr);
   };
 
-  const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) =>
-    setAddress(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  const handleAddressChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) =>
+    setAddress((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,13 +123,16 @@ export default function CartPage() {
 
     const payload: RewardOrderCreate = {
       ...address,
-      items: items.map(i => ({ product_id: i.id, quantity: i.quantity }))
+      items: items.map((i) => ({
+        product_id: i.id,
+        quantity: i.quantity,
+      })),
     };
 
     try {
-      const res = await makeRewardOrder(payload);
+      await makeRewardOrder(payload);
       clearCart();
-      router.push(`/store/orders`);
+      router.push('/store/orders');
     } catch {
       setErrorMsg('Erro ao criar pedido. Tente novamente.');
     } finally {
@@ -115,25 +140,29 @@ export default function CartPage() {
     }
   };
 
+  /* ───────────── UI ───────────── */
   return (
     <>
-      <Header onSearch={q => router.push(`/store/search?name=${encodeURIComponent(q)}`)} />
+      <Header
+        onSearch={(q) =>
+          router.push(`/store/search?name=${encodeURIComponent(q)}`)
+        }
+      />
 
       <div className={styles.pageWrapper}>
         <div className={styles.container}>
-
-          {/* Carteira de pontos */}
+          {/* Saldo */}
           <div className={styles.wallet}>
-            {loadingBalance
-              ? <span>Carregando saldo...</span>
-              : (
-                <>
-                  <span className={styles.walletLabel}>Seu Saldo</span>
-                  <span className={styles.walletBalance}>
-                    {balance.toLocaleString()}pts
-                  </span>
-                </>
-              )}
+            {loadingBalance ? (
+              <span>Carregando saldo…</span>
+            ) : (
+              <>
+                <span className={styles.walletLabel}>Seu Saldo</span>
+                <span className={styles.walletBalance}>
+                  {balance.toLocaleString()}pts
+                </span>
+              </>
+            )}
           </div>
 
           <h4 className={styles.title}>Meu Carrinho</h4>
@@ -143,19 +172,28 @@ export default function CartPage() {
           ) : (
             <>
               <ul className={styles.list}>
-                {items.map(item => (
+                {items.map((item) => (
                   <li key={item.id} className={styles.item}>
                     <div
                       className={styles.imageWrapper}
                       onClick={() => openModal(item.id)}
                     >
-                      <img
-                        src={item.image_url ? `${baseUrl}${item.image_url}` : '/placeholder.png'}
+                      <Image
+                        src={
+                          item.image_url
+                            ? `${baseUrl}${item.image_url}`
+                            : '/placeholder.png'
+                        }
                         alt={item.name}
+                        width={80}
+                        height={80}
+                        className={styles.productImage}
                       />
                     </div>
+
                     <div className={styles.info}>
                       <h2 onClick={() => openModal(item.id)}>{item.name}</h2>
+
                       <div className={styles.qtyControls}>
                         <button
                           onClick={() => decrementItem(item.id)}
@@ -173,11 +211,16 @@ export default function CartPage() {
                           <Plus size={14} />
                         </button>
                       </div>
+
                       <p className={styles.price}>
                         {item.points_cost.toLocaleString()}pts cada
                       </p>
                     </div>
-                    <button onClick={() => removeItem(item.id)} className={styles.remove}>
+
+                    <button
+                      onClick={() => removeItem(item.id)}
+                      className={styles.remove}
+                    >
                       <Trash2 size={18} />
                     </button>
                   </li>
@@ -192,11 +235,11 @@ export default function CartPage() {
 
               <div className={styles.footer}>
                 <p className={styles.total}>
-                  Total do Carrinho: <strong>{totalPoints.toLocaleString()}pts</strong>
+                  Total do Carrinho:{' '}
+                  <strong>{totalPoints.toLocaleString()}pts</strong>
                 </p>
               </div>
 
-              {/* Botão de iniciar checkout - só se saldo ok */}
               {canCheckout && !checkoutOpen && (
                 <div className={styles.startCheckout}>
                   <button
@@ -208,30 +251,38 @@ export default function CartPage() {
                 </div>
               )}
 
-              {/* Form de checkout */}
               {checkoutOpen && (
-                <form className={styles.checkoutForm} onSubmit={handleSubmitOrder}>
+                <form
+                  className={styles.checkoutForm}
+                  onSubmit={handleSubmitOrder}
+                >
                   <h4>Dados de Entrega</h4>
-                  {errorMsg && <p className={styles.errorMsg}>{errorMsg}</p>}
+                  {errorMsg && (
+                    <p className={styles.errorMsg}>{errorMsg}</p>
+                  )}
 
-                  {/* Seleção de endereço */}
-                  {loadingAddresses
-                    ? <p>Carregando endereços…</p>
-                    : addresses.length > 0 && (
+                  {loadingAddresses ? (
+                    <p>Carregando endereços…</p>
+                  ) : (
+                    addresses.length > 0 && (
                       <div className={styles.formGroup}>
-                        <label htmlFor="addressSelect">Escolha o endereço</label>
+                        <label htmlFor="addressSelect">
+                          Escolha o endereço
+                        </label>
                         <select
                           id="addressSelect"
-                          value={selectedAddress?.id || ''}
+                          value={selectedAddress?.id ?? ''}
                           onChange={handleSelectAddress}
                         >
-                          {addresses.map(a => (
+                          {addresses.map((a) => (
                             <option key={a.id} value={a.id}>
-                              {a.street}, {a.number} – {a.neighborhood} – {a.city}/{a.state} – CEP {a.postal_code}
+                              {a.street}, {a.number} – {a.neighborhood} –{' '}
+                              {a.city}/{a.state} – CEP {a.postal_code}
                             </option>
                           ))}
                         </select>
                       </div>
+                    )
                   )}
 
                   {/* Destinatário */}
@@ -244,11 +295,8 @@ export default function CartPage() {
                     required
                   />
 
-                  {/* Campos de endereço pré-preenchidos */}
-                  {/* Container geral com gap de 10px */}
+                  {/* Endereço */}
                   <div className={styles.fieldGroup}>
-
-                    {/* Linha com Rua, Número e Bairro */}
                     <div className={styles.rowFields}>
                       <FloatingLabelInput
                         label="Rua"
@@ -276,47 +324,43 @@ export default function CartPage() {
                       />
                     </div>
 
+                    <FloatingLabelInput
+                      label="CEP"
+                      id="postal_code"
+                      name="postal_code"
+                      value={address.postal_code}
+                      onChange={handleAddressChange}
+                      required
+                    />
+
+                    <div className={styles.rowFields}>
                       <FloatingLabelInput
-                        label="CEP"
-                        id="postal_code"
-                        name="postal_code"
-                        value={address.postal_code}
+                        label="Cidade"
+                        id="city"
+                        name="city"
+                        value={address.city}
                         onChange={handleAddressChange}
                         required
                       />
-
-
-                    {/* Linha com Rua, Número e Bairro */}
-                      <div className={styles.rowFields}>
-                        <FloatingLabelInput
-                          label="Cidade"
-                          id="city"
-                          name="city"
-                          value={address.city}
-                          onChange={handleAddressChange}
-                          required
-                        />
-                        <FloatingLabelInput
-                          label="UF"
-                          id="state"
-                          name="state"
-                          value={address.state}
-                          onChange={handleAddressChange}
-                          required
-                        />
-                        <FloatingLabelInput
-                          label="Pais"
-                          id="country"
-                          name="country"
-                          value={address.country}
-                          onChange={handleAddressChange}
-                          required
-                        />
-                      </div>
+                      <FloatingLabelInput
+                        label="UF"
+                        id="state"
+                        name="state"
+                        value={address.state}
+                        onChange={handleAddressChange}
+                        required
+                      />
+                      <FloatingLabelInput
+                        label="País"
+                        id="country"
+                        name="country"
+                        value={address.country}
+                        onChange={handleAddressChange}
+                        required
+                      />
                     </div>
+                  </div>
 
-
-                  {/* Confirmar só se saldo ok */}
                   <div className={styles.formActions}>
                     <button
                       type="button"
@@ -326,6 +370,7 @@ export default function CartPage() {
                     >
                       Voltar
                     </button>
+
                     {canCheckout && (
                       <button
                         type="submit"
@@ -342,7 +387,7 @@ export default function CartPage() {
           )}
         </div>
 
-        {/* Modal de detalhes */}
+        {/* Modal */}
         {selectedProductId && (
           <ProductDetailModal
             open={modalOpen}

@@ -3,7 +3,7 @@
 .container {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100dvh;
   margin: 0;
   gap: 10px;
   overflow: hidden;
@@ -33,7 +33,7 @@
   padding: 2rem;
   background: #fff;
   border-radius: 20px;
-  height: calc(100vh - 106.91px);
+  height: calc(100dvh - 106.91px);
 }
 
 .content {
@@ -74,7 +74,7 @@
   background-position: center;
   background-repeat: no-repeat;
   border-radius: 20px;
-  height: calc(100vh - 106.91px);
+  height: calc(100dvh - 106.91px);
   display: flex;
   justify-content: center;
   align-items: center;

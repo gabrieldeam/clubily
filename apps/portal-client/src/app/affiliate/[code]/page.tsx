@@ -51,7 +51,7 @@ export default function AffiliatePage() {
   const [loadingW, setLoadingW] = useState(true);
   const [errorW, setErrorW] = useState<string | null>(null);
   const [wLimit, setWLimit] = useState(5);
-  const [showAllW, setShowAllW] = useState(false);
+  const [showAllW] = useState(false);
 
   // modal saque
   const [openModal, setOpenModal] = useState(false);

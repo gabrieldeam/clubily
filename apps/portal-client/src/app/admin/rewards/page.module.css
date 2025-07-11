@@ -3,7 +3,7 @@
 .container {
   padding: 2rem;
   background: #f9fafb;
-  max-height: calc(100vh - 65.16px);
+  max-height: calc(100dvh - 65.16px);
   overflow: auto;
 }
 
@@ -23,6 +23,30 @@
   color: #111827;
   margin: 0;
 }
+
+.btnSelect {
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  border-radius: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-left: 5px;
+}
+.btnSelected {
+  background: #10b981; 
+  color: #fff;
+  border: none;
+  border-radius: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-left: 5px;
+}
+
 
 /* Ações no header de planos */
 .actionsHeader {

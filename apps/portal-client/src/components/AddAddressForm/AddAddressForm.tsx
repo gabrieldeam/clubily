@@ -13,7 +13,27 @@ interface AddAddressFormProps {
   onSuccess: (newAddress: AddressRead) => void;
 }
 
+/* ─── helpers ──────────────────────────────────────────────────────────── */
+type ErrorWithMessage = {
+  response?: {
+    data?: {
+      message?: unknown;
+    };
+  };
+};
+
+function hasErrorMessage(err: unknown): err is ErrorWithMessage {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    'response' in err &&
+    typeof (err as ErrorWithMessage).response?.data?.message === 'string'
+  );
+}
+
+/* ─── componente ───────────────────────────────────────────────────────── */
 export default function AddAddressForm({ onSuccess }: AddAddressFormProps) {
+  /* estado do formulário */
   const [form, setForm] = useState<AddressCreate>({
     postal_code: '',
     street: '',
@@ -25,64 +45,73 @@ export default function AddAddressForm({ onSuccess }: AddAddressFormProps) {
     country: 'Brasil',
     is_selected: false,
   });
+
+  /* estado de UI */
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cepError, setCepError] = useState<string | null>(null);
 
+  /* lista de UF */
   const states = [
     'AC','AL','AP','AM','BA','CE','DF','ES','GO','MA',
     'MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN',
-    'RS','RO','RR','SC','SP','SE','TO'
+    'RS','RO','RR','SC','SP','SE','TO',
   ];
 
+  /* ── handlers ──────────────────────────────────────────────────────── */
   function handleChange(
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
 
-  // Se for um input de checkbox, fazemos cast para HTMLInputElement para acessar `checked`.
-  if (
-    e.target instanceof HTMLInputElement &&
-    e.target.type === 'checkbox'
-  ) {
-   const checkboxTarget = e.target as HTMLInputElement;
-    setForm(prev => ({
-      ...prev,
-      [name]: checkboxTarget.checked,
-    }));
-  } else {
-    // Caso contrário, pegamos `value` normalmente (select ou input text)
-    setForm(prev => ({
-      ...prev,
-      [name]: value,
-    }));
+    if (type === 'checkbox') {
+      // 🔑 garante ao TS que só aqui temos um HTMLInputElement com .checked
+      const { checked } = e.target as HTMLInputElement;
+      setForm(prev => ({ ...prev, [name]: checked }));
+    } else {
+      setForm(prev => ({ ...prev, [name]: value }));
+    }
   }
-}
 
   async function handleCepBlur() {
     const raw = form.postal_code.replace(/\D/g, '');
     if (raw.length !== 8) return;
+
     try {
       setCepError(null);
       const res = await fetch(`https://viacep.com.br/ws/${raw}/json/`);
-      const data = await res.json();
-      if (data.erro) {
+      const data: unknown = await res.json();
+
+      if (
+        typeof data === 'object' &&
+        data !== null &&
+        'erro' in data &&
+        (data as { erro: boolean }).erro
+      ) {
         setCepError('CEP não encontrado');
         return;
       }
+
+      const viaCep = data as {
+        logradouro?: string;
+        bairro?: string;
+        localidade?: string;
+        uf?: string;
+      };
+
       setForm(prev => ({
         ...prev,
-        street: data.logradouro || '',
-        neighborhood: data.bairro || '',
-        city: data.localidade || '',
-        state: data.uf || '',
+        street: viaCep.logradouro ?? '',
+        neighborhood: viaCep.bairro ?? '',
+        city: viaCep.localidade ?? '',
+        state: viaCep.uf ?? '',
       }));
     } catch {
       setCepError('Erro ao buscar CEP');
     }
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setIsSubmitting(true);
     setError(null);
@@ -90,13 +119,17 @@ export default function AddAddressForm({ onSuccess }: AddAddressFormProps) {
     try {
       const res = await createAddress(form);
       onSuccess(res.data);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Erro ao criar endereço.');
+    } catch (err: unknown) {
+      const message = hasErrorMessage(err)
+        ? (err.response!.data!.message as string)
+        : 'Erro ao criar endereço.';
+      setError(message);
     } finally {
       setIsSubmitting(false);
     }
   }
 
+  /* ── render ─────────────────────────────────────────────────────────── */
   return (
     <form className={styles.form} onSubmit={handleSubmit}>
       {cepError && (
@@ -106,6 +139,7 @@ export default function AddAddressForm({ onSuccess }: AddAddressFormProps) {
           onClose={() => setCepError(null)}
         />
       )}
+
       {error && (
         <Notification
           type="error"
@@ -114,7 +148,6 @@ export default function AddAddressForm({ onSuccess }: AddAddressFormProps) {
         />
       )}
 
-      {/* 1) CEP */}
       <FloatingLabelInput
         id="postal_code"
         name="postal_code"
@@ -125,7 +158,6 @@ export default function AddAddressForm({ onSuccess }: AddAddressFormProps) {
         required
       />
 
-      {/* 2) Rua */}
       <FloatingLabelInput
         id="street"
         name="street"
@@ -136,7 +168,6 @@ export default function AddAddressForm({ onSuccess }: AddAddressFormProps) {
       />
 
       <div className={styles.flex}>
-        {/* 3) Número */}
         <FloatingLabelInput
           id="number"
           name="number"
@@ -146,7 +177,6 @@ export default function AddAddressForm({ onSuccess }: AddAddressFormProps) {
           required
         />
 
-        {/* 4) Bairro */}
         <FloatingLabelInput
           id="neighborhood"
           name="neighborhood"
@@ -155,9 +185,8 @@ export default function AddAddressForm({ onSuccess }: AddAddressFormProps) {
           onChange={handleChange}
           required
         />
-      </div>      
+      </div>
 
-      {/* 6) Cidade e Estado */}
       <div className={styles.flex}>
         <FloatingLabelInput
           id="city"
@@ -185,17 +214,6 @@ export default function AddAddressForm({ onSuccess }: AddAddressFormProps) {
         </label>
       </div>
 
-      {/* 7) País */}
-      {/* <FloatingLabelInput
-        id="country"
-        name="country"
-        label="País"
-        value={form.country}
-        onChange={handleChange}
-        required
-      /> */}
-
-      {/* 5) Complemento (opcional) */}
       <FloatingLabelInput
         id="complement"
         name="complement"
@@ -204,12 +222,11 @@ export default function AddAddressForm({ onSuccess }: AddAddressFormProps) {
         onChange={handleChange}
       />
 
-      {/* 8) Checkbox para “Endereço principal” (is_selected) */}
       <label className={styles.checkboxLabel}>
         <input
           type="checkbox"
           name="is_selected"
-          checked={!!form.is_selected}
+          checked={form.is_selected}
           onChange={handleChange}
         />
         Definir como endereço principal

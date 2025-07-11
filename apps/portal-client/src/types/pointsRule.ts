@@ -23,7 +23,8 @@ export interface PointsRuleBase {
   name: string;
   description?: string;
   rule_type: RuleType;
-  config: Record<string, any>;
+  // Use unknown instead of any
+  config: Record<string, unknown>;
   active: boolean;
   visible: boolean;
 }
@@ -38,8 +39,9 @@ export interface PointsRuleRead extends PointsRuleBase {
   updated_at: string; // ISO datetime
 }
 
-
-// Retorno da checagem de elegibilidade
+/**
+ * Retorno da checagem de elegibilidade
+ */
 export interface RuleStatusRead {
   rule_id: string;
   already_awarded: boolean;

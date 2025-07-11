@@ -3,7 +3,7 @@
 .container {
   padding: 2rem;
   background: #f9fafb;  
-  max-height: calc(100vh - 65.16px);
+  max-height: calc(100dvh - 65.16px);
   overflow: auto;
 }
 

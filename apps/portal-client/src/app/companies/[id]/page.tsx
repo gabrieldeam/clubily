@@ -16,13 +16,16 @@ import CompanyCashbackProgramsMain from '@/components/CompanyCashbackProgramsMai
 import Header from '@/components/Header/Header';
 import styles from './page.module.css';
 
-// Corrige ícone padrão do Leaflet
-delete (L.Icon.Default.prototype as any)._getIconUrl;
+// Corrige ícone padrão do Leaflet no Next.js
+// @ts-expect-error – _getIconUrl existe em runtime, mas não no tipo
+delete (L.Icon.Default.prototype as unknown as { _getIconUrl: () => string })._getIconUrl;
+
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: '/leaflet/marker-icon-2x.png',
   iconUrl:       '/leaflet/marker-icon.png',
   shadowUrl:     '/leaflet/marker-shadow.png',
 });
+
 
 // Dinâmicos para desativar SSR
 const MapContainer = dynamic(() => import('react-leaflet').then(m => m.MapContainer), { ssr: false });
@@ -70,7 +73,7 @@ export default function CompanyPage() {
     const addr = `${company.street}, ${company.city}, ${company.state}, ${company.postal_code}`;
     fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}`)
       .then(res => res.json())
-      .then((data: any[]) => {
+      .then((data: Array<{ lat: string; lon: string }>) => {
         if (data[0]) {
           setCoords([+data[0].lat, +data[0].lon]);
         }
@@ -136,192 +139,201 @@ export default function CompanyPage() {
 
   return (
     <>
-    <Header onSearch={q => router.push(`/search?name=${encodeURIComponent(q)}`)} />
-    <div className={styles.pageWrapper}> 
-      {showBanner && (
-        <div className={styles.whiteBoxAlert}>
-          <button
-            className={styles.outsideBanner}
-            onClick={() => {
-              setShowBanner(false);
-              window.dispatchEvent(new Event('openAddressModal'));
-            }}
-          >
-            Essa empresa está desativada ou não atende mais na sua área,
-            clique aqui para mudar de endereço
-          </button>
-        </div>
-      )}
-
-      <div className={`${styles.whiteBox} ${!company.is_active ? styles.inactive : ''}`}>
-        <div className={styles.infoMapSection}>
-          <div className={styles.infoColumn}>
-            {/* Fallback circular initial if no logo */}
-            {company.logo_url ? (
-              <Image
-                src={`${baseUrl}${company.logo_url}`}
-                alt={company.name}
-                width={80}
-                height={80}
-                className={styles.logo}
-              />
-            ) : (
-              <div className={styles.logoFallback}>
-                {company.name[0].toUpperCase()}
-              </div>
-            )}
-            <div className={styles.textContainer}>
-              <h1 className={styles.name}>{company.name}</h1>
-              {company.description && (
-                <p className={styles.description}>{company.description}</p>
-              )}
-              {company.only_online && company.online_url && (
-                <p className={styles.onlineLink}>
-                  <a href={company.online_url} target="_blank" rel="noopener">
-                    Visitar site
-                  </a>
-                </p>
-              )}
-            </div>
-          </div>
-
-          {company.categories.length > 0 && (() => {
-            const firstCat = company.categories[0];
-            const imageUri = firstCat.image_url
-              ? `${baseUrl}${firstCat.image_url}`
-              : `${baseUrl}/placeholder.svg`;
-            return (
-              <Link href={`/categories/${firstCat.id}`} className={styles.categoryIconWrapper}>
-                <img src={imageUri} alt={firstCat.name} className={styles.categoryIcon} />
-                {company.categories.length > 1 && (
-                  <span className={styles.categoryCountBadge}>
-                    {company.categories.length}
-                  </span>
-                )}
-              </Link>
-            );
-          })()}
-        </div>
-
-        {!company.only_online && addressExists && coords && (
-          <>
-            <h2 className={styles.sectionTitleLocal}>Localização</h2>
-            <div className={styles.leafletWrapper}>
-              <MapContainer center={coords} zoom={16} style={{ width: '100%', height: '200px' }}>
-                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                <Marker position={coords} icon={logoIcon}>
-                  <Popup>
-                    <div className={styles.popupContent}>
-                      <strong>{company.name}</strong>
-                      <p>
-                        {company.street}, {company.city} &ndash; {company.state},{' '}
-                        {company.postal_code}
-                      </p>
-                      <button
-                        type="button"
-                        className={styles.mapButton}
-                        onClick={handleOpenMap}
-                      >
-                        Abrir no Google Maps
-                      </button>
-                    </div>
-                  </Popup>
-                </Marker>
-              </MapContainer>
-            </div>
-          </>
-        )}
-      </div>
-      
-      <CompanyCashbackProgramsMain companyId={id!} />
-      <PointsCompanyRulesMain companyId={id!} />
-
-      {/* CONTATO */}
-      <div className={styles.whiteBox}>
-        <h2 className={styles.sectionTitle}>Contato</h2>
-        <div className={styles.contactRow}>
-          <span className={styles.contactLabel}>Email</span>
-          <span className={styles.contactValue}>{company.email}</span>
-        </div>
-        <div className={styles.contactRow}>
-          <span className={styles.contactLabel}>Telefone</span>
-          <span className={styles.contactValue}>{company.phone}</span>
-        </div>
-        <div className={styles.contactRow}>
-          <span className={styles.contactLabel}>CNPJ</span>
-          <span className={styles.contactValue}>{company.cnpj}</span>
-        </div>
-        {company.online_url && (
-          <div className={styles.contactRow}>
-            <span className={styles.contactLabel}>Site</span>
-            <a
-              href={company.online_url}
-              target="_blank"
-              rel="noopener"
-              className={styles.contactValue}
+      <Header onSearch={q => router.push(`/search?name=${encodeURIComponent(q)}`)} />
+      <div className={styles.pageWrapper}>
+        {showBanner && (
+          <div className={styles.whiteBoxAlert}>
+            <button
+              className={styles.outsideBanner}
+              onClick={() => {
+                setShowBanner(false);
+                window.dispatchEvent(new Event('openAddressModal'));
+              }}
             >
-              {company.online_url}
-            </a>
+              Essa empresa está desativada ou não atende mais na sua área,
+              clique aqui para mudar de endereço
+            </button>
           </div>
         )}
-      </div>
 
-      {/* STATUS */}
-      <div className={styles.whiteBox}>
-        <h2 className={styles.sectionTitle}>Status</h2>
-        <div className={styles.infoRow}>
-          <span className={styles.infoLabel}>Ativa</span>
-          <span className={styles.infoValue}>
-            {company.is_active ? 'Sim' : 'Não'}
-          </span>
-        </div>
-        <div className={styles.infoRow}>
-          <span className={styles.infoLabel}>Email verificado</span>
-          <span className={styles.infoValue}>
-            {company.email_verified ? 'Sim' : 'Não'}
-          </span>
-        </div>
-        <div className={styles.infoRow}>
-          <span className={styles.infoLabel}>Telefone verificado</span>
-          <span className={styles.infoValue}>
-            {company.phone_verified ? 'Sim' : 'Não'}
-          </span>
-        </div>
-      </div>
+        <div className={`${styles.whiteBox} ${!company.is_active ? styles.inactive : ''}`}>
+          <div className={styles.infoMapSection}>
+            <div className={styles.infoColumn}>
+              {/* Fallback circular initial if no logo */}
+              {company.logo_url ? (
+                <Image
+                  src={`${baseUrl}${company.logo_url}`}
+                  alt={company.name}
+                  width={80}
+                  height={80}
+                  className={styles.logo}
+                />
+              ) : (
+                <div className={styles.logoFallback}>
+                  {company.name[0].toUpperCase()}
+                </div>
+              )}
+              <div className={styles.textContainer}>
+                <h1 className={styles.name}>{company.name}</h1>
+                {company.description && (
+                  <p className={styles.description}>{company.description}</p>
+                )}
+                {company.only_online && company.online_url && (
+                  <p className={styles.onlineLink}>
+                    <a href={company.online_url} target="_blank" rel="noopener">
+                      Visitar site
+                    </a>
+                  </p>
+                )}
+              </div>
+            </div>
 
-      {/* CATEGORIAS */}
-      {company.categories.length > 0 && (
-        <div className={styles.whiteBox}>
-          <h2 className={styles.sectionTitle}>Categorias</h2>
-          <div className={styles.categoriesContainer}>
-            {company.categories.map(cat => (
-              <Link key={cat.id} href={`/categories/${cat.id}`} className={styles.categoryBadge}>
-                {cat.name}
-              </Link>
-            ))}
+            {company.categories.length > 0 && (() => {
+              const firstCat = company.categories[0];
+              const imageUri = firstCat.image_url
+                ? `${baseUrl}${firstCat.image_url}`
+                : `${baseUrl}/placeholder.svg`;
+              return (
+                <Link href={`/categories/${firstCat.id}`} className={styles.categoryIconWrapper}>
+                  <Image
+                    loader={({ src }) => src}
+                    src={imageUri}
+                    alt={firstCat.name}
+                    width={50}
+                    height={50}
+                    className={styles.categoryIcon}
+                  />
+                  {company.categories.length > 1 && (
+                    <span className={styles.categoryCountBadge}>
+                      {company.categories.length}
+                    </span>
+                  )}
+                </Link>
+              );
+            })()}
           </div>
-        </div>
-      )}
 
-      {/* INFORMAÇÕES ADICIONAIS */}
-      <div className={styles.whiteBox}>
-        <h2 className={styles.sectionTitle}>Informações Adicionais</h2>
-        <div className={styles.infoRow}>
-          <span className={styles.infoLabel}>Cadastro em</span>
-          <span className={styles.infoValue}>
-            {new Date(company.created_at).toLocaleDateString()}
-          </span>
+          {!company.only_online && addressExists && coords && (
+            <>
+              <h2 className={styles.sectionTitleLocal}>Localização</h2>
+              <div className={styles.leafletWrapper}>
+                <MapContainer center={coords} zoom={16} style={{ width: '100%', height: '200px' }}>
+                  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                  <Marker position={coords} icon={logoIcon}>
+                    <Popup>
+                      <div className={styles.popupContent}>
+                        <strong>{company.name}</strong>
+                        <p>
+                          {company.street}, {company.city} &ndash; {company.state},{' '}
+                          {company.postal_code}
+                        </p>
+                        <button
+                          type="button"
+                          className={styles.mapButton}
+                          onClick={handleOpenMap}
+                        >
+                          Abrir no Google Maps
+                        </button>
+                      </div>
+                    </Popup>
+                  </Marker>
+                </MapContainer>
+              </div>
+            </>
+          )}
         </div>
-        {'serves_address' in company && (
+
+        <CompanyCashbackProgramsMain companyId={id!} />
+        <PointsCompanyRulesMain companyId={id!} />
+
+        {/* CONTATO */}
+        <div className={styles.whiteBox}>
+          <h2 className={styles.sectionTitle}>Contato</h2>
+          <div className={styles.contactRow}>
+            <span className={styles.contactLabel}>Email</span>
+            <span className={styles.contactValue}>{company.email}</span>
+          </div>
+          <div className={styles.contactRow}>
+            <span className={styles.contactLabel}>Telefone</span>
+            <span className={styles.contactValue}>{company.phone}</span>
+          </div>
+          <div className={styles.contactRow}>
+            <span className={styles.contactLabel}>CNPJ</span>
+            <span className={styles.contactValue}>{company.cnpj}</span>
+          </div>
+          {company.online_url && (
+            <div className={styles.contactRow}>
+              <span className={styles.contactLabel}>Site</span>
+              <a
+                href={company.online_url}
+                target="_blank"
+                rel="noopener"
+                className={styles.contactValue}
+              >
+                {company.online_url}
+              </a>
+            </div>
+          )}
+        </div>
+
+        {/* STATUS */}
+        <div className={styles.whiteBox}>
+          <h2 className={styles.sectionTitle}>Status</h2>
           <div className={styles.infoRow}>
-            <span className={styles.infoLabel}>Atende endereço selecionado</span>
+            <span className={styles.infoLabel}>Ativa</span>
             <span className={styles.infoValue}>
-              {(company as any).serves_address ? 'Sim' : 'Não'}
+              {company.is_active ? 'Sim' : 'Não'}
             </span>
           </div>
+          <div className={styles.infoRow}>
+            <span className={styles.infoLabel}>Email verificado</span>
+            <span className={styles.infoValue}>
+              {company.email_verified ? 'Sim' : 'Não'}
+            </span>
+          </div>
+          <div className={styles.infoRow}>
+            <span className={styles.infoLabel}>Telefone verificado</span>
+            <span className={styles.infoValue}>
+              {company.phone_verified ? 'Sim' : 'Não'}
+            </span>
+          </div>
+        </div>
+
+        {/* CATEGORIAS */}
+        {company.categories.length > 0 && (
+          <div className={styles.whiteBox}>
+            <h2 className={styles.sectionTitle}>Categorias</h2>
+            <div className={styles.categoriesContainer}>
+              {company.categories.map(cat => (
+                <Link key={cat.id} href={`/categories/${cat.id}`} className={styles.categoryBadge}>
+                  {cat.name}
+                </Link>
+              ))}
+            </div>
+          </div>
         )}
+
+        {/* INFORMAÇÕES ADICIONAIS */}
+        <div className={styles.whiteBox}>
+          <h2 className={styles.sectionTitle}>Informações Adicionais</h2>
+          <div className={styles.infoRow}>
+            <span className={styles.infoLabel}>Cadastro em</span>
+            <span className={styles.infoValue}>
+              {new Date(company.created_at).toLocaleDateString()}
+            </span>
+          </div>
+          {'serves_address' in company && (
+            <div className={styles.infoRow}>
+              <span className={styles.infoLabel}>Atende endereço selecionado</span>
+              <span className={styles.infoValue}>
+                {(company as unknown as { serves_address: boolean }).serves_address
+                  ? 'Sim'
+                  : 'Não'}
+              </span>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
     </>
   );
 }

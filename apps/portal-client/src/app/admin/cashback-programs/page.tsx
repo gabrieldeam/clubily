@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   listAdminPrograms,
   listProgramAssociations,
@@ -41,11 +41,8 @@ export default function AdminCashbackProgramsPage() {
   const [associations, setAssociations] = useState<ProgramUsageAssociation[]>([]);
   const [assocLoading, setAssocLoading] = useState(false);
 
-  useEffect(() => {
-    fetchPrograms();
-  }, [page]);
-
-  async function fetchPrograms() {
+  // Memoiza fetchPrograms para não disparar warning de deps
+  const fetchPrograms = useCallback(async () => {
     setLoading(true);
     try {
       const skip = (page - 1) * limit;
@@ -66,26 +63,20 @@ export default function AdminCashbackProgramsPage() {
         })
       );
       setAssocCounts(Object.fromEntries(counts));
-    } catch (e: any) {
-      setNotification({ type: 'error', message: e.message || 'Erro ao buscar programas' });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Erro ao buscar programas';
+      setNotification({ type: 'error', message });
     } finally {
       setLoading(false);
     }
-  }
+  }, [page, limit]);
 
-  function openDetails(p: AdminProgramRead) {
-    setSelectedProg(p);
-    setModalOpen(true);
-    setAssocPage(1);
-  }
+  useEffect(() => {
+    fetchPrograms();
+  }, [fetchPrograms]);
 
-  function closeDetails() {
-    setModalOpen(false);
-    setSelectedProg(null);
-    setAssociations([]);
-    setAssocTotal(0);
-  }
 
+  // quando abre modal ou muda de página de associações
   useEffect(() => {
     if (selectedProg) {
       fetchAssociations(selectedProg.id, assocPage);
@@ -106,6 +97,19 @@ export default function AdminCashbackProgramsPage() {
     } finally {
       setAssocLoading(false);
     }
+  }
+
+  function openDetails(p: AdminProgramRead) {
+    setSelectedProg(p);
+    setModalOpen(true);
+    setAssocPage(1);
+  }
+
+  function closeDetails() {
+    setModalOpen(false);
+    setSelectedProg(null);
+    setAssociations([]);
+    setAssocTotal(0);
   }
 
   const lastPage = Math.ceil(total / limit);
@@ -196,7 +200,9 @@ export default function AdminCashbackProgramsPage() {
         <button disabled={page === 1} onClick={() => setPage((x) => Math.max(1, x - 1))}>
           ← Anterior
         </button>
-        <span>{page} / {lastPage}</span>
+        <span>
+          {page} / {lastPage}
+        </span>
         <button disabled={page === lastPage} onClick={() => setPage((x) => Math.min(lastPage, x + 1))}>
           Próxima →
         </button>
@@ -244,11 +250,17 @@ export default function AdminCashbackProgramsPage() {
                     ))}
                   </div>
                   <div className={styles.pagination}>
-                    <button disabled={assocPage === 1} onClick={() => setAssocPage((x) => Math.max(1, x - 1))}>
+                    <button
+                      disabled={assocPage === 1}
+                      onClick={() => setAssocPage((x) => Math.max(1, x - 1))}
+                    >
                       ← Anterior
                     </button>
                     <span>{assocPage} / {lastAssocPage}</span>
-                    <button disabled={assocPage === lastAssocPage} onClick={() => setAssocPage((x) => Math.min(lastAssocPage, x + 1))}>
+                    <button
+                      disabled={assocPage === lastAssocPage}
+                      onClick={() => setAssocPage((x) => Math.min(lastAssocPage, x + 1))}
+                    >
                       Próxima →
                     </button>
                   </div>

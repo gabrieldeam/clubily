@@ -1,12 +1,12 @@
 // src/app/admin/referrals/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { listReferrals, listReferralCompanies } from '@/services/userService';
 import type {
   ReferralDetail,
   ReferralCompanyRead,
-  PaginatedReferralCompanies
+  PaginatedReferralCompanies,
 } from '@/types/user';
 import Notification from '@/components/Notification/Notification';
 import Modal from '@/components/Modal/Modal';
@@ -16,7 +16,7 @@ import styles from './page.module.css';
 type ViewMode = 'table' | 'cards';
 type NotificationState = { type: 'success' | 'error' | 'info'; message: string };
 
-// Estende o ReferralDetail para incluir a contagem de empresas
+// Estende ReferralDetail para incluir a contagem de empresas
 type ReferralWithCount = ReferralDetail & { company_count: number };
 
 export default function AdminReferralsPage() {
@@ -37,19 +37,14 @@ export default function AdminReferralsPage() {
 
   const [viewMode, setViewMode] = useState<ViewMode>('table');
 
-  // Busca referrals + contagem de empresas sempre que a página mudar
-  useEffect(() => {
-    fetchReferrals();
-  }, [page]);
-
-  async function fetchReferrals() {
+  // Memoiza a busca de referrals
+  const fetchReferrals = useCallback(async () => {
     setLoading(true);
     try {
       const skip = (page - 1) * limit;
       const res = await listReferrals(skip, limit);
       const referralsList: ReferralDetail[] = res.data;
 
-      // Para cada referral, busca apenas total de empresas (skip=0, limit=1)
       const counts = await Promise.all(
         referralsList.map(r =>
           listReferralCompanies(r.referral_code, 0, 1)
@@ -58,20 +53,27 @@ export default function AdminReferralsPage() {
         )
       );
 
-      const withCounts: ReferralWithCount[] = referralsList.map((r, i) => ({
-        ...r,
-        company_count: counts[i],
-      }));
-
-      setReferrals(withCounts);
-    } catch (e: any) {
-      setNotification({ type: 'error', message: e.message || 'Erro ao buscar indicações' });
+      setReferrals(
+        referralsList.map((r, i) => ({
+          ...r,
+          company_count: counts[i],
+        }))
+      );
+    } catch (error: unknown) {
+      const msg = error instanceof Error
+        ? error.message
+        : 'Erro ao buscar indicações';
+      setNotification({ type: 'error', message: msg });
     } finally {
       setLoading(false);
     }
-  }
+  }, [page]);
 
-  // Busca empresas indicadas sempre que mudar o referral selecionado ou a página no modal
+  useEffect(() => {
+    fetchReferrals();
+  }, [fetchReferrals]);
+
+  // Busca empresas indicadas quando selecionar ou mudar página do modal
   useEffect(() => {
     if (selectedReferral) {
       fetchReferralCompanies(selectedReferral.referral_code, rcPage);
@@ -106,6 +108,8 @@ export default function AdminReferralsPage() {
     setRefComps([]);
     setRcTotal(0);
   }
+
+  const lastPage = Math.ceil(referrals.length / limit);
 
   return (
     <div className={styles.container}>
@@ -157,10 +161,7 @@ export default function AdminReferralsPage() {
                   <td data-label="Empresas">{r.company_count}</td>
                   <td data-label="Data">{new Date(r.created_at).toLocaleDateString()}</td>
                   <td data-label="Ações" className={styles.actions}>
-                    <button
-                      className={styles.btnDetail}
-                      onClick={() => openDetails(r)}
-                    >
+                    <button className={styles.btnDetail} onClick={() => openDetails(r)}>
                       Detalhes
                     </button>
                   </td>
@@ -181,10 +182,7 @@ export default function AdminReferralsPage() {
                   {r.company_count} empresas
                 </span>
               </div>
-              <button
-                className={styles.btnDetail}
-                onClick={() => openDetails(r)}
-              >
+              <button className={styles.btnDetail} onClick={() => openDetails(r)}>
                 Detalhes
               </button>
             </div>
@@ -199,10 +197,10 @@ export default function AdminReferralsPage() {
         >
           ← Anterior
         </button>
-        <span>{page}</span>
+        <span>{page} / {lastPage}</span>
         <button
-          onClick={() => setPage(p => p + 1)}
-          disabled={referrals.length < limit}
+          onClick={() => setPage(p => Math.min(lastPage, p + 1))}
+          disabled={page === lastPage}
         >
           Próxima →
         </button>
@@ -214,12 +212,8 @@ export default function AdminReferralsPage() {
 
           <section>
             <h3>Usuário</h3>
-            <p>
-              <strong>Nome:</strong> {selectedReferral?.user.name}
-            </p>
-            <p>
-              <strong>Email:</strong> {selectedReferral?.user.email}
-            </p>
+            <p><strong>Nome:</strong> {selectedReferral?.user.name}</p>
+            <p><strong>Email:</strong> {selectedReferral?.user.email}</p>
           </section>
 
           <section>
@@ -245,11 +239,9 @@ export default function AdminReferralsPage() {
                   >
                     ← Anterior
                   </button>
-                  <span>
-                    {rcPage} / {Math.ceil(rcTotal / rcLimit) || 1}
-                  </span>
+                  <span>{rcPage} / {Math.ceil(rcTotal / rcLimit) || 1}</span>
                   <button
-                    onClick={() => setRcPage(p => p + 1)}
+                    onClick={() => setRcPage(p => Math.min(Math.ceil(rcTotal / rcLimit), p + 1))}
                     disabled={rcPage >= Math.ceil(rcTotal / rcLimit)}
                   >
                     Próxima →

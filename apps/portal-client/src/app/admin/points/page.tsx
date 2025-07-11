@@ -1,13 +1,12 @@
 // src/app/admin/points/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { listAllRules, listRuleTransactions } from '@/services/pointsAdminService';
 import type {
-  PaginatedRules,
   PaginatedUserPointsTransactions,
   PointsRuleWithCompany,
-  AdminUserPointsTransactionRead
+  AdminUserPointsTransactionRead,
 } from '@/types/pointsAdmin';
 import Notification from '@/components/Notification/Notification';
 import Modal from '@/components/Modal/Modal';
@@ -17,7 +16,7 @@ import styles from './page.module.css';
 type ViewMode = 'table' | 'cards';
 type NotificationState = { type: 'success' | 'error' | 'info'; message: string };
 
-// Estende PointsRuleWithCompany para incluir a contagem de transações
+// Extende PointsRuleWithCompany para incluir a contagem de transações
 interface RuleWithCount extends PointsRuleWithCompany {
   transaction_count: number;
 }
@@ -40,19 +39,15 @@ export default function AdminPointsPage() {
 
   const [viewMode, setViewMode] = useState<ViewMode>('table');
 
-  // Busca regras + contagem de transações sempre que a página mudar
-  useEffect(() => {
-    fetchRules();
-  }, [page]);
-
-  async function fetchRules() {
+  // Memoiza fetchRules para incluir nas deps do useEffect
+  const fetchRules = useCallback(async () => {
     setLoading(true);
     try {
       const skip = (page - 1) * limit;
       const res = await listAllRules(skip, limit);
       const rulesList: PointsRuleWithCompany[] = res.data.items;
 
-      // Para cada regra, busca apenas total de transações (skip=0, limit=1)
+      // Obtém apenas o total de transações para cada regra
       const counts = await Promise.all(
         rulesList.map(r =>
           listRuleTransactions(r.id, 0, 1)
@@ -61,18 +56,23 @@ export default function AdminPointsPage() {
         )
       );
 
-      const withCounts: RuleWithCount[] = rulesList.map((r, i) => ({
-        ...r,
-        transaction_count: counts[i],
-      }));
-
-      setRules(withCounts);
-    } catch (e: any) {
-      setNotification({ type: 'error', message: e.message || 'Erro ao buscar regras' });
+      setRules(
+        rulesList.map((r, i) => ({
+          ...r,
+          transaction_count: counts[i],
+        }))
+      );
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Erro ao buscar regras';
+      setNotification({ type: 'error', message: msg });
     } finally {
       setLoading(false);
     }
-  }
+  }, [page]);
+
+  useEffect(() => {
+    fetchRules();
+  }, [fetchRules]);
 
   // Busca transações sempre que mudar a regra selecionada ou a página no modal
   useEffect(() => {
@@ -162,10 +162,7 @@ export default function AdminPointsPage() {
                   <td data-label="Transações">{r.transaction_count}</td>
                   <td data-label="Criado em">{new Date(r.created_at).toLocaleDateString()}</td>
                   <td data-label="Ações" className={styles.actions}>
-                    <button
-                      className={styles.btnDetail}
-                      onClick={() => openDetails(r)}
-                    >
+                    <button className={styles.btnDetail} onClick={() => openDetails(r)}>
                       Detalhes
                     </button>
                   </td>
@@ -186,10 +183,7 @@ export default function AdminPointsPage() {
                   {r.transaction_count} transações
                 </span>
               </div>
-              <button
-                className={styles.btnDetail}
-                onClick={() => openDetails(r)}
-              >
+              <button className={styles.btnDetail} onClick={() => openDetails(r)}>
                 Detalhes
               </button>
             </div>

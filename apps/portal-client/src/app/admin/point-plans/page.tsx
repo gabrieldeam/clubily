@@ -1,8 +1,7 @@
 // src/app/admin/point-plans/page.tsx
-
 'use client';
 
-import { useEffect, useState, FormEvent } from 'react';
+import { useCallback, useEffect, useState, FormEvent, ChangeEvent } from 'react';
 import {
   listAdminPointPlans,
   createPointPlan,
@@ -29,7 +28,7 @@ type ViewMode = 'table' | 'cards';
 type NotificationState = { type: 'success' | 'error' | 'info'; message: string };
 
 export default function AdminPointPlansPage() {
-  // ─── PLANOS ───────────────────────────────────────────────────────────────
+  // ────────────────────────────────────  PLANOS  ────────────────────────────────────
   const [plans, setPlans] = useState<PointPlanRead[]>([]);
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState<NotificationState | null>(null);
@@ -37,6 +36,7 @@ export default function AdminPointPlansPage() {
   const [page, setPage] = useState(1);
   const limit = 10;
   const [total, setTotal] = useState(0);
+  const lastPage = Math.ceil(total / limit);
 
   const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [modalOpen, setModalOpen] = useState(false);
@@ -50,18 +50,24 @@ export default function AdminPointPlansPage() {
   const [price, setPrice] = useState<number>(0);
   const [points, setPoints] = useState<number>(0);
 
-  useEffect(() => { fetchPlans(); }, [page]);
-  async function fetchPlans() {
+  // --- Memoized fetchPlans ---
+  const fetchPlans = useCallback(async () => {
     setLoading(true);
     try {
       const skip = (page - 1) * limit;
       const res = await listAdminPointPlans(skip, limit);
       const data: PaginatedPointPlans = res.data;
-      setPlans(data.items); setTotal(data.total);
-    } catch (e: any) {
-      setNotification({ type: 'error', message: e.message || 'Erro ao buscar planos' });
-    } finally { setLoading(false); }
-  }
+      setPlans(data.items);
+      setTotal(data.total);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Erro ao buscar planos';
+      setNotification({ type: 'error', message: msg });
+    } finally {
+      setLoading(false);
+    }
+  }, [page]);
+
+  useEffect(() => { fetchPlans(); }, [fetchPlans]);
 
   function openCreate() {
     setMode('create'); setCurrent(null);
@@ -69,6 +75,7 @@ export default function AdminPointPlansPage() {
     setRecommended(false); setPrice(0); setPoints(0);
     setModalOpen(true);
   }
+
   function openEdit(plan: PointPlanRead) {
     setMode('edit'); setCurrent(plan);
     setName(plan.name); setSubtitle(plan.subtitle ?? '');
@@ -77,6 +84,7 @@ export default function AdminPointPlansPage() {
     setPrice(plan.price); setPoints(plan.points);
     setModalOpen(true);
   }
+
   function closeModal() { setModalOpen(false); setCurrent(null); }
 
   async function handleSave(e: FormEvent) {
@@ -89,48 +97,57 @@ export default function AdminPointPlansPage() {
         await patchPointPlan(current.id, { name, subtitle, description, recommended, price });
         setNotification({ type: 'success', message: 'Plano atualizado com sucesso!' });
       }
-      fetchPlans(); closeModal();
-    } catch (e: any) {
-      setNotification({ type: 'error', message: e.message || 'Erro ao salvar plano' });
+      await fetchPlans();
+      closeModal();
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Erro ao salvar plano';
+      setNotification({ type: 'error', message: msg });
     }
   }
+
   async function handleDelete() {
     if (!current) return;
     try {
       await deletePointPlan(current.id);
       setNotification({ type: 'success', message: 'Plano excluído com sucesso!' });
-      fetchPlans(); closeModal();
-    } catch (e: any) {
-      setNotification({ type: 'error', message: e.message || 'Erro ao excluir plano' });
+      await fetchPlans();
+      closeModal();
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Erro ao excluir plano';
+      setNotification({ type: 'error', message: msg });
     }
   }
-  const lastPage = Math.ceil(total / limit);
 
-  // ─── COMPRAS DE PONTOS ────────────────────────────────────────────────────
+  // ───────────────────────────  COMPRAS DE PONTOS  ────────────────────────────
   const [purchases, setPurchases] = useState<PointPurchaseRead[]>([]);
   const [loadingPurchases, setLoadingPurchases] = useState(true);
   const [purchasePage, setPurchasePage] = useState(1);
   const purchaseLimit = 10;
   const [purchaseTotal, setPurchaseTotal] = useState(0);
-  const [purchaseViewMode, setPurchaseViewMode] = useState<ViewMode>('table');
   const lastPurchasePage = Math.ceil(purchaseTotal / purchaseLimit);
+  const [purchaseViewMode, setPurchaseViewMode] = useState<ViewMode>('table');
 
-  // novo: estado para modal de compra
   const [purchaseModalOpen, setPurchaseModalOpen] = useState(false);
   const [currentPurchase, setCurrentPurchase] = useState<PointPurchaseRead | null>(null);
 
-  useEffect(() => { fetchPurchases(); }, [purchasePage]);
-  async function fetchPurchases() {
+  // --- Memoized fetchPurchases ---
+  const fetchPurchases = useCallback(async () => {
     setLoadingPurchases(true);
     try {
       const skip = (purchasePage - 1) * purchaseLimit;
       const res = await listPointPurchases(skip, purchaseLimit);
       const data: PaginatedPointPurchases = res.data;
-      setPurchases(data.items); setPurchaseTotal(data.total);
-    } catch (e: any) {
-      setNotification({ type: 'error', message: e.message || 'Erro ao buscar compras' });
-    } finally { setLoadingPurchases(false); }
-  }
+      setPurchases(data.items);
+      setPurchaseTotal(data.total);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Erro ao buscar compras';
+      setNotification({ type: 'error', message: msg });
+    } finally {
+      setLoadingPurchases(false);
+    }
+  }, [purchasePage]);
+
+  useEffect(() => { fetchPurchases(); }, [fetchPurchases]);
 
   function openPurchaseDetails(p: PointPurchaseRead) {
     setCurrentPurchase(p);
@@ -141,15 +158,18 @@ export default function AdminPointPlansPage() {
     setCurrentPurchase(null);
   }
 
+  // util para badge
   const badgeClass = (status: string) => {
     switch (status) {
-      case 'PAID': return styles.badgePaid;
-      case 'PENDING': return styles.badgePending;
-      case 'FAILED': return styles.badgeFailed;
+      case 'PAID':      return styles.badgePaid;
+      case 'PENDING':   return styles.badgePending;
+      case 'FAILED':    return styles.badgeFailed;
       case 'CANCELLED': return styles.badgeCancelled;
-      default: return '';
+      default:          return '';
     }
   };
+
+  /* ─────────────────────────── RENDER ─────────────────────────── */
 
   return (
     <div className={styles.container}>
@@ -223,9 +243,9 @@ export default function AdminPointPlansPage() {
               <h2>{plan.name}</h2>
               <p>R$ {plan.price.toFixed(2)}</p>
               <p><strong>{plan.points} pontos</strong></p>
-              <span className={styles.badgeRecommended}>
-                {plan.recommended ? 'Recomendado' : ''}
-              </span>
+              {plan.recommended && (
+                <span className={styles.badgeRecommended}>Recomendado</span>
+              )}
               <button className={styles.btnDetail} onClick={() => openEdit(plan)}>
                 Detalhes
               </button>
@@ -238,14 +258,13 @@ export default function AdminPointPlansPage() {
         <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
           ← Anterior
         </button>
-        <span>
-          {page} / {lastPage}
-        </span>
+        <span>{page} / {lastPage}</span>
         <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page === lastPage}>
           Próxima →
         </button>
       </div>
 
+      {/* Modal criar/editar plano */}
       <Modal open={modalOpen} onClose={closeModal} width={600}>
         <div className={styles.detail}>
           <h2>{mode === 'create' ? 'Novo Plano' : 'Editar Plano'}</h2>
@@ -254,20 +273,20 @@ export default function AdminPointPlansPage() {
               id="plan-name"
               label="Nome"
               value={name}
-              onChange={e => setName(e.target.value)}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
               required
             />
             <FloatingLabelInput
               id="plan-subtitle"
               label="Subtítulo"
               value={subtitle}
-              onChange={e => setSubtitle(e.target.value)}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setSubtitle(e.target.value)}
             />
             <FloatingLabelInput
               id="plan-description"
               label="Descrição"
               value={description}
-              onChange={e => setDescription(e.target.value)}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setDescription(e.target.value)}
               required
             />
             <label className={styles.checkbox}>
@@ -284,7 +303,7 @@ export default function AdminPointPlansPage() {
               type="number"
               step="0.01"
               value={price}
-              onChange={e => setPrice(parseFloat(e.target.value))}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setPrice(parseFloat(e.target.value))}
               required
             />
             <FloatingLabelInput
@@ -292,7 +311,7 @@ export default function AdminPointPlansPage() {
               label="Pontos"
               type="number"
               value={points}
-              onChange={e => setPoints(parseInt(e.target.value, 10))}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setPoints(parseInt(e.target.value, 10))}
               required
             />
             <div className={styles.formActions}>
@@ -309,7 +328,7 @@ export default function AdminPointPlansPage() {
         </div>
       </Modal>
 
-            {/* ─── Compras de Pontos ────────────────────────────────────────────── */}
+      {/* ─── Compras de Pontos ────────────────────────────────────────────── */}
       <section className={styles.purchasesSection}>
         <div className={styles.header}>
           <h2>Compras de Pontos</h2>
@@ -317,11 +336,15 @@ export default function AdminPointPlansPage() {
             <button
               className={purchaseViewMode === 'table' ? styles.activeToggle : ''}
               onClick={() => setPurchaseViewMode('table')}
-            >Tabela</button>
+            >
+              Tabela
+            </button>
             <button
               className={purchaseViewMode === 'cards' ? styles.activeToggle : ''}
               onClick={() => setPurchaseViewMode('cards')}
-            >Cards</button>
+            >
+              Cards
+            </button>
           </div>
         </div>
 
@@ -343,7 +366,7 @@ export default function AdminPointPlansPage() {
               <tbody>
                 {purchases.map(p => (
                   <tr key={p.id}>
-                    <td data-label="ID">{p.id.slice(0,8)}…</td>
+                    <td data-label="ID">{p.id.slice(0, 8)}…</td>
                     <td data-label="Plano">{p.plan?.name ?? '-'}</td>
                     <td data-label="Valor">R$ {p.amount.toFixed(2)}</td>
                     <td data-label="Status">
@@ -395,9 +418,7 @@ export default function AdminPointPlansPage() {
           >
             ← Anterior
           </button>
-          <span>
-            {purchasePage} / {lastPurchasePage}
-          </span>
+          <span>{purchasePage} / {lastPurchasePage}</span>
           <button
             onClick={() => setPurchasePage(p => Math.min(lastPurchasePage, p + 1))}
             disabled={purchasePage === lastPurchasePage}
@@ -407,7 +428,7 @@ export default function AdminPointPlansPage() {
         </div>
       </section>
 
-       {/* Modal de Detalhes de Compra */}
+      {/* Modal de Detalhes de Compra */}
       <Modal open={purchaseModalOpen} onClose={closePurchaseModal} width={600}>
         {currentPurchase && (
           <div className={styles.detail}>
@@ -449,6 +470,7 @@ export default function AdminPointPlansPage() {
                 {new Date(currentPurchase.updated_at).toLocaleDateString('pt-BR')}
               </p>
             </section>
+
             <section>
               <h3>Empresa</h3>
               <p><strong>ID:</strong> {currentPurchase.company?.id ?? '-'}</p>
@@ -460,7 +482,6 @@ export default function AdminPointPlansPage() {
           </div>
         )}
       </Modal>
-
     </div>
   );
 }

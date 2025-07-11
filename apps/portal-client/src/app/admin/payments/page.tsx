@@ -1,7 +1,7 @@
 // src/app/admin/payments/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, ChangeEvent } from 'react';
 import { listAdminPayments } from '@/services/paymentService';
 import type { AdminCompanyPaymentRead } from '@/types/payment';
 import Notification from '@/components/Notification/Notification';
@@ -11,6 +11,14 @@ import styles from './page.module.css';
 
 type ViewMode = 'table' | 'cards';
 type NotificationState = { type: 'error' | 'success'; message: string };
+
+// Parâmetros tipados para a busca
+type FetchPaymentsParams = {
+  skip: number;
+  limit: number;
+  date_from?: string;
+  date_to?: string;
+};
 
 export default function AdminPaymentsPage() {
   const [payments, setPayments] = useState<AdminCompanyPaymentRead[]>([]);
@@ -23,33 +31,39 @@ export default function AdminPaymentsPage() {
 
   const [viewMode, setViewMode] = useState<ViewMode>('table');
 
-  // estados para o intervalo de datas
+  // filtros de data
   const [dateFrom, setDateFrom] = useState<string>('');
   const [dateTo, setDateTo] = useState<string>('');
 
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<AdminCompanyPaymentRead | null>(null);
 
-  useEffect(() => {
-    fetchPayments();
-  }, [page, dateFrom, dateTo]);
-
-  async function fetchPayments() {
+  // memoiza a busca para usar no useEffect
+  const fetchPayments = useCallback(async () => {
     setLoading(true);
     try {
       const skip = (page - 1) * limit;
-      const params: Record<string, any> = { skip, limit };
+      const params: FetchPaymentsParams = { skip, limit };
       if (dateFrom) params.date_from = dateFrom;
       if (dateTo)   params.date_to   = dateTo;
+
       const res = await listAdminPayments(params);
       setPayments(res.data.items);
       setTotal(res.data.total);
-    } catch (e: any) {
-      setNotification({ type: 'error', message: e.message || 'Erro ao buscar cobranças' });
+    } catch (error: unknown) {
+      const message = error instanceof Error
+        ? error.message
+        : 'Erro ao buscar cobranças';
+      setNotification({ type: 'error', message });
     } finally {
       setLoading(false);
     }
-  }
+  }, [page, dateFrom, dateTo]);
+
+  // dispara a busca sempre que page, dateFrom ou dateTo mudarem
+  useEffect(() => {
+    fetchPayments();
+  }, [fetchPayments]);
 
   function resetFilters() {
     setDateFrom('');
@@ -100,31 +114,28 @@ export default function AdminPaymentsPage() {
       {/* FILTRO DE DATAS */}
       <div className={styles.filterBar}>
         <div>
-            <label>
-          De:{' '}
-          <input
-            type="date"
-            value={dateFrom}
-            onChange={e => setDateFrom(e.target.value)}
-            max={dateTo || undefined}
-          />
-        </label>
-        <label>
-          Até:{' '}
-          <input
-            type="date"
-            value={dateTo}
-            onChange={e => setDateTo(e.target.value)}
-            min={dateFrom || undefined}
-            disabled={!dateFrom}
-          />
-        </label>
+          <label>
+            De:{' '}
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setDateFrom(e.target.value)}
+              max={dateTo || undefined}
+            />
+          </label>
+          <label>
+            Até:{' '}
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setDateTo(e.target.value)}
+              min={dateFrom || undefined}
+              disabled={!dateFrom}
+            />
+          </label>
         </div>
         {(dateFrom || dateTo) && (
-          <button
-            className={styles.resetButton}
-            onClick={resetFilters}
-          >
+          <button className={styles.resetButton} onClick={resetFilters}>
             Ver tudo
           </button>
         )}
@@ -205,7 +216,7 @@ export default function AdminPaymentsPage() {
 
       <div className={styles.pagination}>
         <button
-          onClick={() => setPage(p => Math.max(1, p - 1))}
+          onClick={() => setPage(prev => Math.max(1, prev - 1))}
           disabled={page === 1}
         >
           ← Anterior
@@ -214,7 +225,7 @@ export default function AdminPaymentsPage() {
           {page} / {lastPage}
         </span>
         <button
-          onClick={() => setPage(p => Math.min(lastPage, p + 1))}
+          onClick={() => setPage(prev => Math.min(lastPage, prev + 1))}
           disabled={page === lastPage}
         >
           Próxima →

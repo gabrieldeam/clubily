@@ -12,6 +12,7 @@ import type {
   OrderStatus,
   RewardCategoryUpdate,
   RewardProductUpdate,
+  PaginatedRewardProductWithCategory
 } from '@/types/reward';
 
 /* ========== Categorias ========== */
@@ -111,7 +112,7 @@ export const listRewardProductsByCategory = (
   skip = 0,
   limit = 10
 ) =>
-  api.get<PaginatedRewardProduct>(
+  api.get<PaginatedRewardProductWithCategory>(
     `/rewards/categories/${categoryId}/products`,
     {
       params: { skip, limit },

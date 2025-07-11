@@ -97,8 +97,11 @@ export default function CategoriesListPage() {
       await createCategory(payload);
       await fetchCategories();
       closeCreate();
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Erro ao criar.');
+    } catch (error: unknown) {
+      interface ErrorResponse { response?: { data?: { detail?: string } } }
+      const err = error as ErrorResponse;
+      const detail = err.response?.data?.detail ?? 'Erro ao criar.';
+      setError(detail);
     }
   }
 
@@ -111,8 +114,11 @@ export default function CategoriesListPage() {
       await updateCategory(selectedCat.id, payload as CategoryUpdate);
       await fetchCategories();
       closeEdit();
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Erro ao editar.');
+    } catch (error: unknown) {
+      interface ErrorResponse { response?: { data?: { detail?: string } } }
+      const err = error as ErrorResponse;
+      const detail = err.response?.data?.detail ?? 'Erro ao editar.';
+      setError(detail);
     }
   }
 
@@ -267,10 +273,13 @@ export default function CategoriesListPage() {
             </label>
             {imageFile && (
               <div className={styles.preview}>
-                <img
+                <Image
                   src={URL.createObjectURL(imageFile)}
                   alt="Preview"
+                  width={100}
+                  height={100}
                   className={styles.thumb}
+                  loader={({ src }) => src}
                 />
               </div>
             )}
@@ -306,14 +315,17 @@ export default function CategoriesListPage() {
             </label>
             {(imageFile || selectedCat?.image_url) && (
               <div className={styles.preview}>
-                <img
+                <Image
                   src={
                     imageFile
                       ? URL.createObjectURL(imageFile)
                       : `${baseUrl}${selectedCat?.image_url}`
                   }
                   alt="Preview"
+                  width={100}
+                  height={100}
                   className={styles.thumb}
+                  loader={({ src }) => src}
                 />
               </div>
             )}

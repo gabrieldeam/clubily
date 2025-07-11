@@ -1,7 +1,7 @@
 // src/app/admin/users/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { listUsers } from '@/services/userService';
 import type { UserRead, PaginatedUsers } from '@/types/user';
 import Modal from '@/components/Modal/Modal';
@@ -25,11 +25,8 @@ export default function AdminUsersPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [notification, setNotification] = useState<NotificationState | null>(null);
 
-  useEffect(() => {
-    fetchUsers();
-  }, [page]);
-
-  async function fetchUsers() {
+  // Memoized fetchUsers
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
       const skip = (page - 1) * limit;
@@ -37,12 +34,19 @@ export default function AdminUsersPage() {
       const data: PaginatedUsers = res.data;
       setUsers(data.items);
       setTotal(data.total);
-    } catch (e: any) {
-      setNotification({ type: 'error', message: e.message || 'Erro ao buscar usuários' });
+    } catch (error: unknown) {
+      const message = error instanceof Error
+        ? error.message
+        : 'Erro ao buscar usuários';
+      setNotification({ type: 'error', message });
     } finally {
       setLoading(false);
     }
-  }
+  }, [page]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   function openDetails(user: UserRead) {
     setSelectedUser(user);
@@ -54,6 +58,10 @@ export default function AdminUsersPage() {
   }
 
   const lastPage = Math.ceil(total / limit);
+
+  if (loading) {
+    return <p>Carregando usuários...</p>;
+  }
 
   return (
     <div className={styles.container}>
@@ -82,9 +90,7 @@ export default function AdminUsersPage() {
         </div>
       </header>
 
-      {loading ? (
-        <p>Carregando usuários...</p>
-      ) : viewMode === 'table' ? (
+      {viewMode === 'table' ? (
         <div className={styles.tableContainer}>
           <table className={styles.table}>
             <thead>
@@ -97,7 +103,7 @@ export default function AdminUsersPage() {
               </tr>
             </thead>
             <tbody>
-              {users.map((user) => (
+              {users.map(user => (
                 <tr key={user.id}>
                   <td data-label="Nome">{user.name}</td>
                   <td data-label="Email">{user.email}</td>
@@ -118,7 +124,7 @@ export default function AdminUsersPage() {
         </div>
       ) : (
         <div className={styles.cardsGrid}>
-          {users.map((user) => (
+          {users.map(user => (
             <div key={user.id} className={styles.card}>
               <UserIcon size={40} className={styles.cardIcon} />
               <div className={styles.cardBody}>
@@ -139,56 +145,53 @@ export default function AdminUsersPage() {
 
       <div className={styles.pagination}>
         <button
-          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          onClick={() => setPage(p => Math.max(1, p - 1))}
           disabled={page === 1}
         >
           ← Anterior
         </button>
-        <span>{page} / {lastPage}</span>
+        <span>
+          {page} / {lastPage}
+        </span>
         <button
-          onClick={() => setPage((p) => Math.min(lastPage, p + 1))}
+          onClick={() => setPage(p => Math.min(lastPage, p + 1))}
           disabled={page === lastPage}
         >
           Próxima →
         </button>
       </div>
 
-<Modal open={modalOpen} onClose={closeDetails} width={600}>
-  {selectedUser && (
-    <div className={`${styles.detail} ${styles.detailGrid}`}>
-      <div className={styles.detailLeft}>
-        <h2>{selectedUser.name}</h2>
-        <section>
-          <h3>Contato</h3>
-          <p><strong>Email:</strong> {selectedUser.email}</p>
-          {selectedUser.phone && (
-            <p><strong>Telefone:</strong> {selectedUser.phone}</p>
-          )}
-          <p><strong>ID:</strong> {selectedUser.id}</p>
-        </section>
-        
-
-        <section>
-          <h3>CPF</h3>
-          <p>{selectedUser.cpf}</p>
-        </section>
-      </div>
-
-      <div className={styles.detailRight}>
-        <section>
-          <h3>Role</h3>
-          <p>{selectedUser.role}</p>
-        </section>
-
-        <section>
-          <h3>Pré-cadastrado</h3>
-          <p>{selectedUser.pre_registered ? 'Sim' : 'Não'}</p>
-        </section>
-      </div>
-    </div>
-  )}
-</Modal>
-
+      <Modal open={modalOpen} onClose={closeDetails} width={600}>
+        {selectedUser && (
+          <div className={`${styles.detail} ${styles.detailGrid}`}>
+            <div className={styles.detailLeft}>
+              <h2>{selectedUser.name}</h2>
+              <section>
+                <h3>Contato</h3>
+                <p><strong>Email:</strong> {selectedUser.email}</p>
+                {selectedUser.phone && (
+                  <p><strong>Telefone:</strong> {selectedUser.phone}</p>
+                )}
+                <p><strong>ID:</strong> {selectedUser.id}</p>
+              </section>
+              <section>
+                <h3>CPF</h3>
+                <p>{selectedUser.cpf}</p>
+              </section>
+            </div>
+            <div className={styles.detailRight}>
+              <section>
+                <h3>Role</h3>
+                <p>{selectedUser.role}</p>
+              </section>
+              <section>
+                <h3>Pré-cadastrado</h3>
+                <p>{selectedUser.pre_registered ? 'Sim' : 'Não'}</p>
+              </section>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

@@ -2,13 +2,13 @@
 
 from fastapi import APIRouter
 from .endpoints import (
-    auth, cashback_metrics, users, companies, categories, addresses, 
+    auth, cashback_metrics, slides, users, companies, categories, addresses, 
     cashback_associations, cashback_programs, asaas_webhook, 
     company_payments, admin_payments, asaas_customer, wallet, 
     fee_settings, admin_commissions, commissions, transfer_methods,
     point_purchases, points_wallet, point_plans, admin_point_plans, points,
     branches, inventory_items, purchases, product_categories, admin_point,
-    leaderboard, rewards, points_metrics, purchase_metrics
+    leaderboard, rewards, points_metrics, purchase_metrics, selection_items
 )
 
 router = APIRouter()
@@ -43,3 +43,6 @@ router.include_router(leaderboard.router, prefix="/leaderboard", tags=["leaderbo
 router.include_router(rewards.router, prefix="/rewards", tags=["rewards"])
 router.include_router(points_metrics.router, prefix="/points_metrics", tags=["points_metrics"])
 router.include_router(purchase_metrics.router, prefix="/purchase_metrics", tags=["purchase_metrics"])
+router.include_router(slides.router, prefix="/slides", tags=["slides"])
+router.include_router(selection_items.router, prefix="/selections", tags=["selections"])
+
