@@ -12,7 +12,6 @@ import styles from './page.module.css';
 
 type ViewMode = 'list' | 'card';
 
-type Preset = { label: string; compute: () => { start: Date; end: Date } };
 
 export default function RuleDetailPage() {
   const params = useParams();

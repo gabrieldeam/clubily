@@ -10,24 +10,33 @@ interface Props {
   iconUrl: string;
 }
 
+/** Estrutura mínima retornada pelo Nominatim */
+interface NominatimResult {
+  lat: string;
+  lon: string;
+}
+
 export default function CustomMapLeaflet({ address, iconUrl }: Props) {
   const [position, setPosition] = useState<[number, number] | null>(null);
 
   useEffect(() => {
     fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+        address,
+      )}`,
     )
       .then(res => res.json())
-      .then((data: any[]) => {
+      .then((data: NominatimResult[]) => {
         if (data.length > 0) {
           setPosition([parseFloat(data[0].lat), parseFloat(data[0].lon)]);
         }
-      });
+      })
+      .catch(() => {}); // silencia erros de geocodificação
   }, [address]);
 
   if (!position) return <div>Carregando mapa…</div>;
 
-  // Cria um DivIcon com <img> circular
+  /* ---------- ícone circular com imagem ---------- */
   const html = `
     <div style="
       width: 32px;
@@ -44,9 +53,9 @@ export default function CustomMapLeaflet({ address, iconUrl }: Props) {
 
   const customIcon = new L.DivIcon({
     html,
-    className: '',        
-    iconSize: [32, 32],    
-    iconAnchor: [16, 32], 
+    className: '',
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
     popupAnchor: [0, -32],
   });
 

@@ -1,6 +1,6 @@
 // src/services/userService.ts
 import api from './api';
-import type { LeadCreate, CheckPreRegisteredParams, PreRegisterResponse, UserRead } from '@/types/user';
+import type { LeadCreate, CheckPreRegisteredParams, UserRead } from '@/types/user';
 
 /**
  * Pré-cadastra ou atualiza lead de usuário.

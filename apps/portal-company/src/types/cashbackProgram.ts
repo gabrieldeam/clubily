@@ -2,7 +2,7 @@
 export interface CashbackProgramBase {
   name: string;
   description: string;
-  percent: number;    
+  percent: number;
   validity_days: number;
   is_active: boolean;
   is_visible: boolean;
@@ -10,7 +10,8 @@ export interface CashbackProgramBase {
   min_cashback_per_user?: number;
 }
 
-export interface CashbackProgramCreate extends CashbackProgramBase {}
+/** Payload para criação de programa */
+export type CashbackProgramCreate = CashbackProgramBase;
 
 export interface CashbackProgramRead extends CashbackProgramBase {
   id: string;
@@ -36,7 +37,6 @@ export interface PaginatedProgramUsage {
   total_cashback_value: number;
   usage_count: number;
   average_amount_spent: number;
-
 
   unique_user_count: number;
   average_uses_per_user: number;

@@ -1,7 +1,10 @@
+// src/components/ClientModal/ClientModal.tsx
 'use client';
 
+/* ------------------------------- imports ------------------------------- */
 import { FormEvent, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';    
+import { useRouter } from 'next/navigation';
+import { isAxiosError } from 'axios';
 import { useAuth } from '@/context/AuthContext';
 import { useWallet } from '@/context/WalletContext';
 import {
@@ -28,8 +31,9 @@ interface ClientModalProps {
   onClose: () => void;
 }
 
+/* ============================== component ============================== */
 export default function ClientModal({ onClose }: ClientModalProps) {
-  const router = useRouter();    
+  const router = useRouter();
   const { user: company } = useAuth();
   const companyId = company?.id ?? '';
   const { refresh: refreshCompanyWallet } = useWallet();
@@ -52,9 +56,9 @@ export default function ClientModal({ onClose }: ClientModalProps) {
   const [items, setItems] = useState<InventoryItemRead[]>([]);
   const [itemsLoading, setItemsLoading] = useState(false);
 
-  /* paginação */
+  /* paginação inventário */
   const [itemTotal, setItemTotal] = useState(0);
-  const [itemSkip, setItemSkip]   = useState(0);
+  const [itemSkip, setItemSkip] = useState(0);
   const itemLimit = 10;
 
   /* ---------- carteira ---------- */
@@ -78,10 +82,12 @@ export default function ClientModal({ onClose }: ClientModalProps) {
   const [purchaseLoading, setPurchaseLoading] = useState(false);
 
   /* ---------- filiais ---------- */
-  const [branches, setBranches]   = useState<BranchRead[]>([]);
+  const [branches, setBranches] = useState<BranchRead[]>([]);
   const [branchesLoading, setBranchesLoading] = useState(false);
 
-  /* ---------- reset modal ---------- */
+  /* -------------------------------------------------------------------- */
+  /*                              reset modal                             */
+  /* -------------------------------------------------------------------- */
   const handleReset = () => {
     setPhone('');
     setCpf('');
@@ -114,7 +120,9 @@ export default function ClientModal({ onClose }: ClientModalProps) {
     setWithdrawLoading(false);
   };
 
-  /* ---------- 1) pré-cadastro ---------- */
+  /* -------------------------------------------------------------------- */
+  /*                      1) pré-cadastro do cliente                       */
+  /* -------------------------------------------------------------------- */
   const handlePre = async (e: FormEvent) => {
     e.preventDefault();
     setNotification(null);
@@ -152,8 +160,8 @@ export default function ClientModal({ onClose }: ClientModalProps) {
         type: 'info',
         message: 'Cliente pré-registrado encontrado.',
       });
-    } catch (err: any) {
-      if (err.response?.status === 404) {
+    } catch (err) {
+      if (isAxiosError(err) && err.response?.status === 404) {
         const res = await preRegister(params);
         setClient(res.data);
         setNotification({
@@ -161,9 +169,12 @@ export default function ClientModal({ onClose }: ClientModalProps) {
           message: 'Cliente pré-registrado com sucesso!',
         });
       } else {
+        const detail = isAxiosError(err)
+          ? err.response?.data?.detail
+          : undefined;
         setNotification({
           type: 'error',
-          message: err.response?.data?.detail || 'Erro no pré-cadastro.',
+          message: detail || 'Erro no pré-cadastro.',
         });
       }
     } finally {
@@ -171,14 +182,16 @@ export default function ClientModal({ onClose }: ClientModalProps) {
     }
   };
 
-  /* ---------- 2) fetch programas + inventário + carteira ---------- */
+  /* -------------------------------------------------------------------- */
+  /*        2) carrega programas, inventário, carteira, filiais            */
+  /* -------------------------------------------------------------------- */
   useEffect(() => {
     if (!client) return;
 
     /* programas */
     setProgLoading(true);
     getCashbackPrograms()
-      .then((r) => setPrograms(r.data))
+      .then(r => setPrograms(r.data))
       .catch(console.error)
       .finally(() => setProgLoading(false));
 
@@ -195,44 +208,44 @@ export default function ClientModal({ onClose }: ClientModalProps) {
     /* carteira */
     setWalletLoading(true);
     getUserWallet(client.id)
-      .then((r) => setUserWallet(r.data))
+      .then(r => setUserWallet(r.data))
       .catch(console.error)
       .finally(() => setWalletLoading(false));
 
     /* filiais */
     setBranchesLoading(true);
     listBranches()
-      .then((r) => setBranches(r.data))
+      .then(r => setBranches(r.data))
       .catch(console.error)
       .finally(() => setBranchesLoading(false));
-
   }, [client, itemSkip]);
 
-  /* ---------- 3) se houver só 1 programa, selecione-o ---------- */
+  /* 3) seleciona programa automaticamente se houver apenas um */
   useEffect(() => {
     if (programs.length === 1) {
       setSelectedProg(programs[0].id);
     }
   }, [programs]);
 
+  /* recalcula total da compra quando itens mudam */
   useEffect(() => {
     const sum = selectedItems.reduce((total, itemId) => {
       const item = items.find(i => i.id === itemId);
-      // força Number (ou parseFloat) caso price venha como string
-      const price = item?.price != null 
-        ? (typeof item.price === 'string' 
-            ? parseFloat(item.price) 
-            : item.price)
-        : 0;
+      const price =
+        item?.price != null
+          ? typeof item.price === 'string'
+            ? parseFloat(item.price)
+            : item.price
+          : 0;
       return total + price;
     }, 0);
 
-    setPurchaseAmount(sum.toFixed(2));  // agora sum é number, toFixed existe
+    setPurchaseAmount(sum.toFixed(2));
   }, [selectedItems, items]);
 
-
-
-  /* ---------- 4) registrar compra ---------- */
+  /* -------------------------------------------------------------------- */
+  /*                      4) registrar compra do cliente                  */
+  /* -------------------------------------------------------------------- */
   const handleRegisterPurchase = async () => {
     setPurchaseNotification(null);
 
@@ -250,7 +263,7 @@ export default function ClientModal({ onClose }: ClientModalProps) {
     setPurchaseLoading(true);
 
     try {
-      /* 4a) avalia regras de pontos / cashback internos */
+      /* 4a) avalia regras internas */
       await evaluatePurchase({
         user_id: client.id,
         amount,
@@ -259,52 +272,54 @@ export default function ClientModal({ onClose }: ClientModalProps) {
         event: eventValue || undefined,
       });
 
-      /* 4b) se solicitado, associa cashback */
+      /* 4b) cashback opcional */
       if (associateCb) {
-        const programId =
-          programs.length === 1 ? programs[0].id : selectedProg;
-
+        const programId = programs.length === 1 ? programs[0].id : selectedProg;
         if (!programId) {
           throw new Error('Programa de cashback não selecionado.');
         }
-
         await assignCashback(client.id, {
           program_id: programId,
           amount_spent: amount,
         });
       }
 
-      /* refaz saldo da carteira para refletir eventual cashback */
+      /* atualiza carteira */
       setWalletLoading(true);
       getUserWallet(client.id)
-        .then((r) => setUserWallet(r.data))
+        .then(r => setUserWallet(r.data))
         .catch(console.error)
         .finally(() => setWalletLoading(false));
 
-      /* atualiza saldo no cabeçalho */
       refreshCompanyWallet();
 
       setPurchaseNotification({
         type: 'success',
         message: 'Compra registrada com sucesso!',
       });
+
       /* limpa campos */
       setPurchaseAmount('');
       setSelectedItems([]);
       setBranchId('');
       setEventValue('');
       setAssociateCb(false);
-    } catch (err: any) {
+    } catch (err) {
+      const detail = isAxiosError(err)
+        ? err.response?.data?.detail
+        : (err as Error).message;
       setPurchaseNotification({
         type: 'error',
-        message: err.response?.data?.detail || err.message || 'Erro ao registrar compra.',
+        message: detail || 'Erro ao registrar compra.',
       });
     } finally {
       setPurchaseLoading(false);
     }
   };
 
-  /* ---------- 5) debitar carteira ---------- */
+  /* -------------------------------------------------------------------- */
+  /*                     5) debita carteira do cliente                     */
+  /* -------------------------------------------------------------------- */
   const handleWithdraw = async () => {
     if (!client) return;
 
@@ -322,30 +337,33 @@ export default function ClientModal({ onClose }: ClientModalProps) {
       setUserWallet(res.data);
       setWithdrawAmount('');
       refreshCompanyWallet();
-    } catch (err: any) {
-      setWithdrawError(
-        err.response?.data?.detail || 'Erro ao debitar carteira.',
-      );
+    } catch (err) {
+      const detail = isAxiosError(err)
+        ? err.response?.data?.detail
+        : undefined;
+      setWithdrawError(detail || 'Erro ao debitar carteira.');
     } finally {
       setWithdrawLoading(false);
     }
   };
 
+  /* ------------------------------- paginação ------------------------------- */
   const hasPrevPage = itemSkip > 0;
   const hasNextPage = itemSkip + itemLimit < itemTotal;
 
   const goPrevPage = () => {
-    if (hasPrevPage) setItemSkip((prev) => Math.max(prev - itemLimit, 0));
+    if (hasPrevPage) setItemSkip(prev => Math.max(prev - itemLimit, 0));
   };
 
   const goNextPage = () => {
-    if (hasNextPage) setItemSkip((prev) => prev + itemLimit);
+    if (hasNextPage) setItemSkip(prev => prev + itemLimit);
   };
 
+  /* -------------------------------------------------------------------- */
+  /*                               RENDER                                 */
+  /* -------------------------------------------------------------------- */
 
-  /* ---------- RENDER ---------- */
-
-  /* --- formulário de pré-cadastro --- */
+  /* ---------- formulário de pré-cadastro ---------- */
   if (!client) {
     return (
       <form className={styles.form} onSubmit={handlePre}>
@@ -365,7 +383,7 @@ export default function ClientModal({ onClose }: ClientModalProps) {
           label="Telefone"
           type="text"
           value={phone}
-          onChange={(e) => setPhone(e.target.value)}
+          onChange={e => setPhone(e.target.value)}
         />
 
         <div className={styles.separator}>e/ou</div>
@@ -376,7 +394,7 @@ export default function ClientModal({ onClose }: ClientModalProps) {
           label="CPF"
           type="text"
           value={cpf}
-          onChange={(e) => setCpf(e.target.value)}
+          onChange={e => setCpf(e.target.value)}
         />
 
         <div className={styles.actions}>
@@ -391,7 +409,7 @@ export default function ClientModal({ onClose }: ClientModalProps) {
     );
   }
 
-  /* --- visão do cliente --- */
+  /* ---------- visão do cliente ---------- */
   return (
     <div className={styles.form}>
       <h2 className={styles.title}>Visão do Cliente</h2>
@@ -419,118 +437,129 @@ export default function ClientModal({ onClose }: ClientModalProps) {
           label="Valor da compra (R$)"
           type="number"
           value={purchaseAmount}
-          onChange={(e) => setPurchaseAmount(e.target.value)}
+          onChange={e => setPurchaseAmount(e.target.value)}
         />
 
-          {itemsLoading ? (
-              <p>Carregando itens…</p>
-            ) : items.length > 0 ? (
-              <div>
-                <label className={styles.label}>Itens comprados (Opcional)</label>
-                <div className={styles.checkboxList}>
-                  {items.map((item) => {
-                    const checked = selectedItems.includes(item.id);
-                    return (
-                      <label
-                        key={item.id}
-                        className={`${styles.itemLabel} ${checked ? styles.itemLabelChecked : ''}`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() =>
-                            setSelectedItems((prev) =>
-                              checked
-                                ? prev.filter((id) => id !== item.id)
-                                : [...prev, item.id]
-                            )
-                          }
-                        />
-                        {item.name}
-                      </label>
-                    );
-                  })}
-                  {itemTotal > itemLimit && (
-                    <div className={styles.pagination}>
-                      {/* ... seus botões de paginação ... */}
-                    </div>
-                  )}
+        {/* inventário */}
+        {itemsLoading ? (
+          <p>Carregando itens…</p>
+        ) : items.length > 0 ? (
+          <div>
+            <label className={styles.label}>
+              Itens comprados (Opcional)
+            </label>
+            <div className={styles.checkboxList}>
+              {items.map(item => {
+                const checked = selectedItems.includes(item.id);
+                return (
+                  <label
+                    key={item.id}
+                    className={`${styles.itemLabel} ${
+                      checked ? styles.itemLabelChecked : ''
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() =>
+                        setSelectedItems(prev =>
+                          checked
+                            ? prev.filter(id => id !== item.id)
+                            : [...prev, item.id]
+                        )
+                      }
+                    />
+                    {item.name}
+                  </label>
+                );
+              })}
+
+              {/* paginação dos itens */}
+              {itemTotal > itemLimit && (
+                <div className={styles.pagination}>
+                  <button
+                    onClick={goPrevPage}
+                    disabled={!hasPrevPage}
+                  >
+                    Anterior
+                  </button>
+                  <span>
+                    {Math.floor(itemSkip / itemLimit) + 1} /{' '}
+                    {Math.ceil(itemTotal / itemLimit)}
+                  </span>
+                  <button
+                    onClick={goNextPage}
+                    disabled={!hasNextPage}
+                  >
+                    Próxima
+                  </button>
                 </div>
-                {selectedItems.length > 0 && (
-                  <p className={styles.selectedHint}>
-                    Selecionados:&nbsp;
-                    {items
-                      .filter((i) => selectedItems.includes(i.id))
-                      .map((i) => i.name)
-                      .join(', ')}
-                  </p>
-                )}
-              </div>
-            ) : (
-              <div className={styles.noInventory}>
-                <p>Nenhum item de inventário encontrado.</p>
-                <Button onClick={() => router.push('/register?section=inventory')}>
-                  Cadastrar Inventário
-                </Button>
-              </div>
+              )}
+            </div>
+
+            {selectedItems.length > 0 && (
+              <p className={styles.selectedHint}>
+                Selecionados:&nbsp;
+                {items
+                  .filter(i => selectedItems.includes(i.id))
+                  .map(i => i.name)
+                  .join(', ')}
+              </p>
             )}
+          </div>
+        ) : (
+          <div className={styles.noInventory}>
+            <p>Nenhum item de inventário encontrado.</p>
+            <Button
+              onClick={() => router.push('/register?section=inventory')}
+            >
+              Cadastrar Inventário
+            </Button>
+          </div>
+        )}
 
+        {/* seletor de filial */}
+        {branchesLoading ? (
+          <p>Carregando filiais…</p>
+        ) : branches.length > 0 ? (
+          <select
+            className={styles.select}
+            value={branchId}
+            onChange={e => setBranchId(e.target.value)}
+          >
+            <option value="">Selecione a filial (Opcional)</option>
+            {branches.map(b => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+          </select>
+        ) : null}
 
-
-          {/* seletor de filial */}
-          {branchesLoading ? (
-            <p>Carregando filiais…</p>
-          ) : branches.length > 0 ? (
-            <>
-              <select
-                className={styles.select}
-                value={branchId}
-                onChange={(e) => setBranchId(e.target.value)}
-              >
-                <option value="">Selecione a filial (Opcional)</option>
-                {branches.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
-                ))}
-              </select>
-            </>
-          ) : null}
-
-
-        {/* <FloatingLabelInput
-          id="event"
-          name="event"
-          label="Evento (opcional)"
-          type="text"
-          value={eventValue}
-          onChange={(e) => setEventValue(e.target.value)}
-        /> */}
-
-        {/* checkbox para associar cashback */}
+        {/* checkbox de cashback */}
         {programs.length > 0 && (
           <div className={styles.checkboxRow}>
             <input
               id="associate-cb"
               type="checkbox"
               checked={associateCb}
-              onChange={(e) => setAssociateCb(e.target.checked)}
+              onChange={e => setAssociateCb(e.target.checked)}
             />
             <label htmlFor="associate-cb">Associar Cashback</label>
           </div>
         )}
 
-        {/* seletor de programa (apenas se houver >1) */}
+        {/* seletor de programa */}
         {associateCb && programs.length > 1 && (
           <>
             <label className={styles.label}>Programa</label>
             <select
               className={styles.select}
               value={selectedProg}
-              onChange={(e) => setSelectedProg(e.target.value)}
+              onChange={e => setSelectedProg(e.target.value)}
             >
               <option value="">— selecione —</option>
-              {programs.map((p) => (
+              {programs.map(p => (
                 <option key={p.id} value={p.id}>
                   {p.name} ({p.percent}%)
                 </option>
@@ -539,8 +568,14 @@ export default function ClientModal({ onClose }: ClientModalProps) {
           </>
         )}
 
+        {/* loading de programas */}
+        {progLoading && <p>Carregando programas…</p>}
+
         <div>
-          <Button onClick={handleRegisterPurchase} disabled={purchaseLoading}>
+          <Button
+            onClick={handleRegisterPurchase}
+            disabled={purchaseLoading}
+          >
             {purchaseLoading ? 'Processando…' : 'Registrar Compra'}
           </Button>
         </div>
@@ -573,7 +608,7 @@ export default function ClientModal({ onClose }: ClientModalProps) {
                 label="Valor a debitar"
                 type="number"
                 value={withdrawAmount}
-                onChange={(e) => setWithdrawAmount(e.target.value)}
+                onChange={e => setWithdrawAmount(e.target.value)}
                 disabled={withdrawLoading}
               />
 

@@ -1,17 +1,23 @@
 // src/context/AuthContext.tsx
-'use client'
+'use client';
 
-import React, { createContext, useState, useEffect, useContext } from 'react'
-import { useRouter } from 'next/navigation'
-import api from '@/services/api'
-import { getCurrentCompany, logoutCompany } from '@/services/companyService'
-import type { CompanyRead } from '@/types/company'
+import React, {
+  createContext,
+  useState,
+  useEffect,
+  useContext,
+  useCallback,
+} from 'react';
+import { useRouter } from 'next/navigation';
+import api from '@/services/api';
+import { getCurrentCompany, logoutCompany } from '@/services/companyService';
+import type { CompanyRead } from '@/types/company';
 
 interface AuthContextType {
-  user: CompanyRead | null
-  loading: boolean
-  refreshUser: () => Promise<void>
-  logout: () => Promise<void>
+  user: CompanyRead | null;
+  loading: boolean;
+  refreshUser: () => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -19,72 +25,72 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   refreshUser: async () => {},
   logout: async () => {},
-})
+});
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<CompanyRead | null>(null)
-  const [loading, setLoading] = useState(true)
-  const router = useRouter()
+  const [user, setUser] = useState<CompanyRead | null>(null);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   const refreshUser = async () => {
-    setLoading(true)
+    setLoading(true);
     try {
-      const res = await getCurrentCompany()
-      setUser(res.data)
+      const res = await getCurrentCompany();
+      setUser(res.data);
     } catch {
-      setUser(null)
+      setUser(null);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  const logout = async () => {
+  /** Memoizado → objeto estável entre renders */
+  const logout = useCallback(async () => {
     try {
-      await logoutCompany()
+      await logoutCompany();
     } catch {
-      // ignore
+      /* ignore */
     } finally {
-      setUser(null)
-      router.replace('/')
+      setUser(null);
+      router.replace('/');
     }
-  }
+  }, [router]);
 
+  /* instala interceptor UMA SÓ vez */
   useEffect(() => {
-    // instala interceptor UMA SÓ vez
     const id = api.interceptors.response.use(
       resp => resp,
       err => {
-        const status = err.response?.status
-        const url = err.config?.url || ''
+        const status = err.response?.status;
+        const url = err.config?.url || '';
 
-        // ignora 401 na própria rota de login ou no refresh de perfil
         if (
           status === 401 &&
           !url.includes('/companies/login') &&
           !url.includes('/companies/me') &&
           !url.includes('/companies/logout')
         ) {
-          logout()
+          logout();
         }
-        return Promise.reject(err)
+        return Promise.reject(err);
       }
-    )
+    );
     return () => {
-      api.interceptors.response.eject(id)
-    }
-  }, []) // router dentro de deps poderá reinstalar interceptor desnecessariamente
+      api.interceptors.response.eject(id);
+    };
+  }, [logout]); // ✅ dependência agora satisfeita
 
   useEffect(() => {
-    refreshUser()
-  }, [])
+    refreshUser();
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, loading, refreshUser, logout }}>
       {children}
     </AuthContext.Provider>
-  )
+  );
 }
 
 export function useAuth() {
-  return useContext(AuthContext)
+  return useContext(AuthContext);
 }

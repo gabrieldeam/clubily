@@ -3,6 +3,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
+import { isAxiosError } from 'axios';
 import Header from '@/components/Header/Header';
 import Notification from '@/components/Notification/Notification';
 import Button from '@/components/Button/Button';
@@ -39,21 +41,25 @@ export default function PointsPage() {
       setPurchase(res.data);
       setStatus(res.data.status);
       setCountdown(30);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Erro ao iniciar a compra.');
+    } catch (err) {
+      if (isAxiosError(err)) {
+        setError(err.response?.data?.detail || 'Erro ao iniciar a compra.');
+      } else {
+        setError('Erro ao iniciar a compra.');
+      }
     }
   };
 
   // poll status
   useEffect(() => {
     if (!purchase || ['PAID', 'FAILED', 'CANCELLED'].includes(status!)) {
-      if (intervalRef.current) {
+      if (intervalRef.current !== null) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
       return;
     }
-    if (!intervalRef.current) {
+    if (intervalRef.current === null) {
       intervalRef.current = window.setInterval(() => {
         setCountdown(c => {
           if (c <= 1) {
@@ -67,7 +73,9 @@ export default function PointsPage() {
       }, 1000);
     }
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (intervalRef.current !== null) {
+        clearInterval(intervalRef.current);
+      }
     };
   }, [purchase, status]);
 
@@ -77,13 +85,16 @@ export default function PointsPage() {
       : `data:image/png;base64,${purchase.pix_qr_code}`
     : '';
 
+  // class de status (fallback vazio se null)
+  const statusClass = status ? styles[status.toLowerCase()] : '';
+
   return (
     <>
       <Header />
       <div className={styles.page}>
         <main className={styles.main}>
 
-{/* ------------- PLANOS ------------- */}
+          {/* ------------- PLANOS ------------- */}
           {!purchase && (
             <section className={styles.pricingBlock}>
               <h2 className={styles.pricingTitle}>Planos de Pontos</h2>
@@ -117,25 +128,22 @@ export default function PointsPage() {
                           </span>
                         </header>
 
-                        {/* dentro do map(plan => ...) */}
                         <div className={styles.priceBox}>
-                        <div className={styles.price}>
+                          <div className={styles.price}>
                             <span className={styles.priceCurrency}>R$</span>
                             <span className={styles.priceInteger}>
-                            {Math.floor(plan.price)}
+                              {Math.floor(plan.price)}
                             </span>
-                            <span className={styles.priceDecimal}>,
-                            {plan.price.toFixed(2).split('.')[1]}
+                            <span className={styles.priceDecimal}>
+                              ,{plan.price.toFixed(2).split('.')[1]}
                             </span>
+                          </div>
+                          <span className={styles.pricePeriod}>/única</span>
                         </div>
-                        <span className={styles.pricePeriod}>/única</span>
-                        </div>
-
 
                         {plan.description && (
                           <p className={styles.planDesc}>{plan.description}</p>
                         )}
-
                         {plan.subtitle && (
                           <p className={styles.planSubtitle}>{plan.subtitle}</p>
                         )}
@@ -161,7 +169,7 @@ export default function PointsPage() {
               )}
 
               <p className={styles.legalNote}>
-               Taxas podem variar conforme sua região.
+                Taxas podem variar conforme sua região.
               </p>
             </section>
           )}
@@ -191,11 +199,17 @@ export default function PointsPage() {
                   <div><strong>Valor</strong></div>
                   <div>R$ {purchase.amount.toFixed(2)}</div>
                   <div><strong>Status</strong></div>
-                  <div className={styles[status!.toLowerCase()]}>{status}</div>
+                  <div className={statusClass}>{status}</div>
                 </div>
                 {qrSrc && (
                   <div className={styles.qrContainer}>
-                    <img src={qrSrc} alt="PIX QR Code" className={styles.qr} />
+                    <Image
+                      src={qrSrc}
+                      alt="PIX QR Code"
+                      width={200}
+                      height={200}
+                      priority
+                    />
                   </div>
                 )}
                 <div className={styles.copyContainer}>

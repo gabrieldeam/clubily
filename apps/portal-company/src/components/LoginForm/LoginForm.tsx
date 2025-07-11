@@ -1,6 +1,8 @@
+// src/components/LoginForm/LoginForm.tsx
 'use client';
 
 import { FormEvent, useState } from 'react';
+import { isAxiosError } from 'axios';
 import styles from './LoginForm.module.css';
 import FloatingLabelInput from '@/components/FloatingLabelInput/FloatingLabelInput';
 import Notification from '@/components/Notification/Notification';
@@ -23,19 +25,25 @@ interface LoginFormProps {
 
 export default function LoginForm({ onSuccess }: LoginFormProps) {
   const [mode, setMode] = useState<'login' | 'forgot' | 'reset'>('login');
-  const [identifier, setIdentifier] = useState('');        // para login
-  const [password, setPassword] = useState('');            // para login
-  const [email, setEmail] = useState('');                  // para forgot
-  const [code, setCode] = useState('');                    // para reset
-  const [newPassword, setNewPassword] = useState('');      // para reset
-  const [notification, setNotification] = useState<NotificationData | null>(null);
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('');
+  const [code, setCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [notification, setNotification] =
+    useState<NotificationData | null>(null);
 
+  /* ------------------------------ helpers ------------------------------ */
   const clearAll = () => {
-    setIdentifier(''); setPassword('');
-    setEmail(''); setCode(''); setNewPassword('');
+    setIdentifier('');
+    setPassword('');
+    setEmail('');
+    setCode('');
+    setNewPassword('');
     setNotification(null);
   };
 
+  /* ------------------------------- login ------------------------------- */
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
     setNotification(null);
@@ -43,12 +51,18 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
       await loginCompany({ identifier, password });
       setNotification({ type: 'success', message: 'Login realizado!' });
       onSuccess();
-    } catch (err: any) {
-      const detail = err.response?.data?.detail || 'Falha no login.';
-      setNotification({ type: 'error', message: detail });
+    } catch (err) {
+      const detail = isAxiosError(err)
+        ? err.response?.data?.detail
+        : undefined;
+      setNotification({
+        type: 'error',
+        message: detail || 'Falha no login.',
+      });
     }
   };
 
+  /* -------------------------- forgot password -------------------------- */
   const handleForgot = async (e: FormEvent) => {
     e.preventDefault();
     setNotification(null);
@@ -59,12 +73,18 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
         message: 'Código enviado para seu e-mail.',
       });
       setMode('reset');
-    } catch (err: any) {
-      const detail = err.response?.data?.detail || 'Erro ao enviar código.';
-      setNotification({ type: 'error', message: detail });
+    } catch (err) {
+      const detail = isAxiosError(err)
+        ? err.response?.data?.detail
+        : undefined;
+      setNotification({
+        type: 'error',
+        message: detail || 'Erro ao enviar código.',
+      });
     }
   };
 
+  /* --------------------------- reset password -------------------------- */
   const handleReset = async (e: FormEvent) => {
     e.preventDefault();
     setNotification(null);
@@ -76,12 +96,18 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
       });
       setMode('login');
       clearAll();
-    } catch (err: any) {
-      const detail = err.response?.data?.detail || 'Erro na redefinição.';
-      setNotification({ type: 'error', message: detail });
+    } catch (err) {
+      const detail = isAxiosError(err)
+        ? err.response?.data?.detail
+        : undefined;
+      setNotification({
+        type: 'error',
+        message: detail || 'Erro na redefinição.',
+      });
     }
   };
 
+  /* -------------------------------- JSX -------------------------------- */
   return (
     <form
       onSubmit={

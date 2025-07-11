@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { isAxiosError } from 'axios';
 import Modal from '@/components/Modal/Modal';
 import Notification from '@/components/Notification/Notification';
 import {
@@ -11,7 +12,10 @@ import {
   updateCashbackProgram,
   deleteCashbackProgram,
 } from '@/services/cashbackProgramService';
-import type { CashbackProgramRead, CashbackProgramCreate } from '@/types/cashbackProgram';
+import type {
+  CashbackProgramRead,
+  CashbackProgramCreate,
+} from '@/types/cashbackProgram';
 import CashbackProgramModal from '@/components/CashbackProgramsMain/CashbackProgramModal/CashbackProgramModal';
 import styles from './CashbackProgramsMain.module.css';
 
@@ -27,7 +31,7 @@ export default function CashbackProgramsMain() {
   const [viewMode, setViewMode] = useState<'list' | 'card'>('list');
   const [isMobile, setIsMobile] = useState(false);
 
-  // detectar mobile e forçar card
+  /* ---------- responsive ---------- */
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     handleResize();
@@ -38,28 +42,33 @@ export default function CashbackProgramsMain() {
     if (isMobile) setViewMode('card');
   }, [isMobile]);
 
-  // buscar programas
+  /* ---------- fetch ---------- */
   const fetchPrograms = async () => {
     setLoading(true);
     setError(null);
     try {
       const res = await getCashbackPrograms();
       setPrograms(res.data);
-    } catch (e: any) {
-      // captura detail do HTTPException
-      setError(e.response?.data?.detail || 'Erro ao carregar programas');
+    } catch (err) {
+      if (isAxiosError(err)) {
+        setError(err.response?.data?.detail ?? 'Erro ao carregar programas');
+      } else {
+        setError('Erro ao carregar programas');
+      }
     } finally {
       setLoading(false);
     }
   };
-  useEffect(() => { fetchPrograms(); }, []);
+  useEffect(() => {
+    fetchPrograms();
+  }, []);
 
-  // contadores
+  /* ---------- derived counters ---------- */
   const total = programs.length;
   const activeCount = programs.filter(p => p.is_active).length;
   const visibleCount = programs.filter(p => p.is_visible).length;
 
-  // ações CRUD
+  /* ---------- CRUD helpers ---------- */
   const openCreate = () => {
     setError(null);
     setSelected(null);
@@ -76,22 +85,34 @@ export default function CashbackProgramsMain() {
     try {
       await deleteCashbackProgram(id);
       await fetchPrograms();
-    } catch (e: any) {
-      setError(e.response?.data?.detail || 'Erro ao excluir programa');
+    } catch (err) {
+      if (isAxiosError(err)) {
+        setError(err.response?.data?.detail ?? 'Erro ao excluir programa');
+      } else {
+        setError('Erro ao excluir programa');
+      }
     }
   };
   const handleSave = async (data: CashbackProgramCreate, id?: string) => {
     setError(null);
     try {
-      if (id) await updateCashbackProgram(id, data);
-      else await createCashbackProgram(data);
+      if (id) {
+        await updateCashbackProgram(id, data);
+      } else {
+        await createCashbackProgram(data);
+      }
       setModalOpen(false);
       await fetchPrograms();
-    } catch (e: any) {
-      setError(e.response?.data?.detail || 'Erro ao salvar programa');
+    } catch (err) {
+      if (isAxiosError(err)) {
+        setError(err.response?.data?.detail ?? 'Erro ao salvar programa');
+      } else {
+        setError('Erro ao salvar programa');
+      }
     }
   };
-  
+
+  /* ---------- render ---------- */
   return (
     <main className={styles.main}>
       <div className={styles.topBar}>
@@ -99,19 +120,27 @@ export default function CashbackProgramsMain() {
           <h2>Cashback</h2>
           {!isMobile && (
             <>
-              <div>Total <strong>{total}</strong></div>
-              <div>Ativos <strong>{activeCount}</strong></div>
-              <div>Visíveis <strong>{visibleCount}</strong></div>
+              <div>
+                Total <strong>{total}</strong>
+              </div>
+              <div>
+                Ativos <strong>{activeCount}</strong>
+              </div>
+              <div>
+                Visíveis <strong>{visibleCount}</strong>
+              </div>
             </>
           )}
         </div>
+
         {error && (
-            <Notification
-              type="error"
-              message={error}
-              onClose={() => setError(null)}
-            />
-          )}
+          <Notification
+            type="error"
+            message={error}
+            onClose={() => setError(null)}
+          />
+        )}
+
         <div className={styles.actionsHeader}>
           <button className={styles.addBtn} onClick={openCreate}>
             + Novo Programa
@@ -133,8 +162,8 @@ export default function CashbackProgramsMain() {
         <div className={styles.empty}>
           <h2>Você ainda não criou nenhum programa</h2>
           <p>
-            Crie seu primeiro programa de cashback para começar a fidelizar
-            seus clientes!
+            Crie seu primeiro programa de cashback para começar a fidelizar seus
+            clientes!
           </p>
           <button className={styles.createBtn} onClick={openCreate}>
             Criar Programa
@@ -154,9 +183,15 @@ export default function CashbackProgramsMain() {
           <div className={styles.tableBody}>
             {programs.map(p => (
               <div key={p.id} className={styles.tableRow}>
-                <div className={styles.colName} data-label="Nome:">{p.name}</div>
-                <div className={styles.colDesc} data-label="Descrição:">{p.description}</div>
-                <div className={styles.colPct} data-label="%:">{p.percent}%</div>
+                <div className={styles.colName} data-label="Nome:">
+                  {p.name}
+                </div>
+                <div className={styles.colDesc} data-label="Descrição:">
+                  {p.description}
+                </div>
+                <div className={styles.colPct} data-label="%:">
+                  {p.percent}%
+                </div>
                 <div className={styles.colValidity} data-label="Validade:">
                   {p.validity_days} dia{p.validity_days > 1 && 's'}
                 </div>
@@ -167,9 +202,24 @@ export default function CashbackProgramsMain() {
                   {p.is_visible ? 'Sim' : 'Não'}
                 </div>
                 <div className={styles.colActions}>
-                  <Link href={`/programs/cashback/${p.id}`} className={styles.view}>🔍</Link>
-                  <button className={styles.edit} onClick={() => openEdit(p)}>✏️</button>
-                  <button className={styles.delete} onClick={() => handleDelete(p.id)}>🗑️</button>
+                  <Link
+                    href={`/programs/cashback/${p.id}`}
+                    className={styles.view}
+                  >
+                    🔍
+                  </Link>
+                  <button
+                    className={styles.edit}
+                    onClick={() => openEdit(p)}
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    className={styles.delete}
+                    onClick={() => handleDelete(p.id)}
+                  >
+                    🗑️
+                  </button>
                 </div>
               </div>
             ))}
@@ -178,19 +228,35 @@ export default function CashbackProgramsMain() {
       ) : (
         <div className={styles.cardGrid}>
           {programs.map(p => (
-            <div key={p.id} className={styles.card} onClick={() => openEdit(p)}>
+            <div
+              key={p.id}
+              className={styles.card}
+              onClick={() => openEdit(p)}
+            >
               <div className={styles.cardHeader}>
                 <h3>{p.name}</h3>
                 <span className={styles.cardBadge}>{p.percent}%</span>
               </div>
               <p className={styles.cardSubtitle}>{p.description}</p>
               <div className={styles.cardDetails}>
-                <p><strong>Validade:</strong> {p.validity_days} dia{p.validity_days > 1 && 's'}</p>
-                <p><strong>Status:</strong> {p.is_active ? 'Ativo' : 'Inativo'}</p>
-                <p><strong>Visível:</strong> {p.is_visible ? 'Sim' : 'Não'}</p>
+                <p>
+                  <strong>Validade:</strong> {p.validity_days} dia
+                  {p.validity_days > 1 && 's'}
+                </p>
+                <p>
+                  <strong>Status:</strong> {p.is_active ? 'Ativo' : 'Inativo'}
+                </p>
+                <p>
+                  <strong>Visível:</strong> {p.is_visible ? 'Sim' : 'Não'}
+                </p>
               </div>
               <div className={styles.cardActions}>
-                <Link href={`/programs/cashback/${p.id}`} className={styles.view}>🔍 Ver</Link>
+                <Link
+                  href={`/programs/cashback/${p.id}`}
+                  className={styles.view}
+                >
+                  🔍 Ver
+                </Link>
                 <button className={styles.edit}>✏️ Editar</button>
                 <button className={styles.delete}>🗑️ Excluir</button>
               </div>
@@ -204,8 +270,22 @@ export default function CashbackProgramsMain() {
         <div className={styles.viewModeModal}>
           <h2>Modo de visualização</h2>
           <div className={styles.viewOptions}>
-            <button onClick={() => { setViewMode('list'); setViewModalOpen(false); }}>📄 Lista</button>
-            <button onClick={() => { setViewMode('card'); setViewModalOpen(false); }}>🧾 Card</button>
+            <button
+              onClick={() => {
+                setViewMode('list');
+                setViewModalOpen(false);
+              }}
+            >
+              📄 Lista
+            </button>
+            <button
+              onClick={() => {
+                setViewMode('card');
+                setViewModalOpen(false);
+              }}
+            >
+              🧾 Card
+            </button>
           </div>
         </div>
       </Modal>

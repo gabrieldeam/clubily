@@ -1,8 +1,10 @@
+// src/components/EditCompanyForm/SimpleEditCompanyForm.tsx
 'use client';
 
 import { useEffect, useState, FormEvent, ChangeEvent } from 'react';
+import Image from 'next/image';
+import { isAxiosError } from 'axios';
 import styles from './SimpleEditCompanyForm.module.css';
-import FloatingLabelInput from '@/components/FloatingLabelInput/FloatingLabelInput';
 import Notification from '@/components/Notification/Notification';
 import Button from '@/components/Button/Button';
 import {
@@ -14,6 +16,8 @@ import { listCategories } from '@/services/categoryService';
 import type { CompanyRead, CompanyUpdate } from '@/types/company';
 import type { CategoryRead } from '@/types/category';
 
+/* -------- tipos -------- */
+type NotificationType = 'success' | 'error' | 'info';
 type FormState = {
   description: string;
   category_ids: string[];
@@ -31,20 +35,23 @@ export default function SimpleEditCompanyForm({
   onClose,
   onSaved,
 }: SimpleEditCompanyFormProps) {
+  /* --------------------------- state & constants --------------------------- */
   const [form, setForm] = useState<FormState>({
     description: '',
     category_ids: [],
     logo_url: undefined,
   });
   const [categories, setCategories] = useState<CategoryRead[]>([]);
-  const [notification, setNotification] = useState<{ type: string; message: string } | null>(null);
+  const [notification, setNotification] = useState<
+    { type: NotificationType; message: string } | null
+  >(null);
   const maxDescriptionLength = 130;
 
   // logo upload
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
-  // load initial data
+  /* --------------------------- load initial data -------------------------- */
   useEffect(() => {
     getCompanyInfo(companyId).then(res => {
       const data = res.data as CompanyRead;
@@ -57,12 +64,15 @@ export default function SimpleEditCompanyForm({
     listCategories().then(res => setCategories(res.data));
   }, [companyId]);
 
+  /* ------------------------------ handlers -------------------------------- */
   const handleDescriptionChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
     if (value.length > maxDescriptionLength) {
       setNotification({
         type: 'error',
-        message: `Você excedeu o limite em ${value.length - maxDescriptionLength} caracteres.`,
+        message: `Você excedeu o limite em ${
+          value.length - maxDescriptionLength
+        } caracteres.`,
       });
     } else {
       setNotification(null);
@@ -93,34 +103,41 @@ export default function SimpleEditCompanyForm({
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     try {
-      // upload logo first
+      /* upload logo primeiro, se houver */
       if (logoFile) {
         const fd = new FormData();
         fd.append('image', logoFile);
         await uploadCompanyLogo(fd);
       }
-      // update description + categories
+      /* description + categorias */
       const payload: Partial<CompanyUpdate> = {
         description: form.description,
         category_ids: form.category_ids,
       };
       await updateCompany(companyId, payload);
-      setNotification({ type: 'success', message: 'Informações atualizadas!' });
+      setNotification({
+        type: 'success',
+        message: 'Informações atualizadas!',
+      });
       onSaved();
       onClose();
-    } catch (err: any) {
-      const detail = err.response?.data?.detail || 'Erro ao salvar.';
-      setNotification({ type: 'error', message: detail });
+    } catch (err) {
+      const detail = isAxiosError(err)
+        ? err.response?.data?.detail
+        : undefined;
+      setNotification({ type: 'error', message: detail || 'Erro ao salvar.' });
     }
   };
 
+  /* -------------------------------- render -------------------------------- */
   return (
     <form className={styles.form} onSubmit={handleSubmit}>
       <div className={styles.background}>
         <h2 className={styles.title}>Complete seu perfil</h2>
+
         {notification && (
           <Notification
-            type={notification.type as any}
+            type={notification.type}
             message={notification.message}
             onClose={() => setNotification(null)}
           />
@@ -129,18 +146,35 @@ export default function SimpleEditCompanyForm({
         {/* logo */}
         <div className={styles.logoUpload}>
           {logoPreview ? (
-            <img src={logoPreview} className={styles.logoPreview} />
-          ) : form.logo_url ? (
-            <img
-              src={`${process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL}${form.logo_url}`}
+            <Image
+              src={logoPreview}
+              alt="Pré-visualização"
               className={styles.logoPreview}
+              width={128}
+              height={128}
+              unoptimized
+            />
+          ) : form.logo_url ? (
+            <Image
+              src={`${process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL}${form.logo_url}`}
+              alt="Logo atual"
+              className={styles.logoPreview}
+              width={128}
+              height={128}
+              unoptimized
             />
           ) : (
             <div className={styles.logoPlaceholder}>Sem logo</div>
           )}
+
           <label className={styles.logoBtn}>
             Escolher logo
-            <input type="file" accept="image/*" hidden onChange={handleLogoChange} />
+            <input
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={handleLogoChange}
+            />
           </label>
         </div>
 
@@ -153,7 +187,9 @@ export default function SimpleEditCompanyForm({
           placeholder="Conte um pouco sobre seu negócio..."
           maxLength={maxDescriptionLength}
         />
-        <div className={styles.charCount}>{form.description.length}/{maxDescriptionLength}</div>
+        <div className={styles.charCount}>
+          {form.description.length}/{maxDescriptionLength}
+        </div>
 
         {/* categorias */}
         <div className={styles.catContainer}>

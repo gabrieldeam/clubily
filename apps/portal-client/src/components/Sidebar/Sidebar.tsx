@@ -20,7 +20,8 @@ import {
   DollarSign,
   SquareChartGantt,
   ShoppingCart,
-  GalleryThumbnails
+  GalleryThumbnails,
+  Flag
 } from 'lucide-react';
 import styles from './Sidebar.module.css';
 
@@ -38,6 +39,7 @@ const navItems = [
   { label: 'Comissões', href: '/admin/commissions', icon: DollarSign },
   { label: 'Loja de Recompensas', href: '/admin/rewards', icon: ShoppingCart },
   { label: 'Slides', href: '/admin/slides', icon: GalleryThumbnails },
+  { label: 'Marcos de Pontuação', href: '/admin/milestones', icon: Flag },
 ];
 
 export default function Sidebar() {

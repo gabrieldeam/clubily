@@ -5,9 +5,11 @@ export interface BranchBase {
   slug: string;
 }
 
-export interface BranchCreate extends BranchBase {}
+/** Payload para criação de filial */
+export type BranchCreate = BranchBase;
 
-export interface BranchUpdate extends BranchBase {}
+/** Payload para atualização de filial */
+export type BranchUpdate = BranchBase;
 
 /**
  * Representação completa de uma filial retornada pela API

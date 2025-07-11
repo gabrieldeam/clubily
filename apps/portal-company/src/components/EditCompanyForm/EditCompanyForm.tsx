@@ -2,6 +2,8 @@
 'use client';
 
 import { useEffect, useState, FormEvent } from 'react';
+import Image from 'next/image';
+import { isAxiosError } from 'axios';
 import editStyles from './EditCompanyForm.module.css';
 import resetStyles from '../LoginForm/LoginForm.module.css';
 import FloatingLabelInput from '@/components/FloatingLabelInput/FloatingLabelInput';
@@ -30,17 +32,23 @@ interface CompanySettingsProps {
   onSaved: () => void;
 }
 
-export default function CompanySettings({ companyId, onClose, onSaved }: CompanySettingsProps) {
+export default function CompanySettings({
+  companyId,
+  onClose,
+  onSaved,
+}: CompanySettingsProps) {
   // --- Company Edit State ---
   const [company, setCompany] = useState<CompanyFormState>({});
   const [categories, setCategories] = useState<CategoryRead[]>([]);
-  const [companyNotification, setCompanyNotification] = useState<NotificationData | null>(null);
+  const [companyNotification, setCompanyNotification] =
+    useState<NotificationData | null>(null);
   const maxDescriptionLength = 130;
   const [showAddress, setShowAddress] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [dataDirty, setDataDirty] = useState(false);
 
+  /* --------------------------- carregar dados --------------------------- */
   useEffect(() => {
     getCompanyInfo(companyId).then(res => {
       const { categories: cats, ...rest } = res.data as CompanyRead;
@@ -54,6 +62,7 @@ export default function CompanySettings({ companyId, onClose, onSaved }: Company
     listCategories().then(res => setCategories(res.data));
   }, [companyId]);
 
+  /* --------------------- auto-preencher via CEP (ViaCEP) --------------------- */
   useEffect(() => {
     const cep = (company.postal_code ?? '').replace(/\D/g, '');
     if (showAddress && cep.length === 8) {
@@ -69,21 +78,22 @@ export default function CompanySettings({ companyId, onClose, onSaved }: Company
             }));
             setDataDirty(true);
           } else {
-            setCompanyNotification({ type: 'error', message: 'CEP não encontrado.' });
+            setCompanyNotification({
+              type: 'error',
+              message: 'CEP não encontrado.',
+            });
           }
         })
         .catch(() =>
-          setCompanyNotification({ type: 'error', message: 'Erro ao buscar CEP.' }),
+          setCompanyNotification({
+            type: 'error',
+            message: 'Erro ao buscar CEP.',
+          }),
         );
     }
   }, [company.postal_code, showAddress]);
 
-  useEffect(() => {
-    if (company.email) {
-      setEmail(company.email);
-    }
-  }, [company.email]);
-
+  /* --------------------------- helpers de input -------------------------- */
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
@@ -114,41 +124,57 @@ export default function CompanySettings({ companyId, onClose, onSaved }: Company
       setLogoFile(file);
       setLogoPreview(URL.createObjectURL(file));
     } else {
-      setCompanyNotification({ type: 'error', message: 'Selecione um arquivo de imagem válido.' });
+      setCompanyNotification({
+        type: 'error',
+        message: 'Selecione um arquivo de imagem válido.',
+      });
     }
   };
 
-  const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-  const value = e.target.value;
-  if (value.length > maxDescriptionLength) {
-    setCompanyNotification({
-      type: 'error',
-      message: `Você excedeu o limite em ${value.length - maxDescriptionLength} caracteres.`,
-    });
-  } else {
-    setCompanyNotification(null);
-  }
-  setCompany(prev => ({
-    ...prev,
-    description: value.slice(0, maxDescriptionLength),
-  }));
-  setDataDirty(true);
-};
+  const handleDescriptionChange = (
+    e: React.ChangeEvent<HTMLTextAreaElement>,
+  ) => {
+    const value = e.target.value;
+    if (value.length > maxDescriptionLength) {
+      setCompanyNotification({
+        type: 'error',
+        message: `Você excedeu o limite em ${
+          value.length - maxDescriptionLength
+        } caracteres.`,
+      });
+    } else {
+      setCompanyNotification(null);
+    }
+    setCompany(prev => ({
+      ...prev,
+      description: value.slice(0, maxDescriptionLength),
+    }));
+    setDataDirty(true);
+  };
 
+  /* ----------------------------- submit dados ---------------------------- */
   const handleCompanySubmit = async (e: FormEvent) => {
     e.preventDefault();
     const hasLogoChange = !!logoFile;
     const hasDataChange = dataDirty;
 
     try {
+      /* ---------- 1) somente logo ---------- */
       if (hasLogoChange && !hasDataChange) {
         const fd = new FormData();
         fd.append('image', logoFile as File);
         await uploadCompanyLogo(fd);
-        setCompanyNotification({ type: 'success', message: 'Logo atualizada com sucesso.' });
-      } else if (!hasLogoChange && hasDataChange) {
-        const { logo_url: _, ...base } = company;
-        let payload: Partial<CompanyUpdate> = { ...base };
+        setCompanyNotification({
+          type: 'success',
+          message: 'Logo atualizada com sucesso.',
+        });
+      }
+
+      /* ---------- 2) somente dados ---------- */
+      if (!hasLogoChange && hasDataChange) {
+        const payload: Partial<CompanyUpdate> = { ...company };
+        delete (payload as Partial<CompanyUpdate> & { logo_url?: string })
+          .logo_url;
         if (!showAddress) {
           delete payload.postal_code;
           delete payload.street;
@@ -159,13 +185,21 @@ export default function CompanySettings({ companyId, onClose, onSaved }: Company
           delete payload.complement;
         }
         await updateCompany(companyId, payload);
-        setCompanyNotification({ type: 'success', message: 'Dados atualizados com sucesso.' });
-      } else if (hasLogoChange && hasDataChange) {
+        setCompanyNotification({
+          type: 'success',
+          message: 'Dados atualizados com sucesso.',
+        });
+      }
+
+      /* ---------- 3) logo + dados ---------- */
+      if (hasLogoChange && hasDataChange) {
         const fd = new FormData();
         fd.append('image', logoFile as File);
         await uploadCompanyLogo(fd);
-        const { logo_url: _, ...base } = company;
-        let payload: Partial<CompanyUpdate> = { ...base };
+
+        const payload: Partial<CompanyUpdate> = { ...company };
+        delete (payload as Partial<CompanyUpdate> & { logo_url?: string })
+          .logo_url;
         if (!showAddress) {
           delete payload.postal_code;
           delete payload.street;
@@ -176,26 +210,41 @@ export default function CompanySettings({ companyId, onClose, onSaved }: Company
           delete payload.complement;
         }
         await updateCompany(companyId, payload);
-        setCompanyNotification({ type: 'success', message: 'Logo e dados atualizados com sucesso.' });
-      } else {
-        setCompanyNotification({ type: 'info', message: 'Nenhuma alteração para salvar.' });
+        setCompanyNotification({
+          type: 'success',
+          message: 'Logo e dados atualizados com sucesso.',
+        });
+      }
+
+      /* ---------- 4) nada para salvar ---------- */
+      if (!hasLogoChange && !hasDataChange) {
+        setCompanyNotification({
+          type: 'info',
+          message: 'Nenhuma alteração para salvar.',
+        });
         return;
       }
 
       onSaved();
       onClose();
-    } catch (err: any) {
-      const detail = err.response?.data?.detail || 'Erro ao atualizar dados.';
-      setCompanyNotification({ type: 'error', message: detail });
+    } catch (err) {
+      const detail = isAxiosError(err)
+        ? err.response?.data?.detail
+        : undefined;
+      setCompanyNotification({
+        type: 'error',
+        message: detail || 'Erro ao atualizar dados.',
+      });
     }
   };
 
-  // --- Password Reset State ---
+  /* --------------------------- password reset --------------------------- */
   const [mode, setMode] = useState<'forgot' | 'reset'>('forgot');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [resetNotification, setResetNotification] = useState<NotificationData | null>(null);
+  const [resetNotification, setResetNotification] =
+    useState<NotificationData | null>(null);
 
   const clearResetFields = () => {
     setEmail('');
@@ -209,11 +258,19 @@ export default function CompanySettings({ companyId, onClose, onSaved }: Company
     setResetNotification(null);
     try {
       await forgotPasswordCompany(email);
-      setResetNotification({ type: 'info', message: 'Código enviado para seu e-mail.' });
+      setResetNotification({
+        type: 'info',
+        message: 'Código enviado para seu e-mail.',
+      });
       setMode('reset');
-    } catch (err: any) {
-      const detail = err.response?.data?.detail || 'Erro ao enviar código.';
-      setResetNotification({ type: 'error', message: detail });
+    } catch (err) {
+      const detail = isAxiosError(err)
+        ? err.response?.data?.detail
+        : undefined;
+      setResetNotification({
+        type: 'error',
+        message: detail || 'Erro ao enviar código.',
+      });
     }
   };
 
@@ -222,18 +279,27 @@ export default function CompanySettings({ companyId, onClose, onSaved }: Company
     setResetNotification(null);
     try {
       await resetPasswordCompany(code, newPassword);
-      setResetNotification({ type: 'success', message: 'Senha redefinida com sucesso!' });
+      setResetNotification({
+        type: 'success',
+        message: 'Senha redefinida com sucesso!',
+      });
       clearResetFields();
       setMode('forgot');
-    } catch (err: any) {
-      const detail = err.response?.data?.detail || 'Erro na redefinição.';
-      setResetNotification({ type: 'error', message: detail });
+    } catch (err) {
+      const detail = isAxiosError(err)
+        ? err.response?.data?.detail
+        : undefined;
+      setResetNotification({
+        type: 'error',
+        message: detail || 'Erro na redefinição.',
+      });
     }
   };
 
+  /* =============================== JSX =============================== */
   return (
     <div className={editStyles.page}>
-      {/* Edit Company Form */}
+      {/* -------------------- Edit Company Form -------------------- */}
       <form onSubmit={handleCompanySubmit} className={editStyles.form}>
         {companyNotification && (
           <Notification
@@ -247,18 +313,25 @@ export default function CompanySettings({ companyId, onClose, onSaved }: Company
           <>
             <div className={editStyles.back}>
               <div className={editStyles.background}>
+                {/* ---------- logo ---------- */}
                 <div className={editStyles.logoUpload}>
                   {logoPreview ? (
-                    <img
+                    <Image
                       src={logoPreview}
                       alt="Pré-visualização"
                       className={editStyles.logoPreview}
+                      width={128}
+                      height={128}
+                      unoptimized
                     />
                   ) : company.logo_url ? (
-                    <img
+                    <Image
                       src={`${process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL}${company.logo_url}`}
                       alt="Logo atual"
                       className={editStyles.logoPreview}
+                      width={128}
+                      height={128}
+                      unoptimized
                     />
                   ) : (
                     <div className={editStyles.logoPlaceholder}>Sem logo</div>
@@ -275,6 +348,7 @@ export default function CompanySettings({ companyId, onClose, onSaved }: Company
                   </label>
                 </div>
 
+                {/* ---------- campos básicos ---------- */}
                 <FloatingLabelInput
                   id="edit-name"
                   name="name"
@@ -294,9 +368,9 @@ export default function CompanySettings({ companyId, onClose, onSaved }: Company
                 <div className={editStyles.charCount}>
                   {company.description?.length ?? 0}/{maxDescriptionLength}
                 </div>
-                
               </div>
 
+              {/* ---------- contato & categorias ---------- */}
               <div className={editStyles.background}>
                 <FloatingLabelInput
                   id="edit-phone"
@@ -325,7 +399,9 @@ export default function CompanySettings({ companyId, onClose, onSaved }: Company
                     <label key={cat.id} className={editStyles.catItem}>
                       <input
                         type="checkbox"
-                        checked={company.category_ids?.includes(cat.id) || false}
+                        checked={
+                          company.category_ids?.includes(cat.id) || false
+                        }
                         onChange={() => handleCategoryToggle(cat.id)}
                       />
                       {cat.name}
@@ -351,6 +427,7 @@ export default function CompanySettings({ companyId, onClose, onSaved }: Company
             </div>
           </>
         ) : (
+          /* ---------------------- formulário de endereço ---------------------- */
           <div className={editStyles.background}>
             <h3>Endereço</h3>
             <FloatingLabelInput
@@ -376,7 +453,7 @@ export default function CompanySettings({ companyId, onClose, onSaved }: Company
                 value={company.number ?? ''}
                 onChange={handleChange}
               />
-            </div>            
+            </div>
 
             <div className={editStyles.flex}>
               <FloatingLabelInput
@@ -402,7 +479,7 @@ export default function CompanySettings({ companyId, onClose, onSaved }: Company
                 onChange={handleChange}
               />
             </div>
-            
+
             <FloatingLabelInput
               id="edit-complement"
               name="complement"
@@ -413,26 +490,27 @@ export default function CompanySettings({ companyId, onClose, onSaved }: Company
             />
 
             {/* — Adicionado: online_url e only_online — */}
-                <FloatingLabelInput
-                  id="edit-online_url"
-                  name="online_url"
-                  label="URL Online (opcional)"
-                  type="text"
-                  value={company.online_url ?? ''}
-                  onChange={handleChange}
-                />
+            <FloatingLabelInput
+              id="edit-online_url"
+              name="online_url"
+              label="URL Online (opcional)"
+              type="text"
+              value={company.online_url ?? ''}
+              onChange={handleChange}
+            />
 
-                <div className={editStyles.flex}>
-                  <input
-                    type="checkbox"
-                    id="only_online"
-                    name="only_online"
-                    checked={company.only_online ?? false}
-                    onChange={handleChange}
-                  />
-                  <label htmlFor="only_online">Este estabelecimento é somente online</label>
-                </div>
-
+            <div className={editStyles.flex}>
+              <input
+                type="checkbox"
+                id="only_online"
+                name="only_online"
+                checked={company.only_online ?? false}
+                onChange={handleChange}
+              />
+              <label htmlFor="only_online">
+                Este estabelecimento é somente online
+              </label>
+            </div>
 
             <Button bgColor="#FFA600" onClick={() => setShowAddress(false)}>
               Continuar
@@ -441,7 +519,7 @@ export default function CompanySettings({ companyId, onClose, onSaved }: Company
         )}
       </form>
 
-      {/* Password Reset Form */}
+      {/* ----------------------- Password Reset Form ----------------------- */}
       <div className={editStyles.forgotBackground}>
         <form
           onSubmit={mode === 'forgot' ? handleForgot : handleReset}

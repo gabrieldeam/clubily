@@ -1,7 +1,7 @@
 // src/components/Button/Button.tsx
 'use client';
 
-import React, { ButtonHTMLAttributes, ReactNode, CSSProperties } from 'react';
+import React, { ButtonHTMLAttributes, CSSProperties } from 'react';
 import styles from './Button.module.css';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {

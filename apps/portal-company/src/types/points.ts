@@ -12,20 +12,21 @@ export enum RuleType {
   inventory        = "inventory",
 }
 
+// ⚠️ Troca `any` por `unknown`
 export interface PointsRuleBase {
   name: string;
   description?: string;
   rule_type: RuleType;
-  config: Record<string, any>;
+  config: Record<string, unknown>;
   active: boolean;
   visible: boolean;
 }
 
-// usado ao criar ou atualizar
-export interface PointsRuleCreate extends PointsRuleBase {}
-export interface PointsRuleUpdate extends PointsRuleBase {}
+// Interfaces redundantes → transforme em alias
+export type PointsRuleCreate = PointsRuleBase;
+export type PointsRuleUpdate = PointsRuleBase;
 
-// retorno dos endpoints
+// Leitura continua igual
 export interface PointsRuleRead extends PointsRuleBase {
   id: string;
   company_id: string;

@@ -27,18 +27,18 @@
 
 /* círculo interno onde fica o ícone */
 .cardImage {
+  position: relative;          /* obrigatório para <Image fill /> */
+  overflow: hidden;            /* corta bordas excedentes */
   background-color: #F0F0F0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   width: 80px;
-  min-height: 80px;
-  min-width: 80px;
-  max-height: 80px;
-  max-width: 80px;
   height: 80px;
   border-radius: 50%;
   border: 4px solid white;
+}
+
+/* Imagem interna ocupa toda a área */
+.cardImage img {
+  object-fit: cover;
 }
 
 .cardText {
@@ -97,6 +97,21 @@
 .button:hover {
   background-color: #dfdfdf;
 }
+
+
+.nextGoal {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  text-align: center;
+  color: #374151;
+}
+
+.goalLink {
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+
 
 @media (max-width: 768px) { 
   .link {
