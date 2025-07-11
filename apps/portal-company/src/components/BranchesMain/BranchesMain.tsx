@@ -12,7 +12,6 @@ import {
 import type { BranchRead, BranchCreate } from '@/types/branch';
 import BranchModal from './BranchModal/BranchModal';
 import styles from './BranchesMain.module.css';
-import Link from 'next/link'; // se quiser link para detalhe
 
 export default function BranchesMain() {
   const [branches, setBranches] = useState<BranchRead[]>([]);

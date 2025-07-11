@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { isAxiosError } from 'axios';
 import Modal from '@/components/Modal/Modal';
 import Notification from '@/components/Notification/Notification';
 import {
@@ -24,12 +25,12 @@ export default function PointsRulesMain() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedRule, setSelectedRule] = useState<PointsRuleRead | null>(null);
 
-  // view mode state
+  // view mode
   const [viewMode, setViewMode] = useState<'list' | 'card'>('list');
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
-  // busca inicial e resize
+  /* ------------------------- initial fetch & resize ------------------------ */
   useEffect(() => {
     fetchRules();
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -42,45 +43,50 @@ export default function PointsRulesMain() {
     if (isMobile) setViewMode('card');
   }, [isMobile]);
 
-  // FETCH
+  /* ------------------------------ FETCH LIST ------------------------------ */
   const fetchRules = async () => {
     setLoading(true);
     setError(null);
     try {
       const res = await listPointsRules();
       setRules(res.data);
-    } catch (e: any) {
-      setError(e.response?.data?.detail || 'Erro ao carregar regras');
+    } catch (err) {
+      const detail = isAxiosError(err)
+        ? err.response?.data?.detail
+        : undefined;
+      setError(detail || 'Erro ao carregar regras');
     } finally {
       setLoading(false);
     }
   };
 
-  // abrir modais
+  /* ------------------------------- helpers ------------------------------- */
   const openCreate = () => {
     setError(null);
     setSelectedRule(null);
     setModalOpen(true);
   };
+
   const openEdit = (rule: PointsRuleRead) => {
     setError(null);
     setSelectedRule(rule);
     setModalOpen(true);
   };
 
-  // DELETE
   const handleDelete = async (id: string) => {
     if (!confirm('Deseja realmente excluir esta regra?')) return;
     setError(null);
     try {
       await deletePointsRule(id);
       await fetchRules();
-    } catch (e: any) {
-      setError(e.response?.data?.detail || 'Erro ao excluir regra');
+    } catch (err) {
+      const detail = isAxiosError(err)
+        ? err.response?.data?.detail
+        : undefined;
+      setError(detail || 'Erro ao excluir regra');
     }
   };
 
-  // SAVE (create/update)
   const handleSave = async (data: PointsRuleCreate, id?: string) => {
     setError(null);
     try {
@@ -88,31 +94,42 @@ export default function PointsRulesMain() {
       else await createPointsRule(data);
       setModalOpen(false);
       await fetchRules();
-    } catch (e: any) {
-      setError(e.response?.data?.detail || 'Erro ao salvar regra');
+    } catch (err) {
+      const detail = isAxiosError(err)
+        ? err.response?.data?.detail
+        : undefined;
+      setError(detail || 'Erro ao salvar regra');
     }
   };
 
-  // summary counts
+  /* --------------------------- summary counters --------------------------- */
   const total = rules.length;
   const activeCount = rules.filter(r => r.active).length;
   const visibleCount = rules.filter(r => r.visible).length;
 
-
+  /* -------------------------------- JSX -------------------------------- */
   return (
     <>
       <main className={styles.main}>
+        {/* -------- top bar -------- */}
         <div className={styles.topBar}>
           <div className={styles.summary}>
             <h2>Regras de Pontos</h2>
             {!isMobile && (
               <>
-                <div>Total <strong>{total}</strong></div>
-                <div>Ativos <strong>{activeCount}</strong></div>
-                <div>Visíveis <strong>{visibleCount}</strong></div>
+                <div>
+                  Total <strong>{total}</strong>
+                </div>
+                <div>
+                  Ativos <strong>{activeCount}</strong>
+                </div>
+                <div>
+                  Visíveis <strong>{visibleCount}</strong>
+                </div>
               </>
             )}
           </div>
+
           {error && (
             <Notification
               type="error"
@@ -120,6 +137,7 @@ export default function PointsRulesMain() {
               onClose={() => setError(null)}
             />
           )}
+
           <div className={styles.actionsHeader}>
             <button className={styles.addBtn} onClick={openCreate}>
               + Nova Regra
@@ -135,20 +153,22 @@ export default function PointsRulesMain() {
           </div>
         </div>
 
+        {/* -------- body -------- */}
         {loading ? (
           <p className={styles.loading}>Carregando regras...</p>
         ) : rules.length === 0 ? (
           <div className={styles.empty}>
             <h2>Nenhuma regra criada ainda</h2>
             <p>
-              Crie sua primeira regra de pontuação para começar a fidelizar
-              seus clientes!
+              Crie sua primeira regra de pontuação para começar a fidelizar seus
+              clientes!
             </p>
             <button className={styles.createBtn} onClick={openCreate}>
               Criar Regra
             </button>
           </div>
         ) : viewMode === 'list' ? (
+          /* -------- table view -------- */
           <div className={styles.tableWrapper}>
             <div className={styles.tableHeader}>
               <div>Nome</div>
@@ -165,7 +185,12 @@ export default function PointsRulesMain() {
                   <div>{r.active ? 'Sim' : 'Não'}</div>
                   <div>{r.visible ? 'Sim' : 'Não'}</div>
                   <div className={styles.actions}>
-                    <Link href={`/programs/rules/${r.id}/${r.name}`} className={styles.view}>🔍</Link>
+                    <Link
+                      href={`/programs/rules/${r.id}/${r.name}`}
+                      className={styles.view}
+                    >
+                      🔍
+                    </Link>
                     <button
                       className={styles.edit}
                       onClick={() => openEdit(r)}
@@ -184,6 +209,7 @@ export default function PointsRulesMain() {
             </div>
           </div>
         ) : (
+          /* -------- card view -------- */
           <div className={styles.cardGrid}>
             {rules.map(r => (
               <div
@@ -193,14 +219,25 @@ export default function PointsRulesMain() {
               >
                 <div className={styles.cardHeader}>
                   <h3>{r.name}</h3>
-                  <span className={styles.cardBadge}>{getRuleTypeLabel(r.rule_type)}</span>
+                  <span className={styles.cardBadge}>
+                    {getRuleTypeLabel(r.rule_type)}
+                  </span>
                 </div>
                 <div className={styles.cardBody}>
-                  <p><strong>Ativa:</strong> {r.active ? 'Sim' : 'Não'}</p>
-                  <p><strong>Visível:</strong> {r.visible ? 'Sim' : 'Não'}</p>
+                  <p>
+                    <strong>Ativa:</strong> {r.active ? 'Sim' : 'Não'}
+                  </p>
+                  <p>
+                    <strong>Visível:</strong> {r.visible ? 'Sim' : 'Não'}
+                  </p>
                 </div>
                 <div className={styles.cardActions}>
-                  <Link href={`/programs/rules/${r.id}/${r.name}`} className={styles.view}>🔍 Ver</Link>
+                  <Link
+                    href={`/programs/rules/${r.id}/${r.name}`}
+                    className={styles.view}
+                  >
+                    🔍 Ver
+                  </Link>
                   <button className={styles.edit}>✏️ Editar</button>
                   <button
                     className={styles.delete}
@@ -217,7 +254,7 @@ export default function PointsRulesMain() {
           </div>
         )}
 
-        {/* view-mode modal */}
+        {/* -------- view-mode modal -------- */}
         <Modal open={viewModalOpen} onClose={() => setViewModalOpen(false)}>
           <div className={styles.viewModeModal}>
             <h2>Modo de visualização</h2>
@@ -242,7 +279,7 @@ export default function PointsRulesMain() {
           </div>
         </Modal>
 
-        {/* CRUD modal */}
+        {/* -------- CRUD modal -------- */}
         <Modal open={modalOpen} onClose={() => setModalOpen(false)}>
           <PointsRuleModal
             rule={selectedRule}

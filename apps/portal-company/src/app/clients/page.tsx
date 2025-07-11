@@ -19,6 +19,7 @@ import { getUserWallet, withdrawUserWallet } from '@/services/walletService';
 import type { UserRead } from '@/types/user';
 import type { UserWalletRead } from '@/types/wallet';
 import type { CashbackProgramRead, UserProgramStats } from '@/types/cashbackProgram';
+import { isAxiosError } from 'axios';
 import styles from './page.module.css';
 
 export default function ClientsPage() {
@@ -136,10 +137,8 @@ export default function ClientsPage() {
     setSearchLoading(true);
     setSearchError(null);
 
-    // use a interface correta aqui
     const params: CheckPreRegisteredParams = {
       company_id: user.id,
-      // preencha apenas o campo correspondente
       ...(searchBy === 'phone' ? { phone: raw } : { cpf: raw }),
     };
 
@@ -147,8 +146,8 @@ export default function ClientsPage() {
       const res = await checkPreRegistered(params);
       setSelectedClient(res.data);
       setOpenModal(true);
-    } catch (err: any) {
-      if (err.response?.status === 404) {
+    } catch (err) {
+      if (isAxiosError(err) && err.response?.status === 404) {
         setSearchError('Cliente não encontrado.');
       } else {
         setSearchError('Erro ao buscar cliente.');
@@ -158,7 +157,7 @@ export default function ClientsPage() {
     }
   };
 
-    // saque da carteira do usuário
+  // saque da carteira do usuário
   const handleWithdraw = async () => {
     if (!selectedClient) return;
     const amt = parseFloat(withdrawAmount.replace(',', '.'));
@@ -168,12 +167,17 @@ export default function ClientsPage() {
     }
     setWithdrawLoading(true);
     setWithdrawError(null);
+
     try {
       const res = await withdrawUserWallet(selectedClient.id, { amount: amt });
-      setUserWallet(res.data);     // já vem o novo saldo
+      setUserWallet(res.data); // já vem o novo saldo
       setWithdrawAmount('');
-    } catch (err: any) {
-      setWithdrawError(err.response?.data?.detail || 'Erro ao debitar.');
+    } catch (err) {
+      if (isAxiosError(err)) {
+        setWithdrawError(err.response?.data?.detail || 'Erro ao debitar.');
+      } else {
+        setWithdrawError('Erro ao debitar.');
+      }
     } finally {
       setWithdrawLoading(false);
     }
@@ -206,15 +210,55 @@ export default function ClientsPage() {
 
   return (
     <>
-    <Header />
-    <div className={styles.container}>     
+      <Header />
+      <div className={styles.container}>
+        <main className={styles.main}>
+          <div className={styles.headerRow}>
+            <h2>Meus Clientes</h2>
+            <div className={styles.actionsHeader}>
+              {!isMobile && (
+                <form onSubmit={handleSearch}>
+                  <div className={styles.searchGroup}>
+                    <select
+                      value={searchBy}
+                      onChange={e => setSearchBy(e.target.value as 'phone' | 'cpf')}
+                      className={styles.searchSelect}
+                    >
+                      <option value="phone">Telefone</option>
+                      <option value="cpf">CPF</option>
+                    </select>
+                    <input
+                      type="text"
+                      placeholder={searchBy === 'phone' ? 'Digite o telefone' : 'Digite o CPF'}
+                      className={styles.searchInput}
+                      value={searchTerm}
+                      onChange={e => setSearchTerm(e.target.value)}
+                    />
+                    <button type="submit" disabled={searchLoading} className={styles.searchBtn}>
+                      Buscar
+                    </button>
+                  </div>
+                  {searchLoading && <div className={styles.loadingOverlay}>Buscando…</div>}
+                  {searchError && <p className={styles.searchError}>{searchError}</p>}
+                </form>
+              )}
 
-      <main className={styles.main}>
-        <div className={styles.headerRow}>
-          <h2>Meus Clientes</h2>
-          <div className={styles.actionsHeader}>            
-            {!isMobile && (
-              <form onSubmit={handleSearch}>
+              <button className={styles.addBtn} onClick={openAddModal}>
+                Adicionar Cliente
+              </button>
+              {!isMobile && (
+                <button
+                  className={styles.viewToggleBtn}
+                  onClick={() => setViewModalOpen(true)}
+                >
+                  ⋮
+                </button>
+              )}
+            </div>
+          </div>
+
+          {isMobile && (
+            <form onSubmit={handleSearch}>
               <div className={styles.searchGroup}>
                 <select
                   value={searchBy}
@@ -238,141 +282,100 @@ export default function ClientsPage() {
               {searchLoading && <div className={styles.loadingOverlay}>Buscando…</div>}
               {searchError && <p className={styles.searchError}>{searchError}</p>}
             </form>
-            )}
+          )}
 
-            <button className={styles.addBtn} onClick={openAddModal}>
-              Adicionar Cliente
-            </button>
-            {!isMobile && (
-              <button
-                className={styles.viewToggleBtn}
-                onClick={() => setViewModalOpen(true)}
-              >
-                ⋮
-              </button>
-            )}
-          </div>
-        </div>
-
-        {isMobile && (
-          <form onSubmit={handleSearch}>
-            <div className={styles.searchGroup}>
-              <select
-                value={searchBy}
-                onChange={e => setSearchBy(e.target.value as 'phone' | 'cpf')}
-                className={styles.searchSelect}
-              >
-                <option value="phone">Telefone</option>
-                <option value="cpf">CPF</option>
-              </select>
-              <input
-                type="text"
-                placeholder={searchBy === 'phone' ? 'Digite o telefone' : 'Digite o CPF'}
-                className={styles.searchInput}
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-              />
-              <button type="submit" disabled={searchLoading} className={styles.searchBtn}>
-                Buscar
-              </button>
-            </div>
-            {searchLoading && <div className={styles.loadingOverlay}>Buscando…</div>}
-            {searchError && <p className={styles.searchError}>{searchError}</p>}
-          </form>
-        )}
-
-        {loadingClients ? (
-          <p className={styles.loading}>Carregando clientes...</p>
-        ) : clients.length > 0 ? (
-          <>
-            {viewMode === 'list' ? (
-              <div className={styles.tableWrapper}>
-                <div className={styles.rowHeader}>
-                  <div className={styles.cellName}>Nome</div>
-                  <div className={styles.cellEmail}>Email</div>
-                  <div className={styles.cellPhone}>Telefone</div>
-                  <div className={styles.cellPhone}>CPF</div>
+          {loadingClients ? (
+            <p className={styles.loading}>Carregando clientes...</p>
+          ) : clients.length > 0 ? (
+            <>
+              {viewMode === 'list' ? (
+                <div className={styles.tableWrapper}>
+                  <div className={styles.rowHeader}>
+                    <div className={styles.cellName}>Nome</div>
+                    <div className={styles.cellEmail}>Email</div>
+                    <div className={styles.cellPhone}>Telefone</div>
+                    <div className={styles.cellPhone}>CPF</div>
+                  </div>
+                  <div className={styles.body}>
+                    {clients.map(c => (
+                      <div
+                        key={c.id}
+                        className={`${styles.row} ${c.pre_registered ? styles.masked : ''}`}
+                        onClick={() => openClientModal(c)}
+                        title={c.pre_registered ? 'Usuário pré-cadastrado' : undefined}
+                      >
+                        <div className={styles.cellName} data-label="Nome:">
+                          {c.pre_registered ? '*****' : c.name}
+                        </div>
+                        <div className={styles.cellEmail} data-label="Email:">
+                          {c.pre_registered ? '*****' : c.email}
+                        </div>
+                        <div className={styles.cellPhone} data-label="Telefone:">
+                          {formatPhoneDisplay(c)}
+                        </div>
+                        <div className={styles.cellPhone} data-label="CPF:">
+                          {formatCpfDisplay(c)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className={styles.body}>
+              ) : (
+                <div className={styles.cardGrid}>
                   {clients.map(c => (
                     <div
                       key={c.id}
-                      className={`${styles.row} ${c.pre_registered ? styles.masked : ''}`}
+                      className={styles.card}
                       onClick={() => openClientModal(c)}
-                      title={c.pre_registered ? 'Usuário pré-cadastrado' : undefined}
                     >
-                      <div className={styles.cellName} data-label="Nome:">
-                        {c.pre_registered ? '*****' : c.name}
+                      <div className={styles.cardHeader}>
+                        <h3>{c.pre_registered ? '*****' : c.name}</h3>
+                        {c.pre_registered && (
+                          <span className={styles.cardBadge}>Pré-cadastrado</span>
+                        )}
                       </div>
-                      <div className={styles.cellEmail} data-label="Email:">
+                      <p className={styles.cardSubtitle}>
                         {c.pre_registered ? '*****' : c.email}
-                      </div>
-                      <div className={styles.cellPhone} data-label="Telefone:">
-                        {formatPhoneDisplay(c)}
-                      </div>
-                      <div className={styles.cellPhone} data-label="CPF:">
-                        {formatCpfDisplay(c)}
+                      </p>
+                      <div className={styles.cardDetails}>
+                        <p>
+                          <strong>Telefone:</strong> {formatPhoneDisplay(c)}
+                        </p>
+                        <p>
+                          <strong>CPF:</strong> {formatCpfDisplay(c)}
+                        </p>
                       </div>
                     </div>
                   ))}
                 </div>
-              </div>
-            ) : (
-              <div className={styles.cardGrid}>
-                {clients.map(c => (
-                  <div
-                    key={c.id}
-                    className={styles.card}
-                    onClick={() => openClientModal(c)}
-                  >
-                    <div className={styles.cardHeader}>
-                      <h3>{c.pre_registered ? '*****' : c.name}</h3>
-                      {c.pre_registered && (
-                        <span className={styles.cardBadge}>Pré-cadastrado</span>
-                      )}
-                    </div>
-                    <p className={styles.cardSubtitle}>
-                      {c.pre_registered ? '*****' : c.email}
-                    </p>
-                    <div className={styles.cardDetails}>
-                      <p>
-                        <strong>Telefone:</strong> {formatPhoneDisplay(c)}
-                      </p>
-                      <p>
-                        <strong>CPF:</strong> {formatCpfDisplay(c)}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+              )}
 
-            <div className={styles.pagination}>
-              <button
-                onClick={() => setPage(p => Math.max(p - 1, 0))}
-                disabled={page === 0}
-              >
-                Anterior
-              </button>
-              <span>Página {page + 1}</span>
-              <button
-                onClick={() =>
-                  clients.length === LIMIT ? setPage(p => p + 1) : undefined
-                }
-                disabled={clients.length < LIMIT}
-              >
-                Próxima
-              </button>
-            </div>
-          </>
-        ) : (
-          <p className={styles.loading}>
-            Nenhum cliente encontrado na página atual.
-          </p>
-        )}
-      </main>
+              <div className={styles.pagination}>
+                <button
+                  onClick={() => setPage(p => Math.max(p - 1, 0))}
+                  disabled={page === 0}
+                >
+                  Anterior
+                </button>
+                <span>Página {page + 1}</span>
+                <button
+                  onClick={() =>
+                    clients.length === LIMIT ? setPage(p => p + 1) : undefined
+                  }
+                  disabled={clients.length < LIMIT}
+                >
+                  Próxima
+                </button>
+              </div>
+            </>
+          ) : (
+            <p className={styles.loading}>
+              Nenhum cliente encontrado na página atual.
+            </p>
+          )}
+        </main>
 
-      {/* Modal de detalhes / edição */}
+        {/* Modal de detalhes / edição */}
         <Modal open={openModal} onClose={() => setOpenModal(false)}>
           {selectedClient ? (
             <div className={styles.modalContent}>
@@ -417,21 +420,39 @@ export default function ClientsPage() {
                         title={`Programa: ${programs.find(p => p.id === selectedProg)?.name}`}
                         validCount={userStats.program_valid_count}
                         totalCashback={userStats.program_total_cashback}
-                      />                      
+                      />
                     </>
                   ) : null}
 
                   <div className={styles.walletCard}>
-                  <h3 className={styles.sectionTitle}>Carteira</h3>
-                  {walletLoading ? <p>Carregando saldo…</p> : userWallet ? (
-                    <>
-                      <div className={styles.balanceRow}><span>Saldo Atual:</span><strong>R$ {Number(userWallet.balance).toFixed(2)}</strong></div>
-                      <FloatingLabelInput id="withdraw-amount" name="withdrawAmount" label="Valor a debitar" type="number" value={withdrawAmount} onChange={e => setWithdrawAmount(e.target.value)} disabled={withdrawLoading} />
-                      <div className={styles.actions}><Button onClick={handleWithdraw} disabled={withdrawLoading}>{withdrawLoading ? 'Processando…' : 'Debitar'}</Button></div>
-                      {withdrawError && <Notification type="error" message={withdrawError} onClose={() => setWithdrawError(null)} />}
-                    </>
-                  ) : null}
-                </div>
+                    <h3 className={styles.sectionTitle}>Carteira</h3>
+                    {walletLoading ? (
+                      <p>Carregando saldo…</p>
+                    ) : userWallet ? (
+                      <>
+                        <div className={styles.balanceRow}>
+                          <span>Saldo Atual:</span><strong>R$ {Number(userWallet.balance).toFixed(2)}</strong>
+                        </div>
+                        <FloatingLabelInput
+                          id="withdraw-amount"
+                          name="withdrawAmount"
+                          label="Valor a debitar"
+                          type="number"
+                          value={withdrawAmount}
+                          onChange={e => setWithdrawAmount(e.target.value)}
+                          disabled={withdrawLoading}
+                        />
+                        <div className={styles.actions}>
+                          <Button onClick={handleWithdraw} disabled={withdrawLoading}>
+                            {withdrawLoading ? 'Processando…' : 'Debitar'}
+                          </Button>
+                        </div>
+                        {withdrawError && (
+                          <Notification type="error" message={withdrawError} onClose={() => setWithdrawError(null)} />
+                        )}
+                      </>
+                    ) : null}
+                  </div>
                 </>
               )}
             </div>
@@ -440,33 +461,31 @@ export default function ClientsPage() {
           )}
         </Modal>
 
-      {/* Modal de escolha de visualização */}
-      <Modal open={viewModalOpen} onClose={() => setViewModalOpen(false)}>
-        <div className={styles.viewModeModal}>
-          <h2>Escolha o modo de visualização</h2>
-          <div className={styles.viewOptions}>
-            <button
-              onClick={() => {
-                setViewMode('list');
-                setViewModalOpen(false);
-              }}
-            >
-              📄 Lista
-            </button>
-            <button
-              onClick={() => {
-                setViewMode('card');
-                setViewModalOpen(false);
-              }}
-            >
-              🧾 Card
-            </button>
+        {/* Modal de escolha de visualização */}
+        <Modal open={viewModalOpen} onClose={() => setViewModalOpen(false)}>
+          <div className={styles.viewModeModal}>
+            <h2>Escolha o modo de visualização</h2>
+            <div className={styles.viewOptions}>
+              <button
+                onClick={() => {
+                  setViewMode('list');
+                  setViewModalOpen(false);
+                }}
+              >
+                📄 Lista
+              </button>
+              <button
+                onClick={() => {
+                  setViewMode('card');
+                  setViewModalOpen(false);
+                }}
+              >
+                🧾 Card
+              </button>
+            </div>
           </div>
-        </div>
-      </Modal>
-
-    </div>
+        </Modal>
+      </div>
     </>
-    
   );
 }

@@ -1,7 +1,7 @@
 // src/components/PointsRulesMain/PointsRuleModal/PointsRuleModal.tsx
 'use client';
 
-import { FormEvent, useState, useEffect,useRef } from 'react';
+import { FormEvent, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { RuleType } from '@/types/points';
 import type { PointsRuleRead, PointsRuleCreate } from '@/types/points';
@@ -16,6 +16,28 @@ import { listProductCategories } from '@/services/productCategoryService';
 import { listInventoryItems } from '@/services/inventoryItemService';
 import styles from './PointsRuleModal.module.css';
 
+/** Campos possíveis dentro de `config` — e assinatura de índice para flexibilidade */
+interface RuleConfig extends Record<string, unknown> {
+  step?: number;
+  points?: number;
+  event_name?: string;
+  window_days?: number;
+  threshold?: number;
+  threshold_per_period?: number;
+  consecutive_periods?: number;
+  period_days?: number;
+  bonus_points?: number;
+  cooldown_days?: number;
+  categories?: string[];
+  item_ids?: string[];
+  branch_id?: string;
+  multiplier?: number;
+  events?: Record<string, unknown>;
+  date?: string;
+  start?: string;
+  end?: string;
+}
+
 interface Props {
   rule: PointsRuleRead | null;
   onSave: (data: PointsRuleCreate, id?: string) => void;
@@ -28,56 +50,45 @@ export default function PointsRuleModal({ rule, onSave, onCancel }: Props) {
   const [description, setDescription] = useState('');
   const [ruleType, setRuleType] = useState<RuleType>(RuleType.value_spent);
   const hiddenRuleTypes = [RuleType.event, RuleType.digital_behavior];
-  const [config, setConfig] = useState<Record<string, any>>({});
+  const [config, setConfig] = useState<RuleConfig>({});
   const [active, setActive] = useState(true);
   const [visible, setVisible] = useState(true);
+
   const [branches, setBranches] = useState<BranchRead[]>([]);
   const [categories, setCategories] = useState<ProductCategoryRead[]>([]);
-  const [catSkip, setCatSkip] = useState(0);
-  const catLimit = 10;
-  const [catTotal, setCatTotal] = useState(0);
   const [items, setItems] = useState<InventoryItemRead[]>([]);
-  const [itemSkip, setItemSkip] = useState(0);
-  const itemLimit = 10;
-  const [itemTotal, setItemTotal] = useState(0);
-  const [notification, setNotification] = useState<{ type: 'error'; message: string } | null>(null);
-  const slugTouched = useRef(false);
 
+  const catLimit = 10;
+  const [catSkip, setCatSkip] = useState(0);
+  const [catTotal, setCatTotal] = useState(0);
+  const itemLimit = 10;
+  const [itemSkip, setItemSkip] = useState(0);
+  const [itemTotal, setItemTotal] = useState(0);
 
   useEffect(() => {
-    listProductCategories(catSkip, catLimit)
-      .then(res => {
-        setCategories(res.data.items);
-        setCatTotal(res.data.total);
-      })
-      .catch(() => {
-        // opcional: setNotification({ type: 'error', message: 'Falha ao carregar categorias.' });
-      });
+    listProductCategories(catSkip, catLimit).then(res => {
+      setCategories(res.data.items);
+      setCatTotal(res.data.total);
+    });
   }, [catSkip]);
 
   useEffect(() => {
-    listInventoryItems(itemSkip, itemLimit)
-      .then(res => {
-        setItems(res.data.items);
-        setItemTotal(res.data.total);
-      })
-      .catch(() => {
-        // opcional: mostrar notificação de erro
-      });
+    listInventoryItems(itemSkip, itemLimit).then(res => {
+      setItems(res.data.items);
+      setItemTotal(res.data.total);
+    });
   }, [itemSkip]);
 
   useEffect(() => {
-    listBranches()
-      .then(res => setBranches(res.data))
-      .catch(console.error)
-  }, [])
+    listBranches().then(res => setBranches(res.data));
+  }, []);
 
   useEffect(() => {
     if (rule) {
-      setName(rule.name || '');
-      setDescription(rule.description || '');
+      setName(rule.name);
+      setDescription(rule.description ?? '');
       setRuleType(rule.rule_type);
-      setConfig(rule.config || {});
+      setConfig(rule.config ?? {});
       setActive(rule.active);
       setVisible(rule.visible);
     } else {
@@ -87,381 +98,99 @@ export default function PointsRuleModal({ rule, onSave, onCancel }: Props) {
       setConfig({});
       setActive(true);
       setVisible(true);
-      setNotification(null);
     }
   }, [rule]);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) {
-      setNotification({ type: 'error', message: 'O nome é obrigatório.' });
-      return;
-    }
+    if (!name.trim()) return;
     const payload: PointsRuleCreate = { name, description, rule_type: ruleType, config, active, visible };
     onSave(payload, rule?.id);
   };
 
-  const toggleValue = (key: string, val: string) => {
-    const arr: string[] = config[key] || [];
-    const newArr = arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val];
-    setConfig({ ...config, [key]: newArr });
-  };
+  const num = (v: unknown) => (typeof v === 'number' ? v : '');
+  const str = (v: unknown) => (typeof v === 'string' ? v : '');
 
   const renderConfigFields = () => {
     switch (ruleType) {
       case RuleType.value_spent:
         return (
           <>
-            <FloatingLabelInput
-              label="R$ por passo"
-              type="number"
-              value={config.step ?? ''}
-              onChange={e => setConfig({ ...config, step: Number(e.target.value) })}
-            />
-            <FloatingLabelInput
-              label="Pontos por passo"
-              type="number"
-              value={config.points ?? ''}
-              onChange={e => setConfig({ ...config, points: Number(e.target.value) })}
-            />
+            <FloatingLabelInput label="R$ por passo" type="number" value={num(config.step)} onChange={e => setConfig({ ...config, step: Number(e.target.value) })} />
+            <FloatingLabelInput label="Pontos por passo" type="number" value={num(config.points)} onChange={e => setConfig({ ...config, points: Number(e.target.value) })} />
           </>
         );
+
       case RuleType.event:
         return (
           <>
-            <FloatingLabelInput
-              label="Nome do evento"
-              type="text"
-              value={config.event_name ?? ''}
-              onChange={e => setConfig({ ...config, event_name: e.target.value })}
-            />
-            <FloatingLabelInput
-              label="Pontos"
-              type="number"
-              value={config.points ?? ''}
-              onChange={e => setConfig({ ...config, points: Number(e.target.value) })}
-            />
+            <FloatingLabelInput label="Nome do evento" type="text" value={str(config.event_name)} onChange={e => setConfig({ ...config, event_name: e.target.value })} />
+            <FloatingLabelInput label="Pontos" type="number" value={num(config.points)} onChange={e => setConfig({ ...config, points: Number(e.target.value) })} />
           </>
         );
-      case RuleType.frequency:
-        return (
-          <>
-            <FloatingLabelInput
-              label="Janela de dias"
-              type="number"
-              value={config.window_days ?? ''}
-              onChange={e => setConfig({ ...config, window_days: Number(e.target.value) })}
-            />
-            <FloatingLabelInput
-              label="Compras mínimas"
-              type="number"
-              value={config.threshold ?? ''}
-              onChange={e => setConfig({ ...config, threshold: Number(e.target.value) })}
-            />
-            <FloatingLabelInput
-              label="Pontos de bônus"
-              type="number"
-              value={config.bonus_points ?? ''}
-              onChange={e => setConfig({ ...config, bonus_points: Number(e.target.value) })}
-            />
-            <FloatingLabelInput
-              label="Período de carência (dias)"
-              type="number"
-              value={config.cooldown_days ?? ''}
-              onChange={e => setConfig({ ...config, cooldown_days: Number(e.target.value) })}
-            />
-          </>
-        );
-      case RuleType.category:
-        // Se não houver nenhuma categoria carregada…
-        if (categories.length === 0) {
-          return (
-            <div className={styles.field}>
-              <Button onClick={() => router.push('/register?section=categories')}>
-                Cadastrar categoria
-              </Button>
-            </div>
-          );
-        }
 
-        // Caso contrário, renderiza o select normal:
+      case RuleType.category:
+        if (!categories.length) {
+          return <div className={styles.field}><Button onClick={() => router.push('/register?section=categories')}>Cadastrar categoria</Button></div>;
+        }
         return (
           <div className={styles.field}>
             <label>Categorias</label>
-            <select
-              multiple
-              size={Math.min(categories.length, 10)}
-              className={styles.multiSelect}
-              value={config.categories || []}
-              onChange={() => {}}
-            >
+            <select multiple size={Math.min(categories.length, 10)} className={styles.multiSelect} value={(config.categories ?? []) as string[]} onChange={() => {}}>
               {categories.map(cat => (
-                <option
-                  key={cat.id}
-                  value={cat.id}
-                  onMouseDown={e => {
-                    e.preventDefault();
-                    const arr: string[] = config.categories || [];
-                    const next = arr.includes(cat.id)
-                      ? arr.filter(x => x !== cat.id)
-                      : [...arr, cat.id];
-                    setConfig({ ...config, categories: next });
-                  }}
-                >
+                <option key={cat.id} value={cat.id} onMouseDown={e => { e.preventDefault(); const curr = (config.categories ?? []) as string[]; const next = curr.includes(cat.id) ? curr.filter(id => id !== cat.id) : [...curr, cat.id]; setConfig({ ...config, categories: next }); }}>
                   {cat.name}
                 </option>
               ))}
             </select>
-
-            {/* controles de paginação */}
             <div className={styles.paginationControls}>
-              <button
-                type="button"
-                disabled={catSkip === 0}
-                onClick={() => setCatSkip(catSkip - catLimit)}
-              >
-                Anterior
-              </button>
-              <span>
-                Página {Math.floor(catSkip / catLimit) + 1} de{' '}
-                {Math.ceil(catTotal / catLimit)}
-              </span>
-              <button
-                type="button"
-                disabled={catSkip + catLimit >= catTotal}
-                onClick={() => setCatSkip(catSkip + catLimit)}
-              >
-                Próximo
-              </button>
+              <button type="button" disabled={!catSkip} onClick={() => setCatSkip(catSkip - catLimit)}>Anterior</button>
+              <span>Página {Math.floor(catSkip / catLimit) + 1} de {Math.ceil(catTotal / catLimit)}</span>
+              <button type="button" disabled={catSkip + catLimit >= catTotal} onClick={() => setCatSkip(catSkip + catLimit)}>Próxima</button>
             </div>
-
-            {/* mostrar nomes selecionados abaixo */}
-            <div className={styles.selectedText}>
-              {(config.categories || [])
-                .map((id: string) => categories.find(c => c.id === id)?.name)
-                .filter(Boolean)
-                .join(', ') || 'Nenhuma selecionada'}
-            </div>
-
-            <FloatingLabelInput
-              label="Multiplicador"
-              type="number"
-              value={config.multiplier ?? ''}
-              onChange={e =>
-                setConfig({ ...config, multiplier: Number(e.target.value) })
-              }
-            />
+            <div className={styles.selectedText}>{(config.categories ?? []).map(id => categories.find(c => c.id === id)?.name).filter(Boolean).join(', ') || 'Nenhuma selecionada'}</div>
+            <FloatingLabelInput label="Multiplicador" type="number" value={num(config.multiplier)} onChange={e => setConfig({ ...config, multiplier: Number(e.target.value) })} />
           </div>
         );
 
-      case RuleType.first_purchase:
-        return (
-          <FloatingLabelInput
-            label="Pontos de boas-vindas"
-            type="number"
-            value={config.bonus_points ?? ''}
-            onChange={e => setConfig({ ...config, bonus_points: Number(e.target.value) })}
-          />
-        );
-      case RuleType.recurrence:
-        return (
-          <>
-            <FloatingLabelInput
-              label="Períodos consecutivos"
-              type="number"
-              value={config.consecutive_periods ?? ''}
-              onChange={e => setConfig({ ...config, consecutive_periods: Number(e.target.value) })}
-            />
-            <FloatingLabelInput
-              label="Período (dias)"
-              type="number"
-              value={config.period_days ?? ''}
-              onChange={e => setConfig({ ...config, period_days: Number(e.target.value) })}
-            />
-            <FloatingLabelInput
-              label="Compras mínimas por período"
-              type="number"
-              value={config.threshold_per_period ?? ''}
-              onChange={e =>
-                setConfig({ ...config, threshold_per_period: Number(e.target.value) })
-              }
-            />
-            <FloatingLabelInput
-              label="Pontos de bônus"
-              type="number"
-              value={config.bonus_points ?? ''}
-              onChange={e => setConfig({ ...config, bonus_points: Number(e.target.value) })}
-            />
-            <FloatingLabelInput
-              label="Período de carência (dias)"
-              type="number"
-              value={config.cooldown_days ?? ''}
-              onChange={e => setConfig({ ...config, cooldown_days: Number(e.target.value) })}
-            />
-          </>
-        );
-      case RuleType.digital_behavior:
-        return (
-          <FloatingLabelInput
-            label="Eventos (JSON)"
-            type="text"
-            value={JSON.stringify(config.events || {})}
-            onChange={e => {
-              try {
-                setConfig({ ...config, events: JSON.parse(e.target.value) });
-              } catch {
-                // ignorar erro de JSON inválido
-              }
-            }}
-          />
-        );
-      case RuleType.special_date:
-        return (
-          <>
-            <FloatingLabelInput
-              label="Data exata (MM-DD)"
-              type="text"
-              value={config.date ?? ''}
-              onChange={e => setConfig({ ...config, date: e.target.value })}
-            />
-            <FloatingLabelInput
-              label="Data início"
-              type="date"
-              value={config.start ?? ''}
-              onChange={e => setConfig({ ...config, start: e.target.value })}
-            />
-            <FloatingLabelInput
-              label="Data fim"
-              type="date"
-              value={config.end ?? ''}
-              onChange={e => setConfig({ ...config, end: e.target.value })}
-            />
-            <FloatingLabelInput
-              label="Multiplicador"
-              type="number"
-              value={config.multiplier ?? ''}
-              onChange={e => setConfig({ ...config, multiplier: Number(e.target.value) })}
-            />
-          </>
-        );
-      case RuleType.geolocation:
-        // Se não houver filiais, mostra botão de cadastro
-        if (branches.length === 0) {
-          return (
-            <div className={styles.field}>
-              <Button onClick={() => router.push('/register')}>
-                Cadastrar filial
-              </Button>
-            </div>
-          );
+      case RuleType.inventory:
+        if (!items.length) {
+          return <div className={styles.field}><Button onClick={() => router.push('/register?section=inventory')}>Cadastrar item de inventário</Button></div>;
         }
-
-        // Senão, renderiza o select normalmente
         return (
           <div className={styles.field}>
-            <label>Filial</label>
-            <select
-              className={styles.select}
-              value={config.branch_id || ''}
-              onChange={e => setConfig({ ...config, branch_id: e.target.value })}
-            >
-              <option value="">Nenhuma selecionada</option>
-              {branches.map(b => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
+            <label>Itens de Inventário</label>
+            <select multiple size={Math.min(items.length, 10)} className={styles.multiSelect} value={(config.item_ids ?? []) as string[]} onChange={() => {}}>
+              {items.map(it => (
+                <option key={it.id} value={it.id} onMouseDown={e => { e.preventDefault(); const curr = (config.item_ids ?? []) as string[]; const next = curr.includes(it.id) ? curr.filter(id => id !== it.id) : [...curr, it.id]; setConfig({ ...config, item_ids: next }); }}>
+                  {it.name}
                 </option>
               ))}
             </select>
-            <FloatingLabelInput
-              label="Pontos"
-              type="number"
-              value={config.points ?? ''}
-              onChange={e => setConfig({ ...config, points: Number(e.target.value) })}
-            />
+            <div className={styles.paginationControls}>
+              <button type="button" disabled={!itemSkip} onClick={() => setItemSkip(itemSkip - itemLimit)}>Anterior</button>
+              <span>Página {Math.floor(itemSkip / itemLimit) + 1} de {Math.ceil(itemTotal / itemLimit)}</span>
+              <button type="button" disabled={itemSkip + itemLimit >= itemTotal} onClick={() => setItemSkip(itemSkip + itemLimit)}>Próxima</button>
+            </div>
+            <div className={styles.selectedText}>{(config.item_ids ?? []).map(id => items.find(i => i.id === id)?.name).filter(Boolean).join(', ') || 'Nenhum selecionado'}</div>
+            <FloatingLabelInput label="Multiplicador" type="number" value={num(config.multiplier)} onChange={e => setConfig({ ...config, multiplier: Number(e.target.value) })} />
           </div>
         );
 
-  case RuleType.inventory:
-    // Se não houver itens, exibe botão de cadastro
-    if (items.length === 0) {
-      return (
-        <div className={styles.field}>
-          <Button onClick={() => router.push('/register?section=inventory')}>
-            Cadastrar item de inventário
-          </Button>
-        </div>
-      );
-    }
-
-    // Caso haja itens, renderiza o select normalmente
-    return (
-      <div className={styles.field}>
-        <label>Itens de Inventário</label>
-        <select
-          multiple
-          size={Math.min(items.length, 10)}
-          className={styles.multiSelect}
-          value={config.item_ids || []}
-          onChange={() => {}}
-        >
-          {items.map(it => (
-            <option
-              key={it.id}
-              value={it.id}
-              onMouseDown={e => {
-                e.preventDefault();
-                const arr: string[] = config.item_ids || [];
-                const next = arr.includes(it.id)
-                  ? arr.filter(x => x !== it.id)
-                  : [...arr, it.id];
-                setConfig({ ...config, item_ids: next });
-              }}
-            >
-              {it.name}
-            </option>
-          ))}
-        </select>
-
-        {/* controles de paginação */}
-        <div className={styles.paginationControls}>
-          <button
-            type="button"
-            disabled={itemSkip === 0}
-            onClick={() => setItemSkip(itemSkip - itemLimit)}
-          >
-            Anterior
-          </button>
-          <span>
-            Página {Math.floor(itemSkip / itemLimit) + 1} de{' '}
-            {Math.ceil(itemTotal / itemLimit)}
-          </span>
-          <button
-            type="button"
-            disabled={itemSkip + itemLimit >= itemTotal}
-            onClick={() => setItemSkip(itemSkip + itemLimit)}
-          >
-            Próximo
-          </button>
-        </div>
-
-        {/* nomes selecionados */}
-        <div className={styles.selectedText}>
-          {(config.item_ids || [])
-            .map((id: string) => items.find(i => i.id === id)?.name)
-            .filter(Boolean)
-            .join(', ') || 'Nenhum selecionado'}
-        </div>
-
-        <FloatingLabelInput
-          label="Multiplicador"
-          type="number"
-          value={config.multiplier ?? ''}
-          onChange={e =>
-            setConfig({ ...config, multiplier: Number(e.target.value) })
-          }
-        />
-      </div>
-    );
+      case RuleType.geolocation:
+        if (!branches.length) {
+          return <div className={styles.field}><Button onClick={() => router.push('/register')}>Cadastrar filial</Button></div>;
+        }
+        return (
+          <div className={styles.field}>
+            <label>Filial</label>
+            <select className={styles.select} value={str(config.branch_id)} onChange={e => setConfig({ ...config, branch_id: e.target.value })}>
+              <option value="">Nenhuma selecionada</option>
+              {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </select>
+            <FloatingLabelInput label="Pontos" type="number" value={num(config.points)} onChange={e => setConfig({ ...config, points: Number(e.target.value) })} />
+          </div>
+        );
 
       default:
         return <p>Configuração não implementada para este tipo.</p>;
@@ -471,72 +200,12 @@ export default function PointsRuleModal({ rule, onSave, onCancel }: Props) {
   return (
     <div className={styles.modalContent}>
       <h2>{rule ? 'Editar Regra' : 'Nova Regra'}</h2>
-
-      <FloatingLabelInput
-        label="Nome"
-        type="text"
-        value={name}
-        onChange={e => setName(e.target.value)}
-      />
-
-      <div className={styles.field}>
-        <label>Descrição</label>
-        <textarea
-          value={description}
-          onChange={e => setDescription(e.target.value)}
-          className={styles.textarea}
-        />
-      </div>
-
-      <div className={styles.field}>
-        <label>Tipo de Regra</label>
-        <select
-          value={ruleType}
-          onChange={e => setRuleType(e.target.value as RuleType)}
-          className={styles.select}
-        >
-          {Object.values(RuleType)
-            .filter(rt => !hiddenRuleTypes.includes(rt))
-            .map(rt => (
-              <option key={rt} value={rt}>
-                {getRuleTypeLabel(rt)}
-              </option>
-          ))}
-        </select>
-      </div>
-
-      <div className={styles.configSection}>
-        <h3>Configuração</h3>
-        {renderConfigFields()}
-      </div>
-
-      <div className={styles.switches}>
-        <label>
-          <input
-            type="checkbox"
-            checked={active}
-            onChange={e => setActive(e.target.checked)}
-          />{' '}
-          Ativa
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={visible}
-            onChange={e => setVisible(e.target.checked)}
-          />{' '}
-          Visível
-        </label>
-      </div>
-
-      <div className={styles.actions}>
-        <Button onClick={handleSubmit}>
-          Salvar
-        </Button>
-        <Button onClick={onCancel} bgColor="#f3f4f6" style={{ color: '#374151' }}>
-          Cancelar
-        </Button>
-      </div>
+      <FloatingLabelInput label="Nome" type="text" value={name} onChange={e => setName(e.target.value)} />
+      <div className={styles.field}><label>Descrição</label><textarea value={description} onChange={e => setDescription(e.target.value)} className={styles.textarea} /></div>
+      <div className={styles.field}><label>Tipo de Regra</label><select value={ruleType} onChange={e => setRuleType(e.target.value as RuleType)} className={styles.select}>{Object.values(RuleType).filter(rt => !hiddenRuleTypes.includes(rt)).map(rt => <option key={rt} value={rt}>{getRuleTypeLabel(rt)}</option>)}</select></div>
+      <div className={styles.configSection}><h3>Configuração</h3>{renderConfigFields()}</div>
+      <div className={styles.switches}><label><input type="checkbox" checked={active} onChange={e => setActive(e.target.checked)} /> Ativa</label><label><input type="checkbox" checked={visible} onChange={e => setVisible(e.target.checked)} /> Visível</label></div>
+      <div className={styles.actions}><Button onClick={handleSubmit}>Salvar</Button><Button onClick={onCancel} bgColor="#f3f4f6" style={{ color: '#374151' }}>Cancelar</Button></div>
     </div>
   );
 }

@@ -2,6 +2,7 @@
 'use client';
 
 import { FormEvent, useEffect, useState } from 'react';
+import { isAxiosError } from 'axios';
 import styles from './RegisterForm.module.css';
 import FloatingLabelInput from '@/components/FloatingLabelInput/FloatingLabelInput';
 import Notification from '@/components/Notification/Notification';
@@ -44,15 +45,18 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
     accepted_terms: false,
   });
 
-  const [notification, setNotification] = useState<NotificationData | null>(null);
+  const [notification, setNotification] =
+    useState<NotificationData | null>(null);
   const [showAddress, setShowAddress] = useState(false);
   const [stage, setStage] = useState<Stage>('register');
 
   // estado para referral
   const [referralCode, setReferralCode] = useState('');
-  const [referralNotification, setReferralNotification] = useState<NotificationData | null>(null);
+  const [referralNotification, setReferralNotification] =
+    useState<NotificationData | null>(null);
 
-  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
+  const passwordRegex =
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
 
   // ViaCEP
   useEffect(() => {
@@ -62,7 +66,10 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
         .then(res => res.json())
         .then(data => {
           if (data.erro) {
-            setNotification({ type: 'error', message: 'CEP não encontrado.' });
+            setNotification({
+              type: 'error',
+              message: 'CEP não encontrado.',
+            });
           } else {
             setForm(prev => ({
               ...prev,
@@ -73,7 +80,10 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
           }
         })
         .catch(() =>
-          setNotification({ type: 'error', message: 'Erro ao buscar CEP.' })
+          setNotification({
+            type: 'error',
+            message: 'Erro ao buscar CEP.',
+          })
         );
     }
   }, [form.postal_code, showAddress]);
@@ -113,7 +123,8 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
     if (form.online_url && !/^https?:\/\//i.test(form.online_url)) {
       setNotification({
         type: 'error',
-        message: 'Informe a URL completa, incluindo http:// ou https://.',
+        message:
+          'Informe a URL completa, incluindo http:// ou https://.',
       });
       return;
     }
@@ -121,11 +132,13 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
     if (missing.length > 0) {
       setNotification({
         type: 'error',
-        message: `Campo${missing.length > 1 ? 's' : ''} ${missing.join(
-          ', '
-        )} ${
+        message: `Campo${
+          missing.length > 1 ? 's' : ''
+        } ${missing.join(', ')} ${
           missing.length > 1 ? 'são' : 'é'
-        } obrigatório${missing.length > 1 ? 's' : ''}.`,
+        } obrigatório${
+          missing.length > 1 ? 's' : ''
+        }.`,
       });
       return;
     }
@@ -140,22 +153,31 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
     }
 
     if (form.password !== form.confirm_password) {
-      setNotification({ type: 'error', message: 'As senhas não coincidem.' });
+      setNotification({
+        type: 'error',
+        message: 'As senhas não coincidem.',
+      });
       return;
     }
 
-    const { confirm_password, ...payload } = form;
+    // remove confirm_password sem deixar variável pendente
+    const payload: CompanyCreate = { ...form };
+    delete (payload as { confirm_password?: string }).confirm_password;
     try {
       await registerCompany(payload);
       // sucesso → vai para etapa de indicação
       setStage('referral');
-    } catch (err: any) {
-      const data = err.response?.data;
+    } catch (err) {
+      const data = isAxiosError(err) ? err.response?.data : undefined;
       let msg = 'Erro no cadastro. Tente novamente.';
       if (data) {
-        if (typeof data.detail === 'string') msg = data.detail;
-        else if (Array.isArray(data.detail))
-          msg = data.detail.map((d: any) => d.msg).join(', ');
+        if (typeof data.detail === 'string') {
+          msg = data.detail;
+        } else if (Array.isArray(data.detail)) {
+          msg = (data.detail as { msg: string }[])
+            .map(d => d.msg)
+            .join(', ');
+        }
       }
       setNotification({ type: 'error', message: msg });
     }
@@ -165,19 +187,29 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
   const handleRedeem = async () => {
     setReferralNotification(null);
     if (!referralCode.trim()) {
-      setReferralNotification({ type: 'error', message: 'Informe o código.' });
+      setReferralNotification({
+        type: 'error',
+        message: 'Informe o código.',
+      });
       return;
     }
     try {
-      await redeemReferral({ referral_code: referralCode } as ReferralRedeem);
+      await redeemReferral({
+        referral_code: referralCode,
+      } as ReferralRedeem);
       setReferralNotification({
         type: 'success',
         message: 'Código registrado com sucesso!',
       });
       setTimeout(onSuccess, 800);
-    } catch (err: any) {
-      const detail = err.response?.data?.detail || 'Código inválido.';
-      setReferralNotification({ type: 'error', message: detail });
+    } catch (err) {
+      const detail = isAxiosError(err)
+        ? err.response?.data?.detail
+        : undefined;
+      setReferralNotification({
+        type: 'error',
+        message: detail || 'Código inválido.',
+      });
     }
   };
 
@@ -190,7 +222,7 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
         <h2 className={styles.title}>Código de indicação</h2>
         {referralNotification && (
           <Notification
-            type={referralNotification.type as NotificationType}
+            type={referralNotification.type}
             message={referralNotification.message}
             onClose={() => setReferralNotification(null)}
           />
@@ -294,7 +326,9 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
               checked={form.accepted_terms}
               onChange={handleChange}
             />
-            <label htmlFor="accepted_terms">Aceito os termos de uso</label>
+            <label htmlFor="accepted_terms">
+              Aceito os termos de uso
+            </label>
           </div>
           <Button type="submit">Cadastrar</Button>
         </>
@@ -383,7 +417,10 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
               Este estabelecimento é somente online
             </label>
           </div>
-          <Button bgColor="#FFA600" onClick={() => setShowAddress(false)}>
+          <Button
+            bgColor="#FFA600"
+            onClick={() => setShowAddress(false)}
+          >
             Continuar
           </Button>
         </>

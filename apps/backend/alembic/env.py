@@ -54,6 +54,8 @@ from app.models.password_reset_code import PasswordResetCode
 from app.models.company_password_reset_code import CompanyPasswordResetCode
 from app.models.slide_image import SlideImage
 from app.models.selection_item import SelectionType, SelectionItem
+from app.models.milestone import Milestone
+from app.models.user_milestone import UserMilestone
 
 # ...importe aqui outros models quando criar novos
 

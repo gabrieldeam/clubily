@@ -19,8 +19,8 @@ export interface PurchasePayload {
 export interface RuleBreakdown {
   rule_id: string;
   awarded: number;
-  // você pode ter mais campos: config, name, etc.
-  [key: string]: any;
+  // campos extras opcionais — mude `any` para `unknown`
+  [key: string]: unknown;
 }
 
 /**

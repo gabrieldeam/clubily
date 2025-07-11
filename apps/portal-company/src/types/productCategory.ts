@@ -1,10 +1,13 @@
+// src/types/productCategory.ts
+
 export interface ProductCategoryBase {
   name: string;
   slug: string;
 }
 
-export interface ProductCategoryCreate  extends ProductCategoryBase {}
-export interface ProductCategoryUpdate  extends ProductCategoryBase {}
+// Create/Update são aliases do Base, não interfaces vazias
+export type ProductCategoryCreate = ProductCategoryBase;
+export type ProductCategoryUpdate = ProductCategoryBase;
 
 /** Entidade retornada pela API */
 export interface ProductCategoryRead extends ProductCategoryBase {
