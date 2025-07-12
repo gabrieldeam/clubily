@@ -6,6 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import Loading from '@/components/Loading/Loading';
 import { listAddresses, deleteAddress } from '@/services/addressService';
 import {
   getMyCompanies,
@@ -143,7 +144,7 @@ export default function ProfilePage() {
   };
 
   /* ---------------- loading guard ------------ */
-  if (loading) return <div className={styles.container}>Carregando perfil…</div>;
+  if (loading) return <div className={styles.container}><Loading/></div>;
   if (!user)    return null;
 
   const baseUrl = process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL ?? '';
@@ -228,7 +229,7 @@ export default function ProfilePage() {
       <div className={styles.gridItem}>
         <h4>Endereços</h4>
         {loadingAddr ? (
-          <p className={styles.loading}>Carregando endereços…</p>
+          <p className={styles.loading}><Loading/></p>
         ) : addresses.length === 0 ? (
           <p className={styles.loading}>Nenhum endereço cadastrado.</p>
         ) : (
@@ -276,7 +277,7 @@ export default function ProfilePage() {
         <h4>Empresas que têm seu cadastro</h4>
 
         {loadingComp ? (
-          <p className={styles.loading}>Carregando empresas…</p>
+          <p className={styles.loading}><Loading/></p>
         ) : companies.length === 0 ? (
           <p className={styles.loading}>Nenhuma empresa associada.</p>
         ) : (
@@ -323,7 +324,7 @@ export default function ProfilePage() {
 
         <div className={styles.affiliateWrapper}>
           {loadingRef ? (
-            <p className={styles.loading}>Carregando código…</p>
+            <p className={styles.loading}><Loading/></p>
           ) : referralCode ? (
             /* ---------- código JÁ gerado ---------- */
             <div className={styles.affiliateContent}>

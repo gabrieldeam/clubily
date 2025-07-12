@@ -162,6 +162,14 @@
   gap: 3rem;
 }
 
+.barsGroupSection {
+  display: flex;
+  gap: 0.5rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
 .verticalBar {
   position: relative;
   width: 25px;
@@ -180,24 +188,27 @@
   box-shadow:
     inset 0 0 10px rgba(90, 42, 237, 0.5),
     0 0 10px rgba(90, 42, 237, 0.6);
+  z-index: 2;
 }
 
 .barFill {
   position: absolute;
   bottom: 0;
   width: 80%;
-  border-radius: 10px 10px;
+  border-radius: 10px;
   z-index: 2;
 }
 
 .barFillNext {
   background: linear-gradient(to top, #ff00ff, #ff5500);
   box-shadow: 0 0 10px #ff00ff;
+  z-index: 1;
 }
 
 .barFillTotal {
   background: linear-gradient(to top, #00ffff, #00cc00);
   box-shadow: 0 0 10px #00ffff;
+  z-index: 1;
 }
 
 .iconPulse {

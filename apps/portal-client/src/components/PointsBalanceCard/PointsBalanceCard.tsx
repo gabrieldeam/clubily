@@ -43,7 +43,7 @@ export default function PointsBalanceCard() {
         try {
           const nxt = await getNextMilestone();
           setNextData(nxt.data);
-        } catch (_) {
+        } catch {
           setNextData(null);
         }
       } catch (err) {
@@ -81,12 +81,7 @@ export default function PointsBalanceCard() {
   if (loading) {
     return (
       <div className={styles.content}>
-        <div className={styles.card}>
-          <div className={styles.progressCircle} style={{ background: 'conic-gradient(#E5E7EB 0% 100%)' }}>
-            <div className={styles.cardImage}>
-              <Image src="/icons/conquista.svg" alt="" fill sizes="80px" />
-            </div>
-          </div>
+        <div className={styles.card}>          
           <div className={styles.cardText}>Carregando…</div>
         </div>
       </div>

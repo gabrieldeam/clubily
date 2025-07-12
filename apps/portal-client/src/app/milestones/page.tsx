@@ -137,38 +137,44 @@ export default function MilestonesPage() {
         </div>
 
         <div className={styles.scoreDisplay}>
-          <Trophy className={styles.trophyIcon} />
+          {/* <Trophy className={styles.trophyIcon} /> */}
           <p className={styles.points}>
-            <strong>{userPoints}</strong> PTS
+            <strong>{userPoints}</strong>Pts
           </p>
-          <Trophy className={styles.trophyIcon} />
+          {/* <Trophy className={styles.trophyIcon} /> */}
         </div>
 
         {/* ---- BARRAS VERTICAIS ---- */}
         <div className={styles.barsContainer}>
           <div className={styles.barLabel}>LEVEL PROGRESS</div>
           <div className={styles.barsGroup}>
-            <div className={styles.verticalBar}>
-              <div className={styles.barOutline}></div>
-              <motion.div
-                className={`${styles.barFill} ${styles.barFillNext}`}
-                initial={{ height: '0%' }}
-                animate={{ height: `${progressToNextPct}%` }}
-                transition={{ duration: 1 }}
-              />
+            
+            <div className={styles.barsGroupSection}>
               <span className={styles.barLabel}>NEXT</span>
+              <div className={styles.verticalBar}>
+                  <div className={styles.barOutline}></div>
+                  <motion.div
+                    className={`${styles.barFill} ${styles.barFillNext}`}
+                    initial={{ height: '0%' }}
+                    animate={{ height: `${progressToNextPct}%` }}
+                    transition={{ duration: 1 }}
+                  />
+              </div>
             </div>
 
-            <div className={styles.verticalBar}>
-              <div className={styles.barOutline}></div>
-              <motion.div
-                className={`${styles.barFill} ${styles.barFillTotal}`}
-                initial={{ height: '0%' }}
-                animate={{ height: `${progressTotalPct}%` }}
-                transition={{ duration: 1 }}
-              />
-              <span className={styles.barLabel}>FINAL</span>
+            <div className={styles.barsGroupSection}>
+                <span className={styles.barLabel}>FINAL</span>
+              <div className={styles.verticalBar}>
+                <div className={styles.barOutline}></div>
+                <motion.div
+                  className={`${styles.barFill} ${styles.barFillTotal}`}
+                  initial={{ height: '0%' }}
+                  animate={{ height: `${progressTotalPct}%` }}
+                  transition={{ duration: 1 }}
+                />
+              </div>
             </div>
+            
           </div>
         </div>
 
@@ -194,7 +200,7 @@ export default function MilestonesPage() {
           >
             <div className={styles.markerTriangle}></div>
             <span className={styles.progressUser}>
-              {userPoints} PTS
+              {userPoints}PTS
             </span>
           </div>
         </div>

@@ -1,12 +1,7 @@
 // src/app/dashboard/page.tsx
 'use client';
 
-import React, {
-  useEffect,
-  useState,
-  useRef,
-  useCallback,
-} from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -23,6 +18,7 @@ import type { CompanyRead } from '@/types/company';
 import Header from '@/components/Header/Header';
 import CashbackSummaryCard from '@/components/CashbackSummaryCard/CashbackSummaryCard';
 import PointsBalanceCard from '@/components/PointsBalanceCard/PointsBalanceCard';
+import Loading from '@/components/Loading/Loading';
 
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import styles from './Dashboard.module.css';
@@ -46,14 +42,11 @@ export default function Dashboard() {
   const [canLeft, setCanLeft] = useState(false);
   const [canRight, setCanRight] = useState(false);
 
-  const baseUrl = process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL ?? '';
-
   /* ───────────── effects ───────────── */
   // Buscar categorias
   useEffect(() => {
     if (!selectedAddress) return;
     let alive = true;
-
     (async () => {
       setLoadingCats(true);
       const city = selectedAddress.city;
@@ -71,17 +64,13 @@ export default function Dashboard() {
         if (alive) setLoadingCats(false);
       }
     })();
-
-    return () => {
-      alive = false;
-    };
+    return () => { alive = false; };
   }, [selectedAddress]);
 
   // Buscar empresas
   useEffect(() => {
     if (!selectedAddress) return;
     let alive = true;
-
     (async () => {
       setLoadingCompanies(true);
       const city = selectedAddress.city;
@@ -99,10 +88,7 @@ export default function Dashboard() {
         if (alive) setLoadingCompanies(false);
       }
     })();
-
-    return () => {
-      alive = false;
-    };
+    return () => { alive = false; };
   }, [selectedAddress]);
 
   // Atualizar setas de scroll
@@ -128,10 +114,14 @@ export default function Dashboard() {
   const scrollBy = (delta: number) =>
     listRef.current?.scrollBy({ left: delta, behavior: 'smooth' });
 
-  /* ───────────── render helpers ───────────── */
-  const isReady = !!selectedAddress && !loadingCats;
+  const baseUrl = process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL ?? '';
 
-  /* ───────────── render ───────────── */
+  // Early return para o nosso loading
+  if (authLoading || loadingCats || loadingCompanies || !selectedAddress) {
+    return <Loading />;
+  }
+
+  /* ───────────── renderização principal ───────────── */
   return (
     <>
       <Header
@@ -140,21 +130,15 @@ export default function Dashboard() {
         }
       />
 
-      {/* 1) Enquanto autenticação carrega */}
-      {authLoading && <p className={styles.message}>Carregando…</p>}
+      <div className={styles.page}>
+        <section className={styles.gridItem}>
+          <PointsBalanceCard />
+          <CashbackSummaryCard />
+        </section>
 
-      {/* 2) Sem endereço selecionado ou categorias ainda carregando */}
-      {!authLoading && !isReady && (
-        <p className={styles.message}>Carregando dados…</p>
-      )}
-
-      {/* 3) Sem categorias na cidade */}
-      {!authLoading && isReady && cats.length === 0 && (
-        <div className={styles.container}>
+        {cats.length === 0 ? (
           <section className={styles.gridItemNoData}>
-            <p>
-              Infelizmente não temos empresas parceiras na sua região.
-            </p>
+            <p>Infelizmente não temos empresas parceiras na sua região.</p>
             <button
               className={styles.changeBtn}
               onClick={() =>
@@ -164,65 +148,53 @@ export default function Dashboard() {
               Trocar de endereço
             </button>
           </section>
-        </div>
-      )}
+        ) : (
+          <>
+            {/* CATEGORIAS */}
+            <section className={styles.gridItem}>
+              <h4 className={styles.inlineHeader}>Categorias</h4>
 
-      {/* 4) Conteúdo principal */}
-      {!authLoading && isReady && cats.length > 0 && (
-        <div className={styles.container}>
-          <section className={styles.gridItem}>
-            <PointsBalanceCard />
-            <CashbackSummaryCard />
-          </section>
-
-          {/* CATEGORIAS */}
-          <section className={styles.gridItem}>
-            <h4 className={styles.inlineHeader}>Categorias</h4>
-
-            {canLeft && (
-              <button
-                className={`${styles.arrowButton} ${styles.arrowLeft}`}
-                onClick={() => scrollBy(-200)}
-              >
-                <ChevronLeft size={20} />
-              </button>
-            )}
-
-            <div ref={listRef} className={styles.categoriesGrid}>
-              {cats.map(cat => (
-                <Link
-                  key={cat.id}
-                  href={`/categories/${cat.id}`}
-                  className={styles.card}
+              {canLeft && (
+                <button
+                  className={`${styles.arrowButton} ${styles.arrowLeft}`}
+                  onClick={() => scrollBy(-200)}
                 >
-                  <Image
-                    src={`${baseUrl}${cat.image_url ?? ''}`}
-                    alt={cat.name}
-                    width={30}
-                    height={30}
-                    className={styles.logo}
-                  />
-                  <span className={styles.name}>{cat.name}</span>
-                </Link>
-              ))}
-            </div>
+                  <ChevronLeft size={20} />
+                </button>
+              )}
 
-            {canRight && (
-              <button
-                className={`${styles.arrowButton} ${styles.arrowRight}`}
-                onClick={() => scrollBy(200)}
-              >
-                <ChevronRight size={20} />
-              </button>
-            )}
-          </section>
+              <div ref={listRef} className={styles.categoriesGrid}>
+                {cats.map(cat => (
+                  <Link
+                    key={cat.id}
+                    href={`/categories/${cat.id}`}
+                    className={styles.card}
+                  >
+                    <Image
+                      src={`${baseUrl}${cat.image_url ?? ''}`}
+                      alt={cat.name}
+                      width={30}
+                      height={30}
+                      className={styles.logo}
+                    />
+                    <span className={styles.name}>{cat.name}</span>
+                  </Link>
+                ))}
+              </div>
 
-          {/* EMPRESAS */}
-          <section className={styles.gridItem}>
-            <h4>Descubra agora</h4>
-            {loadingCompanies ? (
-              <p>Carregando empresas…</p>
-            ) : (
+              {canRight && (
+                <button
+                  className={`${styles.arrowButton} ${styles.arrowRight}`}
+                  onClick={() => scrollBy(200)}
+                >
+                  <ChevronRight size={20} />
+                </button>
+              )}
+            </section>
+
+            {/* EMPRESAS */}
+            <section className={styles.gridItem}>
+              <h4>Descubra agora</h4>
               <div className={styles.companiesList}>
                 {companies.map(comp => (
                   <div key={comp.id} className={styles.companyCard}>
@@ -241,9 +213,7 @@ export default function Dashboard() {
                         </div>
                       )}
                       <div>
-                        <h5 className={styles.companyName}>
-                          {comp.name}
-                        </h5>
+                        <h5 className={styles.companyName}>{comp.name}</h5>
                         <p className={styles.companyDesc}>
                           {comp.description}
                         </p>
@@ -258,10 +228,10 @@ export default function Dashboard() {
                   </div>
                 ))}
               </div>
-            )}
-          </section>
-        </div>
-      )}
+            </section>
+          </>
+        )}
+      </div>
     </>
   );
 }
