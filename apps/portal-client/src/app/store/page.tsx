@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { getIconBySlug } from '@/utils/getIconBySlug';
 import * as Icons from 'lucide-react';
 import Header from '@/components/Header/Header';
+import Loading from '@/components/Loading/Loading';
 import Slider from '@/components/Slider/Slider';
 import ProductDetailModal from '@/components/ProductDetailModal/ProductDetailModal';
 import CategoryListModal from '@/components/CategoryListModal/CategoryListModal';
@@ -37,6 +38,11 @@ export default function StorePage() {
   const { user } = useAuth();
   const router = useRouter();
   const { items: cartItems, addItem } = useCart();
+
+  const [loadingCats, setLoadingCats] = useState(true);
+  const [loadingBalance, setLoadingBalance] = useState(true);
+  const [loadingAllProducts, setLoadingAllProducts] = useState(true);
+
 
   /* ──────────── estados de seleção dinâmica ──────────── */
   const [featuredCategoryId, setFeaturedCategoryId] =
@@ -130,11 +136,19 @@ export default function StorePage() {
 
   /* categorias, saldo, todos os produtos  */
   useEffect(() => {
-    listRewardCategories(0, 100).then((r) => setCategories(r.data.items));
-    getUserPointsBalance().then((r) => setBalance(r.data.balance));
-    listRewardProducts(skipAll, limit).then((r) => setAllProducts(r.data));
+    Promise.all([
+      listRewardCategories(0, 100).then((r) => setCategories(r.data.items)),
+      getUserPointsBalance().then((r) => setBalance(r.data.balance)),
+      listRewardProducts(skipAll, limit).then((r) => setAllProducts(r.data)),
+    ])
+      .catch(console.error)
+      .finally(() => {
+        setLoadingCats(false);
+        setLoadingBalance(false);
+        setLoadingAllProducts(false);
+      });
   }, [skipAll]);
-
+  
   /* produtos por categoria selecionada */
   useEffect(() => {
     if (!selectedCategoryId) return;
@@ -202,8 +216,17 @@ export default function StorePage() {
   const totalPagesAll = Math.ceil(allProducts.total / (visibleCount * 2));
   const totalPagesCat = Math.ceil(catProducts.total / (visibleCount * 2));
 
-  /* ======= render ======= */
+   if (
+    !user ||
+    loadingSlides ||
+    loadingCats ||
+    loadingBalance ||
+    loadingAllProducts
+  ) {
+    return <Loading />;
+  }
 
+  /* ======= render ======= */
   return (
     <>
       <Header
@@ -418,8 +441,30 @@ export default function StorePage() {
                 </button>
               </div>
 
-              {/* … demais blocos do painel … */}
-            </aside>
+                          <div className={styles.panelSection}>
+              <h4>Como funciona</h4>
+              <p>
+                Acumule pontos a cada resgate e troque-os por recompensas exclusivas.
+                Seu saldo fica sempre à mão neste painel!
+              </p>
+            </div>
+            <div className={styles.panelSection}>
+              <h4>Política de Troca</h4>
+              <p>
+                Trocas em até 7 dias, com embalagem original e sem uso.
+              </p>
+            </div>
+            <div className={styles.panelSection}>
+              <h4>Política de Reembolso</h4>
+              <p>
+                Reembolsos em até 10 dias úteis, creditados em pontos.
+              </p>
+            </div>
+            <div className={styles.panelFooter}>
+              <a href="/ajuda" className={styles.footerLink}>Central de Ajuda</a>
+              <a href="/contato" className={styles.footerLink}>Fale Conosco</a>
+            </div>
+          </aside>
 
             {/* Sidebar extra (7 categorias) */}
             <aside className={styles.sidebarTwo}>
@@ -428,7 +473,7 @@ export default function StorePage() {
                   (cat) => {
                     const Icon = getIconBySlug(cat.slug);
                     return (
-                      <li key={cat.id} className={styles.categoryItem}>
+                      <li key={cat.id} className={styles.categoryItem} onClick={() => handleCategoryClick(cat.id, cat.name)}>
                         <Icon />
                         <span>{cat.name}</span>
                       </li>
@@ -437,11 +482,11 @@ export default function StorePage() {
                 )}
                 {categories.length > 7 && (
                   <li
-                    className={styles.showAllItem}
-                    onClick={() => setShowAllCats((s) => !s)}
-                  >
-                    {showAllCats ? 'Ver menos' : 'Ver todos'}
-                  </li>
+                  className={styles.showAllItem}
+                  onClick={() => setCatModalOpen(true)}
+                >
+                  Ver todos
+                </li>
                 )}
               </ul>
             </aside>

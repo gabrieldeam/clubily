@@ -449,6 +449,10 @@
   .sliderBox {
     min-width: auto;
   }
+  .productCard {
+    max-width: 100%;
+    min-width: 100%;
+  }
 }
 
 @media (max-width: 768px) {
@@ -456,6 +460,10 @@
   .electronicsImage,
   .productCard img {
     height: 150px;
+  }
+  .productCard {
+    max-width: 100%;
+    min-width: 100%;
   }
   .highlightCard img {
     height: 150px;
@@ -477,6 +485,10 @@
   }
   .panel {
     padding: 12px;
+  }
+  .productCard {
+    max-width: 100%;
+    min-width: 100%;
   }
 
 }
