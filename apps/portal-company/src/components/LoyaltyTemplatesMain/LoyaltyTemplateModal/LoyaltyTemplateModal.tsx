@@ -87,12 +87,14 @@ export default function LoyaltyTemplateModal({ template, onSave, onCancel }: Pro
         label="Título"
         value={title}
         onChange={e => setTitle(e.target.value)}
+        maxLength={50}
       />
 
       <FloatingLabelInput
         label="Texto promocional"
         value={promo}
         onChange={e => setPromo(e.target.value)}
+        maxLength={120}
       />
 
       <div className={styles.row}>

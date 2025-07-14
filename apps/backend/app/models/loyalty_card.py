@@ -33,8 +33,8 @@ class LoyaltyCardTemplate(Base):
     company_id     = Column(UUID(as_uuid=True), ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True)
 
     # conteúdo
-    title          = Column(String(120),  nullable=False)
-    promo_text     = Column(String(255),  nullable=True)
+    title          = Column(String(50),  nullable=False)
+    promo_text     = Column(String(120),  nullable=True)
 
     # design
     color_primary  = Column(String(7),    nullable=True)   # #RRGGBB

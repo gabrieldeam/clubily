@@ -61,3 +61,11 @@
   display: flex;
   align-items: center;
 }
+
+/* contador de caracteres */
+.counter {
+  font-size: 12px;
+  color: #6b7280; /* cinza */
+  text-align: right;
+  margin-top: 4px;
+}

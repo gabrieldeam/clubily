@@ -4,6 +4,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import List, Optional
 from pydantic import BaseModel, ConfigDict, Field
+from app.schemas.reward import LinkRead
 
 # ─── shared ----------------------------------------------------
 class RuleBase(BaseModel):
@@ -44,6 +45,7 @@ class TemplateRead(TemplateBase):
     created_at: datetime
     updated_at: datetime
     rules: List[RuleRead] = []
+    rewards_map:  List[LinkRead]    = []   
     model_config = ConfigDict(from_attributes=True)
 
 # ─── instance --------------------------------------------------

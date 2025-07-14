@@ -1,4 +1,23 @@
 // src/types/loyalty.ts
+
+
+export interface LinkRead {
+  id: string;
+  stamp_no: number;
+  reward: RewardRead;
+}
+
+export interface RewardRead {
+  id: string;
+  company_id: string;
+  name: string;
+  description?: string;
+  image_url?: string;
+  secret: boolean;
+  stock_qty?: number;
+  created_at: string;
+  updated_at: string;
+}
 /* ---------- rule --------------------------------------------------------- */
 export interface RuleRead {
   id: string;                // UUID
@@ -25,7 +44,8 @@ export interface TemplateRead {
   active: boolean;
   created_at: string;              // ISO
   updated_at: string;              // ISO
-  rules: RuleRead[];
+  rules: RuleRead[];             
+  rewards_map: LinkRead[];
 }
 
 /* ---------- instance ----------------------------------------------------- */
