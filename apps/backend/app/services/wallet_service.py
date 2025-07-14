@@ -135,35 +135,60 @@ def withdraw_user_wallet(
     user_id: str,
     company_id: str,
     amount: float | Decimal,
+    description: str = "Uso de cashback",
 ) -> UserCashbackWallet:
     """
     Debita `amount` da carteira de cashback do usuário para a empresa,
-    e grava uma transação de débito.
+    grava uma transação de débito com a descrição informada,
+    usando lock para evitar condições de corrida.
     """
-    # 1) pega ou cria carteira
-    w = get_or_create_user_wallet(db, user_id, company_id)
+    # 1) tranca (row-level lock) a carteira do usuário+empresa
+    w = (
+        db.query(UserCashbackWallet)
+          .filter_by(user_id=user_id, company_id=company_id)
+          .with_for_update()
+          .first()
+    )
+    if not w:
+        # se não existir, cria (sem lock), comita, e depois relock
+        w = UserCashbackWallet(
+            user_id=user_id,
+            company_id=company_id,
+            balance=Decimal("0.00")
+        )
+        db.add(w)
+        db.commit()
+        db.refresh(w)
+        w = (
+            db.query(UserCashbackWallet)
+              .filter_by(user_id=user_id, company_id=company_id)
+              .with_for_update()
+              .first()
+        )
 
-    # 2) converte amount pra Decimal
+    # 2) converte amount para Decimal
     if not isinstance(amount, Decimal):
         amount = Decimal(str(amount))
 
-    # 3) verifica saldo
+    # 3) valida saldo
     if w.balance < amount:
-        raise ValueError(f"Saldo insuficiente na carteira do usuário: disponível {w.balance:.2f}, exigido {amount:.2f}")
+        raise ValueError(
+            f"Saldo insuficiente na carteira do usuário: disponível {w.balance:.2f}, exigido {amount:.2f}"
+        )
 
-    # 4) debita
+    # 4) debita e comita
     w.balance -= amount
     db.commit()
     db.refresh(w)
 
-    # 5) grava histórico
+    # 5) registra transação com a descrição passada
     record_wallet_transaction(
         db=db,
         user_id=user_id,
         company_id=company_id,
         tx_type="debit",
-        amount=-amount,  # registra como valor negativo
-        description="Uso de cashback"
+        amount=-amount,
+        description=description,
     )
 
     return w

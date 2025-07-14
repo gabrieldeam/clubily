@@ -1,6 +1,6 @@
 # app/services/loyalty_service.py
 import random, string
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 from typing import Optional, List
 import os
@@ -73,7 +73,7 @@ def issue_card(db: Session, tpl_id: UUID, user_id: str) -> LoyaltyCardInstance:
     tpl = db.get(LoyaltyCardTemplate, tpl_id)
     if not tpl or not tpl.active:
         raise ValueError("Template inativo")
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     if tpl.emission_start and now < tpl.emission_start:
         raise ValueError("Emissão ainda não começou")
     if tpl.emission_end and now > tpl.emission_end:
@@ -111,7 +111,7 @@ def generate_code(db: Session, instance_id: UUID, ttl_minutes: int = 15):
           .filter_by(instance_id=instance_id, used=False)
           .first()
     )
-    exp_at = datetime.utcnow() + timedelta(minutes=ttl_minutes)
+    exp_at = datetime.now(timezone.utc) + timedelta(minutes=ttl_minutes)
     if code_obj:
         code_obj.code = _rand_code()
         code_obj.expires_at = exp_at
@@ -147,7 +147,7 @@ def stamp_with_code(
           .filter(
               LoyaltyCardStampCode.code == code,
               LoyaltyCardStampCode.used.is_(False),
-              LoyaltyCardStampCode.expires_at >= datetime.utcnow(),
+              LoyaltyCardStampCode.expires_at >= datetime.now(timezone.utc),
               LoyaltyCardTemplate.company_id == company_id
           )
           .with_for_update()
