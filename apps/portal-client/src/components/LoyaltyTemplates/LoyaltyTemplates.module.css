@@ -1,0 +1,116 @@
+.whiteBox {
+  background: #fff;
+  border-radius: 20px;
+  padding: 16px;
+  width: 100%;
+}
+.sectionTitle { font-size: 18px; font-weight: 600; margin-bottom: 8px; color: #000; }
+/* -------------- layout -------------------------------------------------- */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+/* -------------- card ---------------------------------------------------- */
+.card {
+  position: relative;
+  border: 2px solid;
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
+}
+
+/* header band ----------------------------------------------------------- */
+.cardHeader {
+  position: absolute;
+  top: -12px;
+  left: 12px;
+  right: 12px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  text-align: center;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+/* icon ------------------------------------------------------------------ */
+.iconWrapper {
+  margin: 40px 0 12px;
+}
+.iconWrapper img {
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid #eee;
+}
+
+/* promo text ------------------------------------------------------------ */
+.promo {
+  text-align: center;
+  font-size: 0.9rem;
+  color: #333;
+  margin: 0 0 12px;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+}
+
+/* stamp placeholders ---------------------------------------------------- */
+.stampRow {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.stampCircle {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px dashed;
+  background: #fff;
+}
+
+/* claim button ---------------------------------------------------------- */
+.claimBtn {
+  margin-top: auto;
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  background: #ffa600;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.claimBtn:hover:not(:disabled) {
+  background: #d38600;
+}
+.claimBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* -------------- util --------------------------------------------------- */
+.message {
+  text-align: center;
+  padding: 24px;
+  color: #666;
+}
+.error {
+  color: #c00;
+  text-align: center;
+  padding: 24px;
+}
