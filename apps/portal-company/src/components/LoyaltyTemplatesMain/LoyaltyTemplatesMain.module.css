@@ -1,0 +1,146 @@
+.main {
+  background: #fff;
+  padding: 20px;
+  border-radius: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 10px;
+}
+.topBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.addBtn {
+  padding: 8px 16px;
+  background: #ffa600;
+  border: none;
+  border-radius: 4px;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.addBtn:hover {
+  background: #e59400;
+}
+.loading {
+  text-align: center;
+  padding: 1.5rem;
+}
+.empty {
+  text-align: center;
+  padding: 2rem;
+  background: #f7f7f7;
+  border-radius: 0.5rem;
+}
+.createBtn {
+  padding: 8px 16px;
+  background: #ffa600;
+  border: none;
+  border-radius: 4px;
+  color: #fff;
+  cursor: pointer;
+}
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 1rem;
+}
+.card {
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+}
+.cardHeader {
+  padding: 1rem;
+  color: #fff;
+}
+.cardBody {
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: #374151;
+  flex: 1;
+}
+.cardFooter {
+  padding: 0.8rem;
+  background: #f3f4f6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.cardFooter a {
+  font-size: 0.85rem;
+  color: #0284c7;
+  font-weight: 600;
+  text-decoration: none;
+}
+.ruleBtn {
+  padding: 4px 8px;
+  background: #e0f2fe;
+  border: none;
+  border-radius: 4px;
+  color: #0284c7;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.ruleBtn:hover {
+  background: #bae6fd;
+}
+
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+.actions button,
+.actions .view {
+  border: none;
+  padding: 0.4rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.actions button:hover,
+.actions .view:hover {
+  background: #c5ffb3;
+}
+.actions .view {
+  background: #e4fee2;
+  color: #41b91c;
+}
+.actions .edit {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+.actions .edit:hover {
+  background: #bae6fd;
+}
+.actions .delete {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+.actions .delete:hover {
+  background: #fecaca;
+}
+
+.rewardBtn {
+  background:#10b981;
+  color:#fff;
+  padding:4px 10px;
+  border:none;
+  border-radius:4px;
+  cursor:pointer;
+  font-size:0.85rem;
+  transition:opacity 0.2s;
+}
+.rewardBtn:hover { opacity:0.9; }
