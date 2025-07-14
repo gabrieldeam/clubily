@@ -1,6 +1,9 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  // allow app.clubi.ly to fetch /_next/* during `next dev`
+  allowedDevOrigins: ['app.clubi.ly'],
+
   images: {
     remotePatterns: [
       {
@@ -8,6 +11,12 @@ const nextConfig: NextConfig = {
         hostname: 'localhost',
         port: '8000',
         pathname: '/static/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'api.clubi.ly',
+        port: '',                    // sem porta explícita
+        pathname: '/static/categories/**',
       },
     ],
   },

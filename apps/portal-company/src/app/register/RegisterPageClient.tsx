@@ -6,11 +6,12 @@ import Header from '@/components/Header/Header';
 import BranchesMain from '@/components/BranchesMain/BranchesMain';
 import ProductCategoriesMain from '@/components/ProductCategoriesMain/ProductCategoriesMain';
 import InventoryItemsMain from '@/components/InventoryItemsMain/InventoryItemsMain';
-import { GitBranch, Tag, Box } from 'lucide-react';
+import RewardsMain from '@/components/RewardsMain/RewardsMain';
+import { GitBranch, Tag, Box, Flag } from 'lucide-react';
 import styles from './page.module.css';
 
-type Section = 'branches' | 'categories' | 'inventory';
-const VALID_SECTIONS: Section[] = ['branches', 'categories', 'inventory'];
+type Section = 'branches' | 'categories' | 'inventory' | 'reward';
+const VALID_SECTIONS: Section[] = ['branches', 'categories', 'inventory', 'reward'];
 
 export default function RegistrosPageClient() {
   const searchParams = useSearchParams();
@@ -68,12 +69,20 @@ export default function RegistrosPageClient() {
           >
             <Box size={16} /> Inventário
           </button>
+
+          <button
+            className={section === 'reward' ? styles.active : ''}
+            onClick={() => switchSection('reward')}
+          >
+            <Flag size={16} /> Recompensas
+          </button>
         </nav>
 
         <main className={styles.content}>
           {section === 'branches' && <BranchesMain />}
           {section === 'categories' && <ProductCategoriesMain />}
           {section === 'inventory' && <InventoryItemsMain />}
+          {section === 'reward' && <RewardsMain />}
         </main>
       </div>
     </>

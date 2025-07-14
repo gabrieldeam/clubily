@@ -6,6 +6,7 @@ import CashbackOverview from '@/components/CashbackOverview/CashbackOverview';
 import styles from './Dashboard.module.css';
 import MetricsPoints from '@/components/MetricsPoints/MetricsPoints';
 import MetricsPurchase from '@/components/MetricsPurchase/MetricsPurchase';
+import MetricsLoyalty from '@/components/MetricsLoyalty/MetricsLoyalty';
 
 export default function Dashboard() {
   return (
@@ -15,6 +16,7 @@ export default function Dashboard() {
         <CashbackOverview />
         <MetricsPoints />
         <MetricsPurchase />
+        <MetricsLoyalty/>
       </div>
     </>
   );

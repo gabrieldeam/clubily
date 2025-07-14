@@ -17,6 +17,7 @@ import { getUserWallet, withdrawUserWallet } from '@/services/walletService';
 import { evaluatePurchase } from '@/services/purchaseService';
 import { listInventoryItems } from '@/services/inventoryItemService';
 import { listBranches } from '@/services/branchService';
+import { adminStampCard } from '@/services/loyaltyService';  
 import type { BranchRead } from '@/types/branch';
 import type { LeadCreate, UserRead } from '@/types/user';
 import type { CashbackProgramRead } from '@/types/cashbackProgram';
@@ -75,6 +76,7 @@ export default function ClientModal({ onClose }: ClientModalProps) {
   const [eventValue, setEventValue] = useState('');
   const [associateCb, setAssociateCb] = useState(false);
   const [selectedProg, setSelectedProg] = useState<string>('');
+  const [stampCode, setStampCode] = useState('');          
   const [purchaseNotification, setPurchaseNotification] = useState<
     | { type: 'success' | 'error'; message: string }
     | null
@@ -106,6 +108,7 @@ export default function ClientModal({ onClose }: ClientModalProps) {
 
     /* compra */
     setPurchaseAmount('');
+    setStampCode('');    
     setBranchId('');
     setEventValue('');
     setAssociateCb(false);
@@ -284,6 +287,17 @@ export default function ClientModal({ onClose }: ClientModalProps) {
         });
       }
 
+      /* 4c) carimbo opcional */
+      const trimmedCode = stampCode.trim();
+      if (trimmedCode) {
+        await adminStampCard({
+          code: trimmedCode,
+          amount,
+          purchased_items: selectedItems.length ? selectedItems : undefined,
+          visit_count: 1,
+        });
+      }
+
       /* atualiza carteira */
       setWalletLoading(true);
       getUserWallet(client.id)
@@ -300,6 +314,7 @@ export default function ClientModal({ onClose }: ClientModalProps) {
 
       /* limpa campos */
       setPurchaseAmount('');
+      setStampCode('');     
       setSelectedItems([]);
       setBranchId('');
       setEventValue('');
@@ -567,6 +582,15 @@ export default function ClientModal({ onClose }: ClientModalProps) {
             </select>
           </>
         )}
+
+        <FloatingLabelInput
+          id="stamp-code"
+          name="stampCode"
+          label="Código do cartão (opcional)"
+          type="text"
+          value={stampCode}
+          onChange={e => setStampCode(e.target.value)}
+        />
 
         {/* loading de programas */}
         {progLoading && <p>Carregando programas…</p>}

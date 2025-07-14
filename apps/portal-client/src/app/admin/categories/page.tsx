@@ -23,7 +23,9 @@ export default function CategoriesListPage() {
   const [cats, setCats] = useState<CategoryRead[]>([]);
   const [loading, setLoading] = useState(true);
   const baseUrl = process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL ?? '';
-
+  const myLoader = ({ src }: { src: string }) => {
+    return `${process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL}${src}`;
+  };
   // view mode
   const [viewMode, setViewMode] = useState<ViewMode>('table');
 
@@ -166,7 +168,8 @@ export default function CategoriesListPage() {
                   <td data-label="Nome">{cat.name}</td>
                   <td data-label="Imagem">
                     <Image
-                      src={`${baseUrl}${cat.image_url ?? ''}`}
+                      loader={myLoader}
+                      src={cat.image_url!}
                       alt={cat.name}
                       width={50}
                       height={50}
@@ -198,7 +201,8 @@ export default function CategoriesListPage() {
             <div key={cat.id} className={styles.card}>
               {cat.image_url && (
                 <Image
-                  src={`${baseUrl}${cat.image_url}`}
+                  loader={myLoader}
+                  src={cat.image_url!}
                   alt={cat.name}
                   width={260}
                   height={140}
@@ -234,7 +238,8 @@ export default function CategoriesListPage() {
             <h2>{selectedCat.name}</h2>
             {selectedCat.image_url && (
               <Image
-                src={`${baseUrl}${selectedCat.image_url}`}
+                loader={myLoader}
+                src={selectedCat.image_url!}
                 alt={selectedCat.name}
                 width={120}
                 height={120}

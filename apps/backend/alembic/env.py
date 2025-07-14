@@ -56,6 +56,8 @@ from app.models.slide_image import SlideImage
 from app.models.selection_item import SelectionType, SelectionItem
 from app.models.milestone import Milestone
 from app.models.user_milestone import UserMilestone
+from app.models.loyalty_card import RuleType, LoyaltyCardTemplate, LoyaltyCardRule, LoyaltyCardInstance, LoyaltyCardStamp, LoyaltyCardStampCode 
+from app.models.reward import CompanyReward, TemplateRewardLink, RewardRedemptionCode
 
 # ...importe aqui outros models quando criar novos
 
