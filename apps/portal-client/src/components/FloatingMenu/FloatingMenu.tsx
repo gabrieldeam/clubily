@@ -17,6 +17,7 @@ const baseLinks: NavLink[] = [
   { name: 'Home',        href: '/',         icon: '/icons/dashboard.svg' },
   { name: 'Loja', href: '/store',  icon: '/icons/store.svg'      },
   { name: 'Minha conta', href: '/profile',  icon: '/user.svg'      },
+  { name: 'Carteira', href: '/wallet',  icon: '/icons/wallet.svg'      },
 ];
 
 const adminLink: NavLink = {

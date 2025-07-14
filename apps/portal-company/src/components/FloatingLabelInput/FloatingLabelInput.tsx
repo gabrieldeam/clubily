@@ -1,4 +1,3 @@
-// src/components/FloatingLabelInput/FloatingLabelInput.tsx
 'use client';
 
 import React, { InputHTMLAttributes, useState } from 'react';
@@ -11,6 +10,7 @@ interface FloatingLabelInputProps extends InputHTMLAttributes<HTMLInputElement> 
 
 /**
  * Input com label que flutua acima quando o campo está focado ou contém valor.
+ * Se receber a prop maxLength, exibe um contador de caracteres abaixo.
  * Se for type="password", exibe um ícone para alternar visibilidade.
  */
 export default function FloatingLabelInput({
@@ -19,6 +19,7 @@ export default function FloatingLabelInput({
   type = 'text',
   value,
   onChange,
+  maxLength,
   ...rest
 }: FloatingLabelInputProps) {
   const [focused, setFocused] = useState(false);
@@ -28,8 +29,10 @@ export default function FloatingLabelInput({
   const isPassword = type === 'password';
   const inputType = isPassword ? (showPassword ? 'text' : 'password') : type;
 
+  const currentLength = (value as string)?.toString().length || 0;
+
   return (
-    <div className={`${styles.container} ${focused || hasValue ? styles.filled : ''}`}>
+    <div className={styles.container + ' ' + (focused || hasValue ? styles.filled : '')}>
       <input
         id={id}
         type={inputType}
@@ -39,11 +42,13 @@ export default function FloatingLabelInput({
         onBlur={() => setFocused(false)}
         placeholder=" "
         className={styles.input}
+        maxLength={maxLength}
         {...rest}
       />
       <label htmlFor={id} className={styles.label}>
         {label}
       </label>
+
       {isPassword && (
         <button
           type="button"
@@ -53,6 +58,12 @@ export default function FloatingLabelInput({
         >
           {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
         </button>
+      )}
+
+      {typeof maxLength === 'number' && (
+        <div className={styles.counter}>
+          {currentLength}/{maxLength}
+        </div>
       )}
     </div>
   );

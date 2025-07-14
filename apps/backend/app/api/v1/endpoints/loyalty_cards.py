@@ -1,12 +1,13 @@
 # app/api/v1/endpoints/loyalty_cards.py
 from uuid import UUID
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
-
+from sqlalchemy import or_, func
 from fastapi import (
     APIRouter, Depends, UploadFile, File, Form,
     Query, Path, status, HTTPException, Body, Response
 )
+from app.models.reward import TemplateRewardLink
 from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import or_
 
@@ -387,14 +388,19 @@ def admin_list_instances_by_template(
 )
 def user_list_templates(
     company_id: UUID = Query(..., description="ID da empresa"),
-    page: int = Query(1, ge=1),
-    size: int = Query(20, ge=1, le=100),
-    db: Session = Depends(get_db),
-    user = Depends(get_current_user),
+    page: int        = Query(1, ge=1),
+    size: int        = Query(20, ge=1, le=100),
+    db: Session      = Depends(get_db),
+    user            = Depends(get_current_user),
 ):
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     q = (
         db.query(LoyaltyCardTemplate)
+          .options(
+              selectinload(LoyaltyCardTemplate.rules),
+              selectinload(LoyaltyCardTemplate.rewards_map)
+                .selectinload(TemplateRewardLink.reward)
+          )
           .filter(
               LoyaltyCardTemplate.company_id == company_id,
               LoyaltyCardTemplate.active.is_(True),
@@ -404,12 +410,13 @@ def user_list_templates(
               ),
               or_(
                   LoyaltyCardTemplate.emission_end.is_(None),
-                  LoyaltyCardTemplate.emission_end >= now
+                  LoyaltyCardTemplate.emission_end   >= now
               )
           )
           .order_by(LoyaltyCardTemplate.created_at.desc())
     )
     return paginate(q, page, size)
+
 
 @router.get(
     "/companies/{company_id}/loyalty/templates",
@@ -418,26 +425,33 @@ def user_list_templates(
 )
 def list_templates_by_company(
     company_id: UUID = Path(..., description="ID da empresa"),
-    page: int = Query(1, ge=1),
-    size: int = Query(20, ge=1, le=100),
-    db: Session = Depends(get_db),
-    user = Depends(get_current_user),
+    page: int        = Query(1, ge=1),
+    size: int        = Query(20, ge=1, le=100),
+    db: Session      = Depends(get_db),
+    user            = Depends(get_current_user),
 ):
-    now = datetime.utcnow()
     q = (
         db.query(LoyaltyCardTemplate)
+          .options(
+              selectinload(LoyaltyCardTemplate.rules),
+              selectinload(LoyaltyCardTemplate.rewards_map)
+                .selectinload(TemplateRewardLink.reward)
+          )
           .filter(
               LoyaltyCardTemplate.company_id == company_id,
               LoyaltyCardTemplate.active.is_(True),
-              ((LoyaltyCardTemplate.emission_start == None) |
-               (LoyaltyCardTemplate.emission_start <= now)),
-              ((LoyaltyCardTemplate.emission_end   == None) |
-               (LoyaltyCardTemplate.emission_end   >= now)),
+              or_(
+                  LoyaltyCardTemplate.emission_start.is_(None),
+                  LoyaltyCardTemplate.emission_start <= func.now()
+              ),
+              or_(
+                  LoyaltyCardTemplate.emission_end.is_(None),
+                  LoyaltyCardTemplate.emission_end   >= func.now()
+              )
           )
           .order_by(LoyaltyCardTemplate.created_at.desc())
     )
     return paginate(q, page, size)
-
 
 @router.post(
     "/templates/{tpl_id}/claim",
