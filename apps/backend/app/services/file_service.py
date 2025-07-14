@@ -35,3 +35,10 @@ def save_upload(upload: UploadFile, subfolder: str = "") -> str:
         rel /= subfolder
     rel /= filename
     return f"/static/{rel.as_posix()}"
+
+def delete_file_from_url(url: str):
+    # url = "/static/rewards/loyalty_icons/abc.png"
+    rel_path = url.lstrip("/")                # "static/rewards/loyalty_icons/abc.png"
+    file_path = Path(os.getcwd()) / rel_path  # "/full/path/to/app/static/rewards/…"
+    if file_path.exists():
+        file_path.unlink()

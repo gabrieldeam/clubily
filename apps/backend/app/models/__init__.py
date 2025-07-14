@@ -32,3 +32,11 @@ from .user_points_stats import UserPointsStats
 from .reward_category import RewardCategory
 from .reward_product import RewardProduct, reward_product_categories
 from .reward_order import OrderStatus, RewardOrder, RewardOrderItem
+from .password_reset_code import PasswordResetCode
+from .company_password_reset_code import CompanyPasswordResetCode
+from .slide_image import SlideImage
+from .selection_item import SelectionType, SelectionItem
+from .milestone import Milestone
+from .user_milestone import UserMilestone
+from .loyalty_card import RuleType, LoyaltyCardTemplate, LoyaltyCardRule, LoyaltyCardInstance, LoyaltyCardStamp, LoyaltyCardStampCode 
+from .reward import CompanyReward, TemplateRewardLink, RewardRedemptionCode

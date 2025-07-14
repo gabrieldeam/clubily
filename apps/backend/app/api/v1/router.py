@@ -9,7 +9,7 @@ from .endpoints import (
     point_purchases, points_wallet, point_plans, admin_point_plans, points,
     branches, inventory_items, purchases, product_categories, admin_point,
     leaderboard, rewards, points_metrics, purchase_metrics, selection_items,
-    milestones
+    milestones, loyalty_cards, company_rewards, loyalty_metrics
 )
 
 router = APIRouter()
@@ -47,4 +47,7 @@ router.include_router(purchase_metrics.router, prefix="/purchase_metrics", tags=
 router.include_router(slides.router, prefix="/slides", tags=["slides"])
 router.include_router(selection_items.router, prefix="/selections", tags=["selections"])
 router.include_router(milestones.router, prefix="/milestones", tags=["milestones"])
+router.include_router(loyalty_cards.router, prefix="/loyalty", tags=["loyalty"])
+router.include_router(company_rewards.router, prefix="/company_rewards", tags=["company_rewards"])
+router.include_router(loyalty_metrics.router, prefix="/loyalty_metrics", tags=["loyalty-metrics"])
 

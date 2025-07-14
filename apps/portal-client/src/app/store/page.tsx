@@ -51,7 +51,7 @@ export default function StorePage() {
 
   /* ──────────── categorias ──────────── */
   const [categories, setCategories] = useState<RewardCategoryRead[]>([]);
-  const [showAllCats, setShowAllCats] = useState(false);
+  const [showAllCats] = useState(false);
   const [catModalOpen, setCatModalOpen] = useState(false);
   const [selectedCategoryId, setSelectedCategoryId] =
     useState<string | null>(null);

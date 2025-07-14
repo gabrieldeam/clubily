@@ -56,6 +56,22 @@
   background-color: #e59400;
 }
 
+.addBtnReward {
+  padding: 8px 16px;
+  background-color: #FF4C00;
+  border: none;
+  border-radius: 4px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+}
+
+.addBtnReward:hover {
+  background-color: #b34e23;
+}
+
+
 .tableWrapper {
   overflow-x: auto;
 }

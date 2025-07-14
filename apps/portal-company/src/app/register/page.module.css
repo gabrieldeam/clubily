@@ -66,6 +66,10 @@
   .sidebar {
     width: 100%;
     flex-direction: row;
+    flex-wrap: wrap;        /* 🔑 permite quebrar */
+    gap: 8px;
+    padding: 12px;
+    justify-content: space-between;
   }
   .content {
     padding: 0;

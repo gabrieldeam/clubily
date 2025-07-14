@@ -10,6 +10,7 @@ import FloatingLabelInput from '@/components/FloatingLabelInput/FloatingLabelInp
 import Notification from '@/components/Notification/Notification';
 import Button from '@/components/Button/Button';
 import ClientModal from '@/components/ClientModal/ClientModal';
+import RedeemRewardModal from '@/components/RedeemRewardModal/RedeemRewardModal';
 import { checkPreRegistered } from '@/services/userService';
 import type { CheckPreRegisteredParams } from '@/types/user';
 import UserStatsCard from '@/components/UserStatsCard/UserStatsCard';
@@ -58,6 +59,7 @@ export default function ClientsPage() {
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [withdrawLoading, setWithdrawLoading] = useState(false);
   const [withdrawError, setWithdrawError] = useState<string | null>(null);
+  const [redeemOpen, setRedeemOpen] = useState(false);
 
   // detecta mobile
   const [isMobile, setIsMobile] = useState(false);
@@ -246,6 +248,7 @@ export default function ClientsPage() {
               <button className={styles.addBtn} onClick={openAddModal}>
                 Adicionar Cliente
               </button>
+              <button className={styles.addBtnReward} onClick={() => setRedeemOpen(true)}>Resgatar Recompensa</button>
               {!isMobile && (
                 <button
                   className={styles.viewToggleBtn}
@@ -255,6 +258,7 @@ export default function ClientsPage() {
                 </button>
               )}
             </div>
+
           </div>
 
           {isMobile && (
@@ -484,6 +488,15 @@ export default function ClientsPage() {
               </button>
             </div>
           </div>
+        </Modal>
+        <Modal open={redeemOpen} onClose={() => setRedeemOpen(false)}>
+          <RedeemRewardModal
+            onClose={() => setRedeemOpen(false)}
+            onRedeemed={msg => {
+              // opcional: ex. atualizar estoque / listar históricos…
+              console.log(msg);
+            }}
+          />
         </Modal>
       </div>
     </>

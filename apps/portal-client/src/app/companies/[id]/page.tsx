@@ -13,6 +13,7 @@ import { getCompanyInfo } from '@/services/companyService';
 import type { CompanyRead } from '@/types/company';
 import PointsCompanyRulesMain from '@/components/PointsCompanyRulesMain/PointsCompanyRulesMain';
 import CompanyCashbackProgramsMain from '@/components/CompanyCashbackProgramsMain/CompanyCashbackProgramsMain';
+import LoyaltyTemplates from '@/components/LoyaltyTemplates/LoyaltyTemplates';
 import Header from '@/components/Header/Header';
 import styles from './page.module.css';
 
@@ -245,6 +246,7 @@ export default function CompanyPage() {
 
         <CompanyCashbackProgramsMain companyId={id!} />
         <PointsCompanyRulesMain companyId={id!} />
+        <LoyaltyTemplates companyId={id!} />
 
         {/* CONTATO */}
         <div className={styles.whiteBox}>

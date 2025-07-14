@@ -185,7 +185,7 @@ export default function MonthlyCharts({ startDate, endDate }: MonthlyChartsProps
         </div>
 
         {/* Novos Usuários */}
-        <div className={styles.chartBox}>
+        {/* <div className={styles.chartBox}>
           <h5>Novos Usuários</h5>
           <ResponsiveContainer width="100%" height={220}>
             <LineChart
@@ -224,7 +224,7 @@ export default function MonthlyCharts({ startDate, endDate }: MonthlyChartsProps
               />
             </LineChart>
           </ResponsiveContainer>
-        </div>
+        </div> */}
       </div>
     </div>
   );

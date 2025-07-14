@@ -27,7 +27,7 @@ router = APIRouter(tags=["milestones"])
 def admin_create_milestone(
     title: str = Form(...),
     description: str | None = Form(None),
-    points: int = Form(..., ge=1),
+    points: int = Form(..., ge=0),
     order: int = Form(0),
     active: bool = Form(True),
     image: UploadFile = File(...),
@@ -67,7 +67,7 @@ def admin_update_milestone(
     mid: UUID = Path(...),
     title: str = Form(...),
     description: str | None = Form(None),
-    points: int = Form(..., ge=1),
+    points: int = Form(..., ge=0),
     order: int = Form(0),
     active: bool = Form(True),
     image: Optional[UploadFile] = File(None),
