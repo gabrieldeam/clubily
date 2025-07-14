@@ -1,5 +1,6 @@
-from sqlalchemy.orm import Session, joinedload
-from datetime import datetime, timedelta
+from sqlalchemy.orm import Session, joinedload, selectinload
+from datetime import datetime, timedelta, timezone
+import logging
 from typing import List
 from app.models.cashback import Cashback
 from app.models.cashback_program import CashbackProgram
@@ -9,35 +10,94 @@ from app.models.company import Company
 from sqlalchemy import func
 from decimal import Decimal
 from app.services.wallet_service import get_wallet_balance, debit_wallet
-from app.services.wallet_service import deposit_to_user_wallet, withdraw_user_wallet
+from app.services.wallet_service import deposit_to_user_wallet, withdraw_user_wallet, get_user_wallet
 from app.services.fee_setting_service import get_effective_fee
+from app.models.wallet_transaction import WalletTransaction
+
+logger = logging.getLogger(__name__)
 
 def expire_overdue_cashbacks(db: Session) -> int:
     """
-    Marca todos os cashbacks vencidos como is_active=False
-    e debita esse valor da carteira de cashback do usuário.
+    Expira (is_active=False) só o que realmente sobrou de cada cashback vencido,
+    seguindo FIFO e registrando "Cashback expirado" no histórico.
     """
-    now = datetime.utcnow()
-    expired = (
+    # pega o timestamp atual com timezone UTC
+    now = datetime.now(timezone.utc)
+
+    # 1) bloqueia todas as linhas de Cashback ativas, carrega o programa em subquery
+    all_active = (
         db.query(Cashback)
-          .filter(Cashback.expires_at < now, Cashback.is_active == True)
+          .options(selectinload(Cashback.program))
+          .filter(Cashback.is_active == True)
+          .order_by(Cashback.assigned_at.asc())
+          .with_for_update()
           .all()
     )
-    count = 0
-    for cb in expired:
-        cb.is_active = False
-        # retira o valor vencido da carteira do usuário
-        withdraw_user_wallet(
-            db,
-            user_id=str(cb.user_id),
-            company_id=str(cb.program.company_id),
-            amount=cb.cashback_value
-        )
-        count += 1
 
-    if count:
+    # 2) filtra só os vencidos (agora com comparação compatível)
+    expired = [cb for cb in all_active if cb.expires_at < now]
+    if not expired:
+        return 0
+
+    # 3) agrupa por (user_id, company_id)
+    groups: dict[tuple[str, str], list[Cashback]] = {}
+    for cb in all_active:
+        key = (str(cb.user_id), str(cb.program.company_id))
+        groups.setdefault(key, []).append(cb)
+
+    processed = 0
+    for (user_id, company_id), cbs in groups.items():
+        # 4) busca histórico de débitos em ordem cronológica
+        txs = (
+            db.query(WalletTransaction)
+              .filter_by(user_id=user_id, company_id=company_id, type="debit")
+              .order_by(WalletTransaction.created_at.asc())
+              .all()
+        )
+
+        # 5) calcula quanto resta de cada cashback após os débitos
+        remaining: dict[str, Decimal] = {
+            str(cb.id): cb.cashback_value for cb in cbs
+        }
+        for tx in txs:
+            used = abs(tx.amount)
+            for cb in cbs:
+                if used <= 0:
+                    break
+                rem = remaining[str(cb.id)]
+                if rem <= 0:
+                    continue
+                if rem >= used:
+                    remaining[str(cb.id)] = rem - used
+                    used = Decimal("0.00")
+                else:
+                    used -= rem
+                    remaining[str(cb.id)] = Decimal("0.00")
+
+        # 6) para cada cashback vencido, debita só o que sobrou e marca is_active=False
+        for cb in expired:
+            if str(cb.user_id) != user_id or str(cb.program.company_id) != company_id:
+                continue
+            rem = remaining.get(str(cb.id), Decimal("0.00"))
+            if rem > 0:
+                cb.is_active = False
+                try:
+                    withdraw_user_wallet(
+                        db,
+                        user_id=user_id,
+                        company_id=company_id,
+                        amount=rem,
+                        description="Cashback expirado"
+                    )
+                except ValueError as e:
+                    logger.warning(f"Erro expirando cashback {cb.id}: {e}")
+                processed += 1
+
+    # 7) faz um único commit para todas as alterações
+    if processed:
         db.commit()
-    return count
+
+    return processed
 
 def assign_cashback(db: Session, user_id: str, program_id: str, amount_spent: float) -> Cashback:
     expire_overdue_cashbacks(db)

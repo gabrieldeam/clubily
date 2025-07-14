@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import Notification from '@/components/Notification/Notification';
 import {
   listTemplatesByCompany,
   claimLoyaltyCard,
@@ -25,9 +26,13 @@ export default function LoyaltyTemplates({ companyId }: Props) {
   /* ── fetch templates ─────────────────────────────────────────────── */
   useEffect(() => {
     setLoading(true);
+    setError(null);
     listTemplatesByCompany(companyId)
       .then(res => setTemplates(res.data))
-      .catch(() => setError('Falha ao carregar cartões.'))
+      .catch(err => {
+        const msg = err.response?.data?.detail ?? 'Falha ao carregar cartões.';
+        setError(msg);
+      })
       .finally(() => setLoading(false));
   }, [companyId]);
 
@@ -38,8 +43,9 @@ export default function LoyaltyTemplates({ companyId }: Props) {
     try {
       await claimLoyaltyCard(tplId);
       setClaimedMap(prev => ({ ...prev, [tplId]: true }));
-    } catch {
-      alert('Algo deu errado ao resgatar o cartão.');
+    } catch (err: any) {
+      const msg = err.response?.data?.detail ?? 'Algo deu errado ao resgatar o cartão.';
+      setError(msg);
     } finally {
       setClaimingId(null);
     }
@@ -50,13 +56,19 @@ export default function LoyaltyTemplates({ companyId }: Props) {
     url ? `${baseUrl}${url}` : '/placeholder.png';
 
   if (loading)  return <p className={styles.message}>Carregando cartões…</p>;
-  if (error)    return <p className={styles.error}>{error}</p>;
   if (!templates.length)
     return <p className={styles.message}>Nenhum cartão disponível.</p>;
 
   return (
     <div className={styles.whiteBox}>
       <h3 className={styles.sectionTitle}>Cartões Fidelidade</h3>
+      {error && (
+        <Notification
+          type="error"
+          message={error}
+          onClose={() => setError(null)}
+        />
+      )}
 
       <div className={styles.grid}>
         {templates.map(tpl => {
