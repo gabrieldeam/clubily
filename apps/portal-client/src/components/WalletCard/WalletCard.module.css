@@ -175,9 +175,19 @@
 
 .stampsGrid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 4px;
   /* flex: 1; */
+  padding: 10px 20px 15px 10px;
+  justify-items: center;
+  align-items: center;
+}
+
+
+.stampsGridSimpleCard {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
   padding: 10px 20px 15px 10px;
   justify-items: center;
   align-items: center;
@@ -201,6 +211,7 @@
 
 .desat {
   filter: grayscale(80%) opacity(40%);
+  border: 1px solid black;
 }
 
 .ownerSignatureWrapper {
@@ -208,6 +219,10 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+}
+
+.ownerSignatureWrapper span{
+  font-size: 14px;
 }
 
 /* a linha da assinatura */
@@ -233,6 +248,9 @@
     padding: 10px;
     gap: 24px;
   }
+  .stampExtra {
+  font-size: 24px;
+}
 
   .title {
     font-size: 12px;
@@ -405,4 +423,25 @@
 
 .companyContact, .companyCNPJ {
   font-size: 12px;
+}
+
+
+.expiry {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  font-size: 12px;
+}
+
+.rulesContainer {
+  margin-top: 8px;
+  padding-top: 8px;
+}
+
+.ruleText {
+  font-size: 14px;
+  color: #374151;
+  margin: 4px 0;
 }

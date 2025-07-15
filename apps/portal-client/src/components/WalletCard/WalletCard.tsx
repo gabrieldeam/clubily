@@ -232,7 +232,11 @@ export default function WalletCard({ card }: Props) {
                       <div
                         key={pos}
                         className={styles.stampCircle}
-                        style={{ cursor: hasReward ? 'pointer' : 'default' }}
+                        style={{
+                          cursor: hasReward ? 'pointer' : 'default',
+                          // só coloca a borda quando earned for true
+                          border: earned ? `2px solid ${primary}` : undefined,
+                        }}
                         onClick={() => {
                           if (!hasReward) return;
                           setSelectedRewardStamp(prev => (prev === pos ? null : pos));
@@ -240,13 +244,11 @@ export default function WalletCard({ card }: Props) {
                       >
                         {earned
                           ? <Image
-                                src={`${baseUrl}${tpl.stamp_icon_url ?? ''}`}
-                                alt="stamp"
-                                fill
-                                style={{
-                                  border: '2px solid primary',
-                                }}
-                              />                                // carimbo dado
+                              src={`${baseUrl}${tpl.stamp_icon_url ?? ''}`}
+                              alt="stamp"
+                              fill
+                            />
+                              // carimbo dado
                           : hasReward
                             ? <Gift size={24} />                                  // laço de recompensa
                             : (
@@ -298,8 +300,8 @@ export default function WalletCard({ card }: Props) {
       <div className={styles.cardFooter}>
        <div>
          <span>Emitido em: {new Date(card.issued_at).toLocaleDateString('pt-BR')}</span>
-          {card.expires_at && (
-            <span> | Expira em: {new Date(card.expires_at).toLocaleDateString('pt-BR')}</span>
+          {tpl.emission_end && (
+            <span> | Expira em: {new Date(tpl.emission_end).toLocaleDateString('pt-BR')}</span>
           )}
        </div>
               
