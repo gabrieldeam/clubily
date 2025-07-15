@@ -59,7 +59,7 @@ class LoyaltyCardTemplate(Base):
     rules      = relationship("LoyaltyCardRule", cascade="all,delete", back_populates="template")
     instances  = relationship("LoyaltyCardInstance", cascade="all,delete", back_populates="template")
     rewards_map = relationship("TemplateRewardLink", cascade="all,delete", back_populates="template")
-
+    company = relationship("Company", back_populates="templates", lazy="joined")
 
 class LoyaltyCardRule(Base):
     __tablename__ = "loyalty_card_rules"
@@ -95,6 +95,7 @@ class LoyaltyCardInstance(Base):
     template      = relationship("LoyaltyCardTemplate", back_populates="instances")
     stamps        = relationship("LoyaltyCardStamp", cascade="all,delete")
     codes         = relationship("LoyaltyCardStampCode", cascade="all,delete")
+    redemptions = relationship("RewardRedemptionCode", back_populates="instance", cascade="all,delete")
 
 
 class LoyaltyCardStamp(Base):

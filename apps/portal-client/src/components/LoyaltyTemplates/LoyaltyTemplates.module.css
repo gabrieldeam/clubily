@@ -67,7 +67,7 @@
 }
 
 .headerTop img {
-  width: 100%;              /* ocupa toda a largura do container */
+  width: 100px;                /* ocupa toda a largura do container */
   height: auto;             /* mantém proporção */
   border-radius: 50%;       /* deixa a imagem redonda */
   object-fit: cover;        /* garante que preencha sem distorcer */
@@ -310,6 +310,9 @@
 }
 .promo {
   font-size: 10px;
+}
+.headerTop img {
+  width: 70px;                /* garante que preencha sem distorcer */
 }
 }
 

@@ -188,7 +188,7 @@ export default function MetricsLoyalty() {
               <p>{summary.unique_users}</p>
             </div>
             <div className={styles.metricCard}>
-              <h4>Selos dados</h4>
+              <h4>Carimbos dados</h4>
               <p>{summary.total_stamps}</p>
             </div>
             <div className={styles.metricCard}>

@@ -34,3 +34,12 @@ class LinkRead(LinkBase):
     id: UUID
     reward: RewardRead
     model_config = ConfigDict(from_attributes=True)
+    
+class RewardRedemptionRead(BaseModel):
+    link_id:    UUID
+    instance_id: UUID
+    used:       bool
+    code:       str
+    expires_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)

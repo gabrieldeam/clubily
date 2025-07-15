@@ -249,59 +249,62 @@ export default function CompanyPage() {
         <LoyaltyTemplates companyId={id!} />
 
         {/* CONTATO */}
-        <div className={styles.whiteBox}>
-          <h2 className={styles.sectionTitle}>Contato</h2>
-          <div className={styles.contactRow}>
-            <span className={styles.contactLabel}>Email</span>
-            <span className={styles.contactValue}>{company.email}</span>
-          </div>
-          <div className={styles.contactRow}>
-            <span className={styles.contactLabel}>Telefone</span>
-            <span className={styles.contactValue}>{company.phone}</span>
-          </div>
-          <div className={styles.contactRow}>
-            <span className={styles.contactLabel}>CNPJ</span>
-            <span className={styles.contactValue}>{company.cnpj}</span>
-          </div>
-          {company.online_url && (
+        <div className={styles.display}>
+          <div className={styles.whiteBox}>
+            <h2 className={styles.sectionTitle}>Contato</h2>
             <div className={styles.contactRow}>
-              <span className={styles.contactLabel}>Site</span>
-              <a
-                href={company.online_url}
-                target="_blank"
-                rel="noopener"
-                className={styles.contactValue}
-              >
-                {company.online_url}
-              </a>
+              <span className={styles.contactLabel}>Email</span>
+              <span className={styles.contactValue}>{company.email}</span>
             </div>
-          )}
+            <div className={styles.contactRow}>
+              <span className={styles.contactLabel}>Telefone</span>
+              <span className={styles.contactValue}>{company.phone}</span>
+            </div>
+            <div className={styles.contactRow}>
+              <span className={styles.contactLabel}>CNPJ</span>
+              <span className={styles.contactValue}>{company.cnpj}</span>
+            </div>
+            {company.online_url && (
+              <div className={styles.contactRow}>
+                <span className={styles.contactLabel}>Site</span>
+                <a
+                  href={company.online_url}
+                  target="_blank"
+                  rel="noopener"
+                  className={styles.contactValue}
+                >
+                  {company.online_url}
+                </a>
+              </div>
+            )}
+          </div>
+
+          {/* STATUS */}
+          <div className={styles.whiteBox}>
+            <h2 className={styles.sectionTitle}>Status</h2>
+            <div className={styles.infoRow}>
+              <span className={styles.infoLabel}>Ativa</span>
+              <span className={styles.infoValue}>
+                {company.is_active ? 'Sim' : 'Não'}
+              </span>
+            </div>
+            <div className={styles.infoRow}>
+              <span className={styles.infoLabel}>Email verificado</span>
+              <span className={styles.infoValue}>
+                {company.email_verified ? 'Sim' : 'Não'}
+              </span>
+            </div>
+            <div className={styles.infoRow}>
+              <span className={styles.infoLabel}>Telefone verificado</span>
+              <span className={styles.infoValue}>
+                {company.phone_verified ? 'Sim' : 'Não'}
+              </span>
+            </div>
+          </div>
         </div>
 
-        {/* STATUS */}
-        <div className={styles.whiteBox}>
-          <h2 className={styles.sectionTitle}>Status</h2>
-          <div className={styles.infoRow}>
-            <span className={styles.infoLabel}>Ativa</span>
-            <span className={styles.infoValue}>
-              {company.is_active ? 'Sim' : 'Não'}
-            </span>
-          </div>
-          <div className={styles.infoRow}>
-            <span className={styles.infoLabel}>Email verificado</span>
-            <span className={styles.infoValue}>
-              {company.email_verified ? 'Sim' : 'Não'}
-            </span>
-          </div>
-          <div className={styles.infoRow}>
-            <span className={styles.infoLabel}>Telefone verificado</span>
-            <span className={styles.infoValue}>
-              {company.phone_verified ? 'Sim' : 'Não'}
-            </span>
-          </div>
-        </div>
-
-        {/* CATEGORIAS */}
+        <div className={styles.display}>
+          {/* CATEGORIAS */}
         {company.categories.length > 0 && (
           <div className={styles.whiteBox}>
             <h2 className={styles.sectionTitle}>Categorias</h2>
@@ -334,6 +337,7 @@ export default function CompanyPage() {
               </span>
             </div>
           )}
+        </div>
         </div>
       </div>
     </>

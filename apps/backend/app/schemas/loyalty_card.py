@@ -3,8 +3,10 @@ from uuid import UUID
 from datetime import datetime
 from decimal import Decimal
 from typing import List, Optional
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, computed_field
 from app.schemas.reward import LinkRead
+from app.schemas.company import CompanyBasic
+from app.schemas.reward import RewardRedemptionRead
 
 # ─── shared ----------------------------------------------------
 class RuleBase(BaseModel):
@@ -45,7 +47,8 @@ class TemplateRead(TemplateBase):
     created_at: datetime
     updated_at: datetime
     rules: List[RuleRead] = []
-    rewards_map:  List[LinkRead]    = []   
+    rewards_map:  List[LinkRead]    = [] 
+    company:    CompanyBasic  
     model_config = ConfigDict(from_attributes=True)
 
 # ─── instance --------------------------------------------------
@@ -68,7 +71,8 @@ class StampRead(BaseModel):
 
 class InstanceDetail(InstanceRead):
     template: TemplateRead
-    stamps: List[StampRead]
+    stamps: List[StampRead]    
+    redemptions: List[RewardRedemptionRead] = []
 
 # ─── misc ------------------------------------------------------
 class CodeResponse(BaseModel):

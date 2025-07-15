@@ -491,16 +491,24 @@ def user_generate_code(
     summary="Usuário: listar meus cartões e progresso"
 )
 def user_cards(
-    page: int = Query(1, ge=1),
-    size: int = Query(20, ge=1, le=100),
+    page: int   = Query(1, ge=1),
+    size: int   = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
-    user = Depends(get_current_user),
+    user       = Depends(get_current_user),
 ):
     q = (
         db.query(LoyaltyCardInstance)
           .options(
-              selectinload(LoyaltyCardInstance.template),
-              selectinload(LoyaltyCardInstance.stamps)
+              # carrega o template, as regras, recompensas e também a company
+              selectinload(LoyaltyCardInstance.template)
+                .selectinload(LoyaltyCardTemplate.rules),
+              selectinload(LoyaltyCardInstance.template)
+                .selectinload(LoyaltyCardTemplate.rewards_map)
+                  .selectinload(TemplateRewardLink.reward),
+              selectinload(LoyaltyCardInstance.template)
+                .selectinload(LoyaltyCardTemplate.company),
+              selectinload(LoyaltyCardInstance.stamps),
+              selectinload(LoyaltyCardInstance.redemptions)
           )
           .filter_by(user_id=user.id)
           .order_by(LoyaltyCardInstance.issued_at.desc())

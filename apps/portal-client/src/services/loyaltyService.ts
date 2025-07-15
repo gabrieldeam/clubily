@@ -5,6 +5,7 @@ import type {
   InstanceRead,
   InstanceDetail,
   CodeResponse,
+  RewardCodeResponse
 } from '@/types/loyalty';
 
 /* ---------------------------------------------------------------------- */
@@ -64,3 +65,18 @@ export const listMyCards = (page = 1, size = 20) =>
   api.get<InstanceDetail[]>('/loyalty/cards', {
     params: { page, size },
   });
+
+  /**
+ * Dispara a geração de código para resgatar a recompensa
+ * @param instId ID da instância do cartão
+ * @param linkId ID do link de recompensa dentro do template
+ * @returns dados do code + expiração
+ */
+export function generateRewardCode(
+  instId: string,
+  linkId: string
+) {
+  return api.post<RewardCodeResponse>(
+    `/company_rewards/user/instances/${instId}/rewards/${linkId}/code`
+  )
+}

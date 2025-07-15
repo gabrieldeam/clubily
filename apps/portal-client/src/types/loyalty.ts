@@ -1,5 +1,5 @@
 // src/types/loyalty.ts
-
+import type { CompanyBasic } from '@/types/company';
 
 export interface LinkRead {
   id: string;
@@ -46,6 +46,7 @@ export interface TemplateRead {
   updated_at: string;              // ISO
   rules: RuleRead[];             
   rewards_map: LinkRead[];
+  company: CompanyBasic
 }
 
 /* ---------- instance ----------------------------------------------------- */
@@ -67,13 +68,30 @@ export interface StampRead {
   given_by_id?: string | null;
 }
 
+export interface RewardRedemptionRead {
+  link_id: string;
+  instance_id: string;
+  used: boolean;
+  code: string;
+  expires_at: string; // ISO
+}
+
 export interface InstanceDetail extends InstanceRead {
   template: TemplateRead;
   stamps: StampRead[];
+  redemptions: RewardRedemptionRead[];
 }
 
 /* ---------- misc --------------------------------------------------------- */
 export interface CodeResponse {
   code: string;
   expires_at: string;         // ISO
+}
+
+
+export interface RewardCodeResponse {
+  /** O código para resgatar a recompensa */
+  code: string;
+  /** Timestamp ISO de expiração */
+  expires_at: string;
 }

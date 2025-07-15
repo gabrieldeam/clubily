@@ -107,3 +107,9 @@ class Company(Base):
     branches = relationship("Branch", back_populates="company", cascade="all, delete-orphan")
     inventory_items = relationship("InventoryItem", back_populates="company", cascade="all, delete-orphan")
     product_categories = relationship("ProductCategory", back_populates="company", cascade="all, delete-orphan")
+    templates = relationship(
+        "LoyaltyCardTemplate",
+        back_populates="company",
+        cascade="all, delete-orphan",
+        lazy="joined",
+    )
