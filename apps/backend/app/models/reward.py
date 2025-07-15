@@ -48,6 +48,7 @@ class TemplateRewardLink(Base):
 
     template    = relationship("LoyaltyCardTemplate", back_populates="rewards_map")
     reward      = relationship("CompanyReward", back_populates="template_links")
+    redemptions = relationship("RewardRedemptionCode", back_populates="link", cascade="all,delete")
 
 
 class RewardRedemptionCode(Base):
@@ -62,4 +63,5 @@ class RewardRedemptionCode(Base):
     expires_at  = Column(DateTime(timezone=True), nullable=False)
     used        = Column(Boolean, default=False)
 
-    link        = relationship("TemplateRewardLink")
+    instance = relationship("LoyaltyCardInstance", back_populates="redemptions")
+    link     = relationship("TemplateRewardLink",  back_populates="redemptions")

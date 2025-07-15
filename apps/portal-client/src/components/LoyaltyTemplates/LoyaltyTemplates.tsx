@@ -41,7 +41,6 @@ function getConfigText(rule: RuleRead): string {
 export default function LoyaltyTemplates({ companyId }: Props) {
   const { user } = useAuth();
   const [templates, setTemplates] = useState<TemplateRead[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [claimingId, setClaimingId] = useState<string | null>(null);
   const [claimedMap, setClaimedMap] = useState<Record<string, boolean>>({});
@@ -53,12 +52,10 @@ export default function LoyaltyTemplates({ companyId }: Props) {
   const baseUrl = process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL ?? '';
 
   useEffect(() => {
-    setLoading(true);
     setError(null);
     listTemplatesByCompany(companyId)
       .then(res => setTemplates(res.data))
       .catch(err => setError(err.response?.data?.detail ?? 'Falha ao carregar cartões.'))
-      .finally(() => setLoading(false));
   }, [companyId]);
 
   const handleClaim = async (tplId: string) => {
@@ -98,9 +95,8 @@ export default function LoyaltyTemplates({ companyId }: Props) {
     return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
   };
 
-  if (loading) return <p className={styles.message}>Carregando cartões…</p>;
-  if (!templates.length) return <p className={styles.message}>Nenhum cartão disponível.</p>;
-
+  if (templates.length === 0) return null;
+  
   return (
     <div className={styles.whiteBox}>
       <h3 className={styles.sectionTitle}>Cartões Fidelidade</h3>
@@ -143,27 +139,27 @@ export default function LoyaltyTemplates({ companyId }: Props) {
                   </div>
                 </div>
                 <div className={styles.rightPane} style={{ background: bg }}>
-                          <div className={styles.stampsGrid}>
-          {Array.from({ length: stampsPerRow }).map((_, i) => {
-            const pos = i + 1;
-            const hasReward = tpl.rewards_map.some(r => r.stamp_no === pos);
-            return (
-              <div key={pos} className={styles.stampCircle}>
-                {hasReward ? (
-                  <Gift size={24} />
-                ) : (
-                  <Image
-                    src={`${baseUrl}${tpl.stamp_icon_url ?? ''}`}
-                    alt="stamp"
-                    fill
-                    className={styles.desat}
-                  />
-                )}
-              </div>
-            );
-          })}
-          {extra && <div className={styles.stampExtra}>{extra}</div>}
-        </div>
+                    <div className={styles.stampsGrid}>
+                      {Array.from({ length: stampsPerRow }).map((_, i) => {
+                        const pos = i + 1;
+                        const hasReward = tpl.rewards_map.some(r => r.stamp_no === pos);
+                        return (
+                          <div key={pos} className={styles.stampCircle}>
+                            {hasReward ? (
+                              <Gift size={24} />
+                            ) : (
+                              <Image
+                                src={`${baseUrl}${tpl.stamp_icon_url ?? ''}`}
+                                alt="stamp"
+                                fill
+                                className={styles.desat}
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
+                      {extra && <div className={styles.stampExtra}>{extra}</div>}
+                    </div>
                      <div className={styles.ownerSection}>
                       <span>Este cartão pertence a:</span>
                         <div className={styles.ownerSignatureWrapper}>

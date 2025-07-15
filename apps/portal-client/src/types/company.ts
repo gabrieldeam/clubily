@@ -56,4 +56,6 @@ export interface CompanyBasic {
   email: string;
   phone: string;
   cnpj: string;
+  logo_url?: string | null;
+  description?: string | null;
 }
