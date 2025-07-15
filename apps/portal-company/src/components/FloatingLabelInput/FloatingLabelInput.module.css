@@ -27,7 +27,7 @@
 .label {
   position: absolute;
   left: 1rem;
-  top: 35%;
+  top: 50%;
   transform: translateY(-50%);
   color: #000;
   font-size: 1rem;

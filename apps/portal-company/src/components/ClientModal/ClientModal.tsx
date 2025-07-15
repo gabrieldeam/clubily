@@ -255,13 +255,14 @@ export default function ClientModal({ onClose }: ClientModalProps) {
     if (!client?.id) return;
 
     const amount = parseFloat(purchaseAmount.replace(',', '.'));
-    if (isNaN(amount) || amount <= 0) {
+    if (isNaN(amount) || amount < 0) {
       setPurchaseNotification({
         type: 'error',
-        message: 'Informe um valor de compra válido.',
+        message: 'Informe um valor de compra válido (não negativo).',
       });
       return;
     }
+
 
     setPurchaseLoading(true);
 

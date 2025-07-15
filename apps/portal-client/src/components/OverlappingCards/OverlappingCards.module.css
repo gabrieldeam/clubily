@@ -1,0 +1,33 @@
+/* OverlappingCards.module.css */
+
+/* Contêiner onde a pilha fica “presa”; precisa ser
+   posicionado relative para que os cartões absolutos
+   usem‑no como referência. */
+.container {
+  position: relative;
+  width: 100%;
+}
+
+/* Cada cartão é absolutamente posicionado.
+   O offset vertical (top) e o z‑index vêm inline
+   pelo componente, então aqui só cuidamos do look‑and‑feel. */
+.cardWrapper {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  cursor: pointer;
+
+  /* Transições suaves para clique/hover */
+  transition:
+    top 0.25s ease,
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+/* Estilo extra para o cartão ativo (clicado) */
+.cardWrapper.active {
+  /* Levanta um pouquinho e aumenta ligeiramente */
+  transform: translateY(-10px) scale(1.04);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+  border-radius: 12px;          /* opcional: suaviza as bordas */
+}
