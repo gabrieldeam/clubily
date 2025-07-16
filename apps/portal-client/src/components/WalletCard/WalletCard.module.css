@@ -242,24 +242,6 @@
 }
 
 
-@media (max-width: 767px) {
-  .cardMain {
-    display: flex;
-    padding: 10px;
-    gap: 24px;
-  }
-  .stampExtra {
-  font-size: 24px;
-}
-
-  .title {
-    font-size: 12px;
-  }
-  .promo {
-    font-size: 10px;
-}
-}
-
 
 /* define a keyframe */
 @keyframes blinkBorder {
@@ -444,4 +426,31 @@
   font-size: 14px;
   color: #374151;
   margin: 4px 0;
+}
+
+
+@media (max-width: 767px) {
+  .cardMain {
+    display: flex;
+    padding: 10px;
+    gap: 24px;
+  }
+  .stampExtra {
+  font-size: 24px;
+}
+
+  .title {
+    font-size: 12px;
+  }
+  .promo {
+    font-size: 10px;
+}
+.companyCard {
+  flex-direction: column;  
+  gap: 1px;  
+}
+.companyButton, .exploreMap {
+  font-size: 12px;
+  padding: 5px 10px;
+}
 }
