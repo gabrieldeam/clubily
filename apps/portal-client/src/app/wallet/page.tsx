@@ -91,7 +91,7 @@ export default function WalletPage() {
           {cards.length > 0 ? (
             <>
             <OverlappingCards cards={cards} />
-              {/* Novo cartão de exploração
+              {/* Novo cartão de exploração */}
               <div className={styles.exploreCard}>
                 <div className={styles.exploreContent}>
                   <div className={styles.exploreIcon}>
@@ -123,7 +123,7 @@ export default function WalletPage() {
                   <div className={styles.shapeTriangle}></div>
                   <div className={styles.shapeSquare}></div>
                 </div>
-              </div> */}
+              </div>
             </>
           ) : (
             <>

@@ -5,8 +5,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 11100000;
-  
+  z-index: 99999999999;
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -16,7 +15,8 @@
   padding: 2rem 2.5rem;
   border-radius: 0.75rem;
   width: 100%;
-  max-height: 100vh;
+  max-height: 100%;
+  padding-bottom: 120px;
 }
 
 .closeBtn {
