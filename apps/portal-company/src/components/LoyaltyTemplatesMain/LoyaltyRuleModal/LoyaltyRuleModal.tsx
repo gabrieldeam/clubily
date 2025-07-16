@@ -30,10 +30,10 @@ interface Props {
 const ALL_TYPES = [
   { value: 'purchase_amount', label: 'Valor gasto' },
   { value: 'visit',           label: 'Visitas necessárias' },
-  { value: 'service_done',    label: 'Serviço executado' },
+  //{ value: 'service_done',    label: 'Serviço executado' },
   { value: 'product_bought',  label: 'Produto comprado' },
   { value: 'category_bought', label: 'Categoria comprada' },
-  { value: 'custom_event',    label: 'Evento customizado' },
+  //{ value: 'custom_event',    label: 'Evento customizado' },
 ];
 
 /* helper para texto amigável */

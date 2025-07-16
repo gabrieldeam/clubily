@@ -67,3 +67,19 @@ export interface StampRequest {
   event_name?: string;
   visit_count?: number;
 }
+
+
+export interface InstanceAdminDetail extends InstanceRead {
+  /** Nome do usuário dono do cartão */
+  user_name: string
+  /** E‑mail do usuário dono do cartão */
+  user_email: string
+  /** Total de carimbos que esse template exige */
+  stamp_total: number
+  /** Quantas recompensas estão associadas a esse template */
+  total_rewards: number
+  /** Quantas recompensas esse usuário já resgatou */
+  redeemed_count: number
+  /** Quantas recompensas esse usuário ganhou mas ainda não resgatou */
+  pending_count: number
+}

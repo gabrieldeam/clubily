@@ -144,7 +144,7 @@ def assign_cashback(db: Session, user_id: str, program_id: str, amount_spent: fl
     fee = Decimal(str(get_effective_fee(db, company_id, SettingTypeEnum.cashback)))
     balance = get_wallet_balance(db, company_id)
     if balance < fee:
-        raise ValueError("Saldo insuficiente na carteira da empresa para associação de cashback (custa R$0,10)")
+        raise ValueError("Saldo insuficiente na carteira da empresa para associação de cashback (custa R${fee:.2f})")
     debit_wallet(db, company_id, fee, description="retirada de créditos para taxa de cashback")
 
     # 5) cria o cashback

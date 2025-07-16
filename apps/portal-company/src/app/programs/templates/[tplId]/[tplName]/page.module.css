@@ -6,7 +6,7 @@
 .filters input,.filters select { padding:6px 8px; border:1px solid var(--clr-border); border-radius:4px; }
 
 .tableWrapper { overflow-x:auto; }
-.tableHeader,.tableRow { display:grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr; gap:.5rem; padding: .5rem 1rem; }
+.tableHeader,.tableRow { display:grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr; gap:.5rem; padding: .5rem 1rem; }
 .tableHeader { background:#f3f4f6; border-radius:8px; font-weight:600; }
 .tableRow { background:#fff; border-radius:8px; transition:background .2s; }
 .tableRow:hover { background:#fafafa; }

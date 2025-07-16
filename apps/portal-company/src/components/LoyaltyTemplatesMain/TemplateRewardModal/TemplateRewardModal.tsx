@@ -1,17 +1,19 @@
 'use client';
 
 import { useEffect, useState, FormEvent } from 'react';
+import { useRouter } from 'next/navigation';
+import axios from 'axios';
 import Button from '@/components/Button/Button';
 import Notification from '@/components/Notification/Notification';
 
-import { listRewards } from '@/services/companyRewardsService';
 import {
+  listRewards,
   listTemplateRewards,
   attachRewardToTemplate,
   removeLink,
-} from '@/services/companyRewardsService'; // ↔ onde você registrou as rotas acima
+} from '@/services/companyRewardsService';
 
-import type { RewardRead, LinkRead, LinkCreate } from '@/types/companyReward';
+import type { RewardRead, LinkRead } from '@/types/companyReward';
 
 import styles from './TemplateRewardModal.module.css';
 
@@ -21,65 +23,106 @@ interface Props {
 }
 
 export default function TemplateRewardModal({ tplId, onClose }: Props) {
-  /* ——————————————————— state ——————————————————— */
-  const [links, setLinks] = useState<LinkRead[]>([]);
+  const router = useRouter();
+
+  const [links, setLinks]     = useState<LinkRead[]>([]);
   const [rewards, setRewards] = useState<RewardRead[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError]     = useState<string | null>(null);
 
-  /* form para nova associação */
   const [rewardId, setRewardId] = useState('');
-  const [stampNo, setStampNo] = useState<number>(1);
+  const [stampNo, setStampNo]   = useState<number>(1);
 
-  /* ——————————————————— fetch initial ——————————————————— */
+  /* ------------------------------------------------------------------ */
+  /* carregamento inicial                                               */
+  /* ------------------------------------------------------------------ */
   useEffect(() => {
-    async function fetchData() {
+    (async () => {
       try {
         setLoading(true);
+        setError(null);
+
         const [{ data: allRewards }, { data: tplLinks }] = await Promise.all([
           listRewards(),
           listTemplateRewards(tplId),
         ]);
-        setRewards(allRewards);
-        setLinks(tplLinks);
+
+        setRewards(allRewards.filter(r => (r.stock_qty ?? 0) > 0));
+        setLinks(tplLinks.filter(l => (l.reward.stock_qty ?? 0) > 0));
       } catch (err: any) {
         setError(err.message || 'Falha ao carregar recompensas');
       } finally {
         setLoading(false);
       }
-    }
-    fetchData();
+    })();
   }, [tplId]);
 
-  /* ——————————————————— helpers ——————————————————— */
+  /* ------------------------------------------------------------------ */
+  /* util – extrai mensagem de erro do Axios                            */
+  /* ------------------------------------------------------------------ */
+  function extractMsg(err: unknown, fallback: string): string {
+    if (!axios.isAxiosError(err)) return fallback;
+
+    const data = err.response?.data;
+
+    // 1) se o backend devolveu string
+    if (typeof data === 'string') return data;
+
+    // 2) se devolveu objeto com detail
+    if (data && typeof data === 'object' && 'detail' in data) {
+      const d: any = (data as any).detail;
+      if (typeof d === 'string') return d;
+      if (Array.isArray(d)) return d.join('\n');
+      if (d && typeof d === 'object' && typeof d.detail === 'string') {
+        return d.detail;
+      }
+    }
+
+    // 3) procura por message ou outros campos de texto
+    if (data && typeof data === 'object') {
+      const firstText = Object.values(data).find(v => typeof v === 'string');
+      if (typeof firstText === 'string') return firstText;
+    }
+
+    // 4) se nada deu certo, usa err.message ou fallback
+    return err.message || fallback;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* ações                                                               */
+  /* ------------------------------------------------------------------ */
   async function handleAdd(e: FormEvent) {
     e.preventDefault();
-    if (!rewardId) return alert('Selecione a recompensa');
+    if (!rewardId) return setError('Selecione a recompensa');
+
     try {
-      const payload: LinkCreate = { reward_id: rewardId, stamp_no: stampNo };
-      await attachRewardToTemplate(tplId, payload);
-      /* refresh */
+      setError(null);
+      await attachRewardToTemplate(tplId, { reward_id: rewardId, stamp_no: stampNo });
+
       const { data } = await listTemplateRewards(tplId);
-      setLinks(data);
-      /* limpa form */
+      setLinks(data.filter(l => (l.reward.stock_qty ?? 0) > 0));
       setRewardId('');
       setStampNo(1);
-    } catch (err: any) {
-      setError(err.message || 'Falha ao associar recompensa');
+    } catch (err) {
+      setError(extractMsg(err, 'Falha ao associar recompensa'));
     }
   }
 
   async function handleRemove(linkId: string) {
     if (!confirm('Remover esta associação?')) return;
+
     try {
+      setError(null);
       await removeLink(linkId);
       setLinks(prev => prev.filter(l => l.id !== linkId));
-    } catch (err: any) {
-      setError(err.message || 'Falha ao remover');
+    } catch (err) {
+      setError(extractMsg(err, 'Falha ao remover associação'));
     }
   }
 
-  /* ——————————————————— render ——————————————————— */
+  /* ------------------------------------------------------------------ */
+  /* render                                                              */
+  /* ------------------------------------------------------------------ */
   return (
     <div className={styles.container}>
       <h2>Recompensas do Cartão</h2>
@@ -96,31 +139,28 @@ export default function TemplateRewardModal({ tplId, onClose }: Props) {
         <p>Carregando…</p>
       ) : (
         <>
-          {/* lista existente */}
-          <ul className={styles.linkList}>
-            {links.map(link => {
-              const reward = link.reward;
-              return (
+          {links.length === 0 ? (
+            <div className={styles.empty}>
+              <p>Nenhuma recompensa associada.</p>
+              <Button onClick={() => router.push('/register?section=reward')}>
+                Cadastrar nova recompensa
+              </Button>
+            </div>
+          ) : (
+            <ul className={styles.linkList}>
+              {links.map(link => (
                 <li key={link.id} className={styles.linkItem}>
                   <div>
-                    <strong>{reward?.name || '—'}</strong> (carimbo&nbsp;
-                    {link.stamp_no})
+                    <strong>{link.reward.name}</strong> (carimbo {link.stamp_no})
                   </div>
-                  <Button
-                    bgColor="#f87171"
-                    onClick={() => handleRemove(link.id)}
-                  >
+                  <Button bgColor="#f87171" onClick={() => handleRemove(link.id)}>
                     Remover
                   </Button>
                 </li>
-              );
-            })}
-            {links.length === 0 && (
-              <li className={styles.empty}>Nenhuma recompensa associada</li>
-            )}
-          </ul>
+              ))}
+            </ul>
+          )}
 
-          {/* form nova associação */}
           <form onSubmit={handleAdd} className={styles.form}>
             <h3>Nova Associação</h3>
 

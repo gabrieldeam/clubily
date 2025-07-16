@@ -1,11 +1,11 @@
+// src/app/(your-route)/TemplateInstancesPage.tsx
 'use client';
 
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Header from '@/components/Header/Header';
 import { getTemplateInstances } from '@/services/loyaltyService';
-import type { InstanceRead } from '@/types/loyalty';
-import type { Paginated } from '@/types/loyalty';
+import type { InstanceAdminDetail, Paginated } from '@/types/loyalty';
 import styles from './page.module.css';
 
 export default function TemplateInstancesPage() {
@@ -14,8 +14,8 @@ export default function TemplateInstancesPage() {
   const rawName = Array.isArray(params.tplName) ? params.tplName[0] : params.tplName;
   const tplName = rawName ? decodeURIComponent(rawName) : '';
 
-  // dados / estados
-  const [instData, setInstData] = useState<Paginated<InstanceRead> | null>(null);
+  // estados
+  const [instData, setInstData] = useState<Paginated<InstanceAdminDetail> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,11 +26,11 @@ export default function TemplateInstancesPage() {
   const [missing, setMissing] = useState<number | undefined>();
   const [expires, setExpires] = useState<number | undefined>();
 
-  // fetch
   useEffect(() => {
     if (!tplId) return;
     const fetchData = async () => {
-      setLoading(true); setError(null);
+      setLoading(true);
+      setError(null);
       try {
         const data = await getTemplateInstances(tplId, {
           page,
@@ -63,33 +63,44 @@ export default function TemplateInstancesPage() {
         <main className={styles.main}>
           <h1>{tplName}</h1>
 
-          {/* filtros simples */}
+          {/* filtros */}
           <div className={styles.filters}>
-            <select value={status} onChange={e=>{setStatus(e.target.value as any); setPage(1);}}>
+            <select
+              value={status}
+              onChange={e => { setStatus(e.target.value as any); setPage(1); }}
+            >
               <option value="">Todos</option>
               <option value="active">Ativos</option>
               <option value="completed">Concluídos</option>
             </select>
-            {/* pode trocar para inputs numéricos se quiser */}
             <input
               type="number"
               placeholder="Faltando ≤"
               value={missing ?? ''}
-              onChange={e=>{setMissing(e.target.value ? Number(e.target.value) : undefined); setPage(1);}}
+              onChange={e => {
+                setMissing(e.target.value ? Number(e.target.value) : undefined);
+                setPage(1);
+              }}
             />
             <input
               type="number"
               placeholder="Expira em ≤ dias"
               value={expires ?? ''}
-              onChange={e=>{setExpires(e.target.value ? Number(e.target.value) : undefined); setPage(1);}}
+              onChange={e => {
+                setExpires(e.target.value ? Number(e.target.value) : undefined);
+                setPage(1);
+              }}
             />
           </div>
 
           {/* tabela */}
           <div className={styles.tableWrapper}>
             <div className={styles.tableHeader}>
-              <div>ID Usuário</div>
-              <div>Carimbos</div>
+              <div>Nome</div>
+              <div>E‑mail</div>
+              <div>Carimbos/Total</div>
+              <div>Resgatadas/Total</div>
+              <div>Pendentes</div>
               <div>Emitido</div>
               <div>Expira</div>
               <div>Status</div>
@@ -97,11 +108,20 @@ export default function TemplateInstancesPage() {
             <div className={styles.tableBody}>
               {instData.data.map(inst => (
                 <div key={inst.id} className={styles.tableRow}>
-                  <div data-label="Usuário">{inst.user_id}</div>
-                  <div data-label="Carimbos">{inst.stamps_given}</div>
-                  <div data-label="Emitido">{new Date(inst.issued_at).toLocaleDateString()}</div>
-                  <div data-label="Expira">{inst.expires_at ? new Date(inst.expires_at).toLocaleDateString() : '-'}</div>
-                  <div data-label="Status">{inst.completed_at ? 'Concluído' : 'Ativo'}</div>
+                  <div data-label="Nome">{inst.user_name}</div>
+                  <div data-label="E‑mail">{inst.user_email}</div>
+                  <div data-label="Carimbos/Total">{inst.stamps_given}/{inst.stamp_total}</div>
+                  <div data-label="Total Recompensas">{inst.redeemed_count}/{inst.total_rewards}</div>
+                  <div data-label="Pendentes">{inst.pending_count}</div>
+                  <div data-label="Emitido">
+                    {new Date(inst.issued_at).toLocaleDateString()}
+                  </div>
+                  <div data-label="Expira">
+                    {inst.expires_at ? new Date(inst.expires_at).toLocaleDateString() : '-'}
+                  </div>
+                  <div data-label="Status">
+                    {inst.completed_at ? 'Concluído' : 'Ativo'}
+                  </div>
                 </div>
               ))}
             </div>
@@ -109,9 +129,15 @@ export default function TemplateInstancesPage() {
 
           {/* paginação */}
           <div className={styles.pagination}>
-            <button disabled={page<=1} onClick={()=>setPage(p=>p-1)}>Anterior</button>
-            <span>Página {page} de {totalPages||1}</span>
-            <button disabled={page>=totalPages} onClick={()=>setPage(p=>p+1)}>Próxima</button>
+            <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+              Anterior
+            </button>
+            <span>
+              Página {page} de {totalPages || 1}
+            </span>
+            <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+              Próxima
+            </button>
           </div>
         </main>
       </div>

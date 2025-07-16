@@ -78,6 +78,8 @@ class InstanceDetail(InstanceRead):
 class CodeResponse(BaseModel):
     code: str
     expires_at: datetime
+    used: bool
+    model_config = ConfigDict(from_attributes=True)
 
 
 # src/schemas/loyalty.py
@@ -97,4 +99,15 @@ class StampPayload(BaseModel):
         None, description="Número de visitas para a regra 'visit'"
     )
 
+    model_config = ConfigDict(from_attributes=True)
+
+
+
+class InstanceAdminDetail(InstanceRead):
+    user_name: str
+    user_email: str
+    stamp_total: int = Field(..., description="Total de carimbos do template")
+    total_rewards: int = Field(..., description="Total de recompensas atreladas ao template")
+    redeemed_count: int = Field(..., description="Recompensas já resgatadas")
+    pending_count: int = Field(..., description="Recompensas ganhas mas não resgatadas")
     model_config = ConfigDict(from_attributes=True)

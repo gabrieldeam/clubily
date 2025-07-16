@@ -5,8 +5,9 @@ import type {
   InstanceRead,
   InstanceDetail,
   CodeResponse,
-  RewardCodeResponse
+  RewardCodeResponse,
 } from '@/types/loyalty';
+import type { CompanyBasic } from '@/types/company';
 
 /* ---------------------------------------------------------------------- */
 /*  Templates                                                             */
@@ -15,13 +16,13 @@ import type {
 /**
  * List templates from a company (endpoint `GET /templates`)
  */
-export const listTemplates = (
-  companyId: string,
-  page = 1,
-  size = 20,
-) => api.get<TemplateRead[]>('/loyalty/templates', {
-  params: { company_id: companyId, page, size },
+export const listActiveTemplates = (
+  page: number = 1,
+  size: number = 20,
+) => api.get<TemplateRead[]>('/loyalty/templates/active', {
+  params: { page, size },
 });
+
 
 /**
  * Same list, but with the `/companies/{id}/loyalty/templates` path.
@@ -61,8 +62,21 @@ export const generateStampCode = (instId: string) =>
  * List logged-in user cards (with template & stamps included).
  * GET /cards
  */
-export const listMyCards = (page = 1, size = 20) =>
+export const listMyCards = (page = 1, size = 10) =>
   api.get<InstanceDetail[]>('/loyalty/cards', {
+    params: { page, size },
+  });
+
+  /**
+ * List logged-in user cards for a specific company.
+ * GET /companies/{company_id}/cards
+ */
+export const listMyCardsByCompany = (
+  companyId: string,
+  page = 1,
+  size = 20,
+) =>
+  api.get<InstanceDetail[]>(`/loyalty/companies/${companyId}/cards`, {
     params: { page, size },
   });
 
@@ -80,3 +94,11 @@ export function generateRewardCode(
     `/company_rewards/user/instances/${instId}/rewards/${linkId}/code`
   )
 }
+
+
+/**
+ * List all companies for which the user has at least one card.
+ * GET /user/companies-with-cards
+ */
+export const listCompaniesWithCards = () =>
+  api.get<CompanyBasic[]>('/loyalty/user/companies-with-cards');

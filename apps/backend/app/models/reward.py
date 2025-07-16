@@ -38,7 +38,6 @@ class TemplateRewardLink(Base):
     __tablename__ = "template_reward_links"
     __table_args__ = (
         UniqueConstraint("template_id", "stamp_no", name="uq_tpl_stamp"),
-        UniqueConstraint("template_id", "reward_id", name="uq_tpl_reward"),
     )
 
     id          = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)

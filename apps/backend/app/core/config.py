@@ -56,4 +56,8 @@ class Settings(BaseSettings):
     ASAAS_API_KEY: str
     ASAAS_BASE_URL: str
 
+    NOMINATIM_URL: str
+    NOMINATIM_USER_AGENT: str
+    REDIS_URL: str
+
 settings = Settings()

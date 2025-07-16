@@ -107,7 +107,6 @@ export default function CompanyCard({ template }: Props) {
                 <div
                   key={pos}
                   className={styles.stampCircle}
-                  style={{ border: `2px solid ${primary}` }}
                 >
                   {hasReward ? (
                     <Gift size={24} />
