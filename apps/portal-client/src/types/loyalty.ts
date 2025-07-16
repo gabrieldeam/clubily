@@ -94,4 +94,5 @@ export interface RewardCodeResponse {
   code: string;
   /** Timestamp ISO de expiração */
   expires_at: string;
+  reused: boolean;
 }

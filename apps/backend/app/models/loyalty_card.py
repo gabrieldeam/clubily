@@ -95,7 +95,8 @@ class LoyaltyCardInstance(Base):
     template      = relationship("LoyaltyCardTemplate", back_populates="instances")
     stamps        = relationship("LoyaltyCardStamp", cascade="all,delete")
     codes         = relationship("LoyaltyCardStampCode", cascade="all,delete")
-    redemptions = relationship("RewardRedemptionCode", back_populates="instance", cascade="all,delete")
+    redemptions = relationship("RewardRedemptionCode", back_populates="instance", cascade="all,delete")    
+    user = relationship("User", lazy="joined")
 
 
 class LoyaltyCardStamp(Base):
@@ -112,7 +113,7 @@ class LoyaltyCardStampCode(Base):
     __tablename__ = "loyalty_card_stamp_codes"
 
     id          = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    instance_id = Column(UUID(as_uuid=True), ForeignKey("loyalty_card_instances.id", ondelete="CASCADE"), nullable=False, unique=True)
+    instance_id = Column(UUID(as_uuid=True), ForeignKey("loyalty_card_instances.id", ondelete="CASCADE"), nullable=False)
     code        = Column(String(12), nullable=False, unique=True, index=True)
     expires_at  = Column(DateTime(timezone=True), nullable=False)
     used        = Column(Boolean, default=False)

@@ -90,19 +90,32 @@ export default function WalletCard({ card }: Props) {
     setClaimError(null);
     setLoadingReward(true);
     try {
-      const res = await generateRewardCode(card.id, linkId);
-      setRewardCode(res.data);
-      // atualiza redemptions com used=true
-      setRedemptions(prev => [
-        ...prev,
-        {
-          link_id: linkId,
-          instance_id: card.id,
-          used: true,
-          code: res.data.code,
-          expires_at: res.data.expires_at
-        }
-      ]);
+    const { data } = await generateRewardCode(card.id, linkId);
+
+    if (data.reused) {
+      // marca só como "já resgatado" sem exibir QR code
+      setClaimedRewards(prev => ({ ...prev, [linkId]: true }));
+      // garante que isClaimed() passe a ser true, sem armazenar o código pra overlay
+      setRedemptions(prev =>
+        prev.map(r =>
+          r.link_id === linkId ? { ...r, used: true } : r
+        )
+      );
+      return;
+    }
+
+    // caso normal: exibe QR code e registra redemption
+    setRewardCode(data);
+    setRedemptions(prev => [
+      ...prev,
+      {
+        link_id: linkId,
+        instance_id: card.id,
+        used: true,
+        code: data.code,
+        expires_at: data.expires_at,
+      }
+    ]);
       setSelectedRewardStamp(null);
     } catch (err) {
       console.error(err);
@@ -325,8 +338,17 @@ export default function WalletCard({ card }: Props) {
     <div className={styles.rewardsGrid}>
       {tpl.rewards_map.map(link => {
         const ready = card.stamps_given >= link.stamp_no;
+
         const isClaimed = redemptions.some(r => r.link_id === link.id && r.used);
         const isBlinking = link.stamp_no === selectedRewardStamp;
+        const redemption = redemptions.find(r => r.link_id === link.id);
+        const expiresAt = redemption?.expires_at
+          ? new Date(redemption.expires_at)
+          : null;
+        const isExpired = expiresAt ? expiresAt < new Date() : false;
+        const expiresText = expiresAt
+          ? expiresAt.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+          : '';
 
         return (
           <div
@@ -348,18 +370,26 @@ export default function WalletCard({ card }: Props) {
               <p>No carimbo {link.stamp_no}</p>
             </div>
             <div className={styles.rewardStatus}>
-              {isClaimed
-                ? <span className={styles.claimed}>Resgatado</span>
-                : ready
-                  ? <button
-                      className={styles.claimSmallButton}
-                      onClick={() => handleClaimReward(link.id)}
-                      disabled={loadingReward}
-                    >
-                      {loadingReward ? 'Resgatando…' : 'Resgatar'}
-                    </button>
-                  : <span className={styles.pending}>Pendente</span>
-              }
+              {claimedRewards[link.id] ? (
+                <button
+                  className={styles.claimedAlreadyButton}
+                  disabled
+                >
+                  Resgatado já
+                </button>
+              ) : isClaimed ? (
+                <span className={styles.claimed}>Resgatado</span>
+              ) : ready ? (
+                <button
+                  className={styles.claimSmallButton}
+                  onClick={() => handleClaimReward(link.id)}
+                  disabled={loadingReward}
+                >
+                  {loadingReward ? 'Resgatando…' : 'Resgatar'}
+                </button>
+              ) : (
+                <span className={styles.pending}>Pendente</span>
+              )}
             </div>
           </div>
         );

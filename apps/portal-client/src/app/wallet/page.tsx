@@ -1,3 +1,4 @@
+// src/app/wallet/page.tsx (ou src/pages/wallet.tsx, dependendo da sua estrutura)
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -6,47 +7,149 @@ import OverlappingCards from '@/components/OverlappingCards/OverlappingCards';
 import CompanyCard from '@/components/CompanyCard/CompanyCard';
 import Header from '@/components/Header/Header';
 import Modal from '@/components/Modal/Modal';
-import { listMyCards, listTemplates } from '@/services/loyaltyService';
-import { InstanceDetail, TemplateRead } from '@/types/loyalty';
+import {
+  listMyCards,
+  listActiveTemplates,
+  listCompaniesWithCards,
+  listMyCardsByCompany,
+} from '@/services/loyaltyService';
+import type {
+  InstanceDetail,
+  TemplateRead
+} from '@/types/loyalty';
+import type { CompanyBasic } from '@/types/company';
 import styles from './page.module.css';
 
 export default function WalletPage() {
   const router = useRouter();
+  const baseUrl =
+    process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL ?? '';
 
+  /** Estados de empresas **/
+  const [companies, setCompanies] = useState<CompanyBasic[]>([]);
+  const [loadingCompanies, setLoadingCompanies] = useState(false);
+  const [companyError, setCompanyError] = useState<string | null>(null);
+  const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
+
+  /** Estados de cartões **/
   const [cards, setCards] = useState<InstanceDetail[]>([]);
+  const [cardPage, setCardPage] = useState(1);
+  const [cardHasMore, setCardHasMore] = useState(true);
+  const [loadingCards, setLoadingCards] = useState(false);
+
+  /** Estados de templates de exploração (mantive só para o modal) **/
   const [templates, setTemplates] = useState<TemplateRead[]>([]);
   const [tplPage, setTplPage] = useState(1);
   const [tplHasMore, setTplHasMore] = useState(true);
-  const [loading, setLoading] = useState(true);
   const [loadingTpl, setLoadingTpl] = useState(false);
+
+  /** Estados gerais **/
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
-  const companyId = 'eed72759-89ec-428c-ab59-37c657d74cad';
+  const CARD_PAGE_SIZE = 10;
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const { data: userCards } = await listMyCards();
-        setCards(userCards);
-        if (userCards.length === 0) {
-          await fetchMoreTemplates(1);
-        }
-      } catch {
-        setError('Falha ao carregar dados');
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
+    // carrega empresas e cartões iniciais
+    fetchCompanies();
+    fetchAllCards(1, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /** Busca todas as empresas que o usuário tem cards **/
+  const fetchCompanies = async () => {
+    setLoadingCompanies(true);
+    try {
+      const { data } = await listCompaniesWithCards();
+      setCompanies(data);
+    } catch {
+      setCompanyError('Falha ao carregar empresas');
+    } finally {
+      setLoadingCompanies(false);
+    }
+  };
+
+  /** Busca todos os cartões (sem filtro de empresa) **/
+  const fetchAllCards = async (
+    page: number,
+    initial = false
+  ) => {
+    if (initial) setLoading(true);
+    else setLoadingCards(true);
+
+    try {
+      const { data } = await listMyCards(page, CARD_PAGE_SIZE);
+      if (page === 1) setCards(data);
+      else setCards((prev) => [...prev, ...data]);
+
+      setCardPage(page);
+      setCardHasMore(data.length === CARD_PAGE_SIZE);
+      setError(null);
+    } catch {
+      setError('Falha ao carregar cartões');
+    } finally {
+      if (initial) setLoading(false);
+      else setLoadingCards(false);
+    }
+  };
+
+  /** Busca cartões de uma empresa específica **/
+  const fetchCardsByCompany = async (
+    companyId: string,
+    page: number,
+    initial = false
+  ) => {
+    if (initial) setLoading(true);
+    else setLoadingCards(true);
+
+    try {
+      const { data } = await listMyCardsByCompany(
+        companyId,
+        page,
+        CARD_PAGE_SIZE
+      );
+      if (page === 1) setCards(data);
+      else setCards((prev) => [...prev, ...data]);
+
+      setCardPage(page);
+      setCardHasMore(data.length === CARD_PAGE_SIZE);
+      setError(null);
+    } catch {
+      setError('Falha ao carregar cartões da empresa');
+    } finally {
+      if (initial) setLoading(false);
+      else setLoadingCards(false);
+    }
+  };
+
+  const handleLoadMoreCards = () => {
+    if (selectedCompany) {
+      fetchCardsByCompany(selectedCompany, cardPage + 1);
+    } else {
+      fetchAllCards(cardPage + 1);
+    }
+  };
+
+  /** Seleção / desselecão de empresa **/
+  const handleCompanyClick = (companyId: string) => {
+    if (selectedCompany === companyId) {
+      // desseleciona → volta para todos
+      setSelectedCompany(null);
+      fetchAllCards(1, true);
+    } else {
+      // seleciona → filtra por empresa
+      setSelectedCompany(companyId);
+      fetchCardsByCompany(companyId, 1, true);
+    }
+  };
+
+  /** Paginação de templates (modal) **/
   const fetchMoreTemplates = async (page: number) => {
     setLoadingTpl(true);
     try {
-      const { data } = await listTemplates(companyId, page);
-      setTemplates(prev => [...prev, ...data]);
+      const { data } = await listActiveTemplates(page);
+      setTemplates((prev) => [...prev, ...data]);
       setTplPage(page);
       setTplHasMore(data.length === 20);
     } catch {
@@ -55,88 +158,137 @@ export default function WalletPage() {
       setLoadingTpl(false);
     }
   };
-
-  const handleLoadMore = () => fetchMoreTemplates(tplPage + 1);
-
+  const handleLoadMoreTpl = () => fetchMoreTemplates(tplPage + 1);
   const handleOpenModal = () => {
     setModalOpen(true);
-    if (templates.length === 0) {
-      fetchMoreTemplates(1);
-    }
+    if (templates.length === 0) fetchMoreTemplates(1);
   };
 
   if (loading) return <div className={styles.loading}>Carregando...</div>;
   if (error) return <div className={styles.error}>{error}</div>;
 
-  const completedNotClaimed = cards.filter(
-    c => c.completed_at && !c.reward_claimed
-  ).length;
+  // cálculo de recompensas disponíveis
+  const availableRewards = cards.reduce((sum, card) => {
+    const availForCard = card.template.rewards_map.filter((link) => {
+      if (card.stamps_given < link.stamp_no) return false;
+      const redemption = card.redemptions.find(
+        (r) => r.link_id === link.id
+      );
+      if (redemption?.used) return false;
+      return true;
+    }).length;
+    return sum + availForCard;
+  }, 0);
 
   return (
     <>
-      <Header onSearch={q => router.push(`/search?name=${encodeURIComponent(q)}`)} />
+      <Header
+        onSearch={(q) =>
+          router.push(`/search?name=${encodeURIComponent(q)}`)
+        }
+      />
 
       <div className={styles.container}>
         <header className={styles.header}>
           <div className={styles.stats}>
             <span>{cards.length} cartões</span>
             <span>|</span>
-            <span>{completedNotClaimed} presentes disponíveis</span>
+            <span>{availableRewards} presentes disponíveis</span>
           </div>
         </header>
 
-        
-        
+        {/* --- NOVO: Lista de empresas --- */}
+        {companyError && (
+          <div className={styles.error}>{companyError}</div>
+        )}
+        {!companyError && (
+          <div className={styles.companyList}>
+            {loadingCompanies
+              ? <div>Carregando empresas...</div>
+              : companies.map((c) => (
+                  <div
+                    key={c.id}
+                    className={`${styles.companyItem} ${
+                      selectedCompany === c.id
+                        ? styles.selected
+                        : ''
+                    }`}
+                    onClick={() => handleCompanyClick(c.id)}
+                  >
+                    <div className={styles.companyLogoWrapper}>
+                      <img
+                        src={`${baseUrl}${c.logo_url}`}
+                        alt={c.name}
+                        className={styles.companyLogo}
+                      />
+                    </div>
+                    <span className={styles.companyName}>
+                      {c.name}
+                    </span>
+                  </div>
+                ))
+            }
+          </div>
+        )}
+        {/* --- fim lista de empresas --- */}
+
         <div className={styles.cardsContainer}>
           {cards.length > 0 ? (
             <>
-            <OverlappingCards cards={cards} />
-              {/* Novo cartão de exploração */}
+              <OverlappingCards cards={cards} />
+
+              {cardHasMore && (
+                <button
+                  className={styles.loadMoreTpl}
+                  disabled={loadingCards}
+                  onClick={handleLoadMoreCards}
+                >
+                  {loadingCards ? 'Carregando...' : 'Carregar mais'}
+                </button>
+              )}
+
+              {/* Explorar templates continua via modal */}
               <div className={styles.exploreCard}>
                 <div className={styles.exploreContent}>
                   <div className={styles.exploreIcon}>
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <line x1="12" y1="8" x2="12" y2="12"></line>
-                      <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                    </svg>
+                    {/* ícone */}
                   </div>
-                  
                   <div className={styles.exploreText}>
-                    <h2 className={styles.exploreTitle}>Descubra Novas Recompensas</h2>
+                    <h2 className={styles.exploreTitle}>
+                      Descubra Novas Recompensas
+                    </h2>
                     <p className={styles.exploreDesc}>
-                      Explore cartões exclusivos e aumente suas chances de ganhar prêmios incríveis!
+                      Explore cartões exclusivos e aumente suas
+                      chances de ganhar prêmios incríveis!
                     </p>
                   </div>
-                  
-                  <button className={styles.exploreBtn} onClick={handleOpenModal}>
+                  <button
+                    className={styles.exploreBtn}
+                    onClick={handleOpenModal}
+                  >
                     Explorar Agora
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M5 12h14"></path>
-                      <path d="m12 5 7 7-7 7"></path>
-                    </svg>
+                    {/* ícone */}
                   </button>
-                </div>
-                
-                <div className={styles.floatingShapes}>
-                  <div className={styles.shapeCircle}></div>
-                  <div className={styles.shapeTriangle}></div>
-                  <div className={styles.shapeSquare}></div>
                 </div>
               </div>
             </>
           ) : (
             <>
-              {templates.map(tpl => (
-                <CompanyCard key={tpl.id} template={tpl} />
+              {templates.map((tpl) => (
+                <CompanyCard
+                  key={tpl.id}
+                  template={tpl}
+                />
               ))}
               {tplHasMore && (
                 <button
                   className={styles.loadMoreTpl}
                   disabled={loadingTpl}
-                  onClick={handleLoadMore}
+                  onClick={handleLoadMoreTpl}
                 >
-                  {loadingTpl ? 'Carregando...' : 'Carregar mais'}
+                  {loadingTpl
+                    ? 'Carregando...'
+                    : 'Carregar mais'}
                 </button>
               )}
             </>
@@ -144,18 +296,27 @@ export default function WalletPage() {
         </div>
       </div>
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)}>
+      <Modal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        width="100%"
+      >
         <div className={styles.modalContent}>
-          {templates.map(tpl => (
-            <CompanyCard key={tpl.id} template={tpl} />
+          {templates.map((tpl) => (
+            <CompanyCard
+              key={tpl.id}
+              template={tpl}
+            />
           ))}
           {tplHasMore && (
             <button
               className={styles.loadMoreTpl}
               disabled={loadingTpl}
-              onClick={handleLoadMore}
+              onClick={handleLoadMoreTpl}
             >
-              {loadingTpl ? 'Carregando...' : 'Carregar mais'}
+              {loadingTpl
+                ? 'Carregando...'
+                : 'Carregar mais'}
             </button>
           )}
         </div>

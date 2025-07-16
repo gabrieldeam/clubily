@@ -23,13 +23,15 @@ from app.schemas.loyalty_card import (
     TemplateCreate, TemplateUpdate, TemplateRead,
     RuleCreate, RuleRead,
     InstanceRead, InstanceDetail,
-    CodeResponse, StampPayload
+    CodeResponse, StampPayload, InstanceAdminDetail
 )
 from app.models.loyalty_card import (
     LoyaltyCardTemplate,
     LoyaltyCardInstance,
     LoyaltyCardRule,
 )
+from app.models.company import Company
+from app.schemas.company import CompanyBasic
 
 def paginate(query, page: int, size: int):
     """Aplica offset/limit e retorna resultados."""
@@ -322,31 +324,38 @@ def admin_stamp_card(
 # ─── ADMIN (empresa) / listar instâncias ────────────────────────────────
 @router.get(
     "/admin/templates/{tpl_id}/instances",
-    response_model=List[InstanceRead],
-    summary="Empresa: listar cartões emitidos de um template específico (paginado)"
+    response_model=List[InstanceAdminDetail],
+    summary="Empresa: listar cartões emitidos de um template específico"
 )
 def admin_list_instances_by_template(
-    tpl_id: UUID = Path(..., description="ID do template"),
-    page: int = Query(1, ge=1, description="Número da página (1 = primeira)"),
-    page_size: int = Query(20, ge=1, le=100, description="Itens por página (máx 100)"),
+    tpl_id: UUID = Path(...),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
     status: Optional[str] = Query(None, regex="^(active|completed)$"),
     missing_leq: Optional[int] = Query(None, ge=1),
-    expires_within: Optional[int] = Query(None, description="dias até expirar"),
+    expires_within: Optional[int] = Query(None),
     db: Session = Depends(get_db),
     company = Depends(get_current_company),
     response: Response = None,
 ):
-    # 1) Valida se o template pertence à empresa
+    # valida template
     tpl = db.get(LoyaltyCardTemplate, tpl_id)
     if not tpl or tpl.company_id != company.id:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Template não encontrado")
+        raise HTTPException(404, "Template não encontrado")
 
-    # 2) Constrói a query base
-    q = db.query(LoyaltyCardInstance).filter(
-        LoyaltyCardInstance.template_id == tpl_id
+    # consulta base
+    q = (
+        db.query(LoyaltyCardInstance)
+          .options(
+              selectinload(LoyaltyCardInstance.template)
+                .selectinload(LoyaltyCardTemplate.rewards_map),
+              selectinload(LoyaltyCardInstance.redemptions),
+              selectinload(LoyaltyCardInstance.user)
+          )
+          .filter(LoyaltyCardInstance.template_id == tpl_id)
     )
 
-    # 3) Aplica filtros
+    # filtros
     if status == "completed":
         q = q.filter(LoyaltyCardInstance.completed_at.isnot(None))
     elif status == "active":
@@ -358,36 +367,57 @@ def admin_list_instances_by_template(
         )
 
     if expires_within is not None:
-        limit_date = datetime.utcnow() + timedelta(days=expires_within)
-        q = q.filter(LoyaltyCardInstance.expires_at <= limit_date)
+        cutoff = datetime.utcnow() + timedelta(days=expires_within)
+        q = q.filter(LoyaltyCardInstance.expires_at <= cutoff)
 
-    # 4) Total antes de paginar
     total = q.count()
-
-    # 5) Ordena + pagina
-    q = (
+    instances = (
         q.order_by(LoyaltyCardInstance.issued_at.desc())
-         .offset((page - 1) * page_size)
+         .offset((page-1)*page_size)
          .limit(page_size)
+         .all()
     )
 
-    # 6) Cabeçalhos de paginação
+    # paginação no header
     response.headers["X-Total-Count"] = str(total)
     response.headers["X-Page"] = str(page)
     response.headers["X-Page-Size"] = str(page_size)
 
-    return q.all()
+    # monta a lista de InstanceAdminDetail
+    result: List[InstanceAdminDetail] = []
+    for inst in instances:
+        # usuário
+        user = inst.user  # precisa de relationship User em LoyaltyCardInstance
+        # totais do template
+        total_rewards = len(inst.template.rewards_map)
+        stamp_total   = inst.template.stamp_total
+        # contagem de redemptions
+        redeemed = sum(1 for r in inst.redemptions if r.used)
+        pending  = total_rewards - redeemed
+
+        result.append(
+            InstanceAdminDetail(
+                **inst.__dict__,
+                user_name=user.name,
+                user_email=user.email,
+                stamp_total=stamp_total,
+                total_rewards=total_rewards,
+                redeemed_count=redeemed,
+                pending_count=pending,
+            )
+        )
+
+    return result
 
 
 
 # ─── USUÁRIO / resgatar cartão ────────────────────────────────────────
 @router.get(
-    "/templates",
+    "/templates/active",
     response_model=List[TemplateRead],
-    summary="Usuário: listar templates disponíveis por empresa"
+    summary="Usuário: listar templates de empresas ativas"
 )
-def user_list_templates(
-    company_id: UUID = Query(..., description="ID da empresa"),
+def user_list_active_templates(
     page: int        = Query(1, ge=1),
     size: int        = Query(20, ge=1, le=100),
     db: Session      = Depends(get_db),
@@ -396,14 +426,12 @@ def user_list_templates(
     now = datetime.now(timezone.utc)
     q = (
         db.query(LoyaltyCardTemplate)
-          .options(
-              selectinload(LoyaltyCardTemplate.rules),
-              selectinload(LoyaltyCardTemplate.rewards_map)
-                .selectinload(TemplateRewardLink.reward)
-          )
+          # só templates de empresas ativas
+          .join(Company, LoyaltyCardTemplate.company)
           .filter(
-              LoyaltyCardTemplate.company_id == company_id,
+              Company.is_active.is_(True),
               LoyaltyCardTemplate.active.is_(True),
+              # dentro da janela de emissão
               or_(
                   LoyaltyCardTemplate.emission_start.is_(None),
                   LoyaltyCardTemplate.emission_start <= now
@@ -411,7 +439,14 @@ def user_list_templates(
               or_(
                   LoyaltyCardTemplate.emission_end.is_(None),
                   LoyaltyCardTemplate.emission_end   >= now
-              )
+              ),
+          )
+          # já pré-carrega regras, recompensas e info da empresa
+          .options(
+              selectinload(LoyaltyCardTemplate.rules),
+              selectinload(LoyaltyCardTemplate.rewards_map)
+                .selectinload(TemplateRewardLink.reward),
+              selectinload(LoyaltyCardTemplate.company),
           )
           .order_by(LoyaltyCardTemplate.created_at.desc())
     )
@@ -514,3 +549,69 @@ def user_cards(
           .order_by(LoyaltyCardInstance.issued_at.desc())
     )
     return paginate(q, page, size)
+
+
+@router.get(
+    "/companies/{company_id}/cards",
+    response_model=List[InstanceDetail],
+    summary="Usuário: listar meus cartões de uma empresa específica"
+)
+def user_cards_by_company(
+    company_id: UUID = Path(..., description="ID da empresa"),
+    page: int        = Query(1, ge=1),
+    size: int        = Query(20, ge=1, le=100),
+    db: Session      = Depends(get_db),
+    user             = Depends(get_current_user),
+):
+    """
+    Retorna todos os LoyaltyCardInstance do usuário cujo template pertence
+    à empresa passada em company_id.
+    """
+    q = (
+        db.query(LoyaltyCardInstance)
+          # garante que o LoyaltyCardInstance.template.company_id == company_id
+          .join(LoyaltyCardTemplate, LoyaltyCardInstance.template)
+          .filter(
+              LoyaltyCardInstance.user_id == user.id,
+              LoyaltyCardTemplate.company_id == company_id,
+          )
+          .options(
+              # mesma estratégia de pré-carregamento que você já usa
+              selectinload(LoyaltyCardInstance.template)
+                .selectinload(LoyaltyCardTemplate.rules),
+              selectinload(LoyaltyCardInstance.template)
+                .selectinload(LoyaltyCardTemplate.rewards_map)
+                  .selectinload(TemplateRewardLink.reward),
+              selectinload(LoyaltyCardInstance.template)
+                .selectinload(LoyaltyCardTemplate.company),
+              selectinload(LoyaltyCardInstance.stamps),
+              selectinload(LoyaltyCardInstance.redemptions)
+          )
+          .order_by(LoyaltyCardInstance.issued_at.desc())
+    )
+    return paginate(q, page, size)
+
+
+@router.get(
+    "/user/companies-with-cards",
+    response_model=List[CompanyBasic],
+    summary="Usuário: listar empresas das quais tenho cartões"
+)
+def user_companies_with_cards(
+    db: Session = Depends(get_db),
+    user = Depends(get_current_user),
+):
+    """
+    Retorna todas as empresas (CompanyBasic) para as quais
+    o usuário já possui ao menos um LoyaltyCardInstance.
+    """
+    # Faz join de Company ← Template ← Instance, filtra pelo user e garante distinct
+    companies = (
+        db.query(Company)
+          .join(LoyaltyCardTemplate, LoyaltyCardTemplate.company_id == Company.id)
+          .join(LoyaltyCardInstance, LoyaltyCardInstance.template_id == LoyaltyCardTemplate.id)
+          .filter(LoyaltyCardInstance.user_id == user.id)
+          .distinct()
+          .all()
+    )
+    return companies

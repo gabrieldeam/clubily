@@ -5,7 +5,7 @@ from sqlalchemy import Column, String, Boolean, DateTime, UniqueConstraint, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
-
+from geoalchemy2 import Geography
 from app.db.base import Base
 from app.models.association import user_companies, company_categories
 
@@ -112,4 +112,10 @@ class Company(Base):
         back_populates="company",
         cascade="all, delete-orphan",
         lazy="joined",
+    )
+
+    location = Column(
+        Geography(geometry_type="POINT", srid=4326),
+        nullable=True,
+        index=True,
     )

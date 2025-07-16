@@ -324,6 +324,21 @@ async def upload_company_logo(
 
     return {"logo_url": public_url}
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 @router.get("/searchAdmin", response_model=Page[CompanyRead])
 def search_companies(
     city: Optional[str] = Query(None),
@@ -425,7 +440,6 @@ def search_companies_by_category(
 
     return q.distinct().all()
 
-
 @router.get(
     "/search-by-name",
     response_model=List[CompanyReadWithService],
@@ -485,6 +499,28 @@ def search_companies_by_name(
         results.append(comp_dict)
 
     return results
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 @router.get(

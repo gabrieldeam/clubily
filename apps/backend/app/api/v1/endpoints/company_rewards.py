@@ -3,7 +3,7 @@ from uuid import UUID
 from typing import List, Optional
 from fastapi import APIRouter, Depends, UploadFile, File, Form, Path, Body, status, HTTPException, Response
 from sqlalchemy.orm import Session
-
+from sqlalchemy.exc import IntegrityError
 from app.api.deps import get_db, get_current_company, get_current_user
 from app.services.file_service import save_upload
 
@@ -14,7 +14,7 @@ from app.services.company_reward_service import (
 )
 from app.schemas.reward import (
     RewardCreate, RewardUpdate, RewardRead,
-    LinkCreate, LinkRead
+    LinkCreate, LinkRead, RewardCodeResponse
 )
 from app.models.reward import CompanyReward, TemplateRewardLink
 from app.models.loyalty_card import LoyaltyCardTemplate, LoyaltyCardInstance
@@ -115,41 +115,70 @@ def admin_delete_reward(
     summary="Empresa: associar recompensa a template"
 )
 def admin_attach_reward(
-    tpl_id: UUID = Path(...),
+    tpl_id: UUID = Path(..., description="ID do template"),
     payload: LinkCreate = Body(...),
     db: Session = Depends(get_db),
-    company = Depends(get_current_company),
+    company=Depends(get_current_company),
 ):
     tpl = db.get(LoyaltyCardTemplate, tpl_id)
     if not tpl or tpl.company_id != company.id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Template não encontrado")
+
     reward = db.get(CompanyReward, payload.reward_id)
     if not reward or reward.company_id != company.id:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Reward não encontrada")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Recompensa não encontrada")
+
+    # impede dois links no mesmo stamp_no
+    exists = (
+        db.query(TemplateRewardLink)
+          .filter_by(template_id=tpl.id, stamp_no=payload.stamp_no)
+          .first()
+    )
+    if exists:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"Já existe recompensa no carimbo #{payload.stamp_no}"
+        )
+
+    # cria vínculo (agora sem restrição em reward_id)
     try:
         return add_link(db, tpl, reward, payload.stamp_no)
     except ValueError as e:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e))
+    except IntegrityError:
+        db.rollback()
+        # deveria não cair aqui, mas só por segurança:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "Erro inesperado ao associar recompensa"
+        )
 
 
-@router.get(
-    "/admin/templates/{tpl_id}/rewards",
-    response_model=List[LinkRead],
-    summary="Empresa: listar recompensas ligadas a template"
+
+@router.post(
+    "/user/instances/{inst_id}/rewards/{link_id}/code",
+    response_model=RewardCodeResponse,
+    summary="Usuário: gerar código para resgatar recompensa"
 )
-def admin_list_template_rewards(
-    tpl_id: UUID = Path(...),
+def user_generate_reward_code(
+    inst_id: UUID = Path(...),
+    link_id: UUID = Path(...),
     db: Session = Depends(get_db),
-    company = Depends(get_current_company),
+    user = Depends(get_current_user),
 ):
-    tpl = (
-        db.query(LoyaltyCardTemplate)
-          .filter_by(id=tpl_id, company_id=company.id)
-          .first()
-    )
-    if not tpl:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Template não encontrado")
-    return tpl.rewards_map
+    inst = db.get(LoyaltyCardInstance, inst_id)
+    if not inst or inst.user_id != user.id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Instância não encontrada")
+    link = db.get(TemplateRewardLink, link_id)
+    if not link or link.template_id != inst.template_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Ligação inválida")
+
+    code_obj, reused = generate_reward_code(db, link, inst)
+    return {
+        "code": code_obj.code,
+        "expires_at": code_obj.expires_at,
+        "reused": reused,
+    }
 
 
 @router.delete(
@@ -208,7 +237,7 @@ def admin_redeem_reward(
     company = Depends(get_current_company),
 ):
     try:
-        reward = redeem_with_code(db, str(company.id), code)
+        reward = redeem_with_code(db, company.id, code)
     except ValueError as e:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e))
     return {"message": f"Recompensa '{reward.name}' resgatada com sucesso!"}

@@ -8,7 +8,8 @@ import type {
   TemplateUpdate,
   InstanceRead,
   StampRequest,
-  Paginated 
+  Paginated,
+  InstanceAdminDetail
 } from '@/types/loyalty'
 import type { AxiosResponse } from 'axios'
 
@@ -119,17 +120,17 @@ export interface InstanceFilters {
 
 export async function getTemplateInstances(
   templateId: string,
-  filters: InstanceFilters = {},
-): Promise<Paginated<InstanceRead>> {
-  const res = await api.get<InstanceRead[]>(
+  filters: InstanceFilters = {}
+): Promise<Paginated<InstanceAdminDetail>> {
+  const res = await api.get<InstanceAdminDetail[]>(
     `/loyalty/admin/templates/${templateId}/instances`,
-    { params: filters },
-  );
+    { params: filters }
+  )
 
   return {
     data: res.data,
-    total: Number(res.headers['x-total-count'] ?? 0),
-    page: Number(res.headers['x-page'] ?? filters.page ?? 1),
-    pageSize: Number(res.headers['x-page-size'] ?? filters.page_size ?? 20),
-  };
+    total: Number(res.headers['x-total-count']),
+    page: Number(res.headers['x-page']),
+    pageSize: Number(res.headers['x-page-size']),
+  }
 }

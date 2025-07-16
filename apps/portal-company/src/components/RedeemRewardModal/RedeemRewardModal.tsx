@@ -5,6 +5,7 @@ import { FormEvent, useState } from 'react';
 import FloatingLabelInput from '@/components/FloatingLabelInput/FloatingLabelInput';
 import Button from '@/components/Button/Button';
 import Notification from '@/components/Notification/Notification';
+import axios from 'axios';
 
 import { redeemReward } from '@/services/companyRewardsService';
 
@@ -12,7 +13,6 @@ import styles from './RedeemRewardModal.module.css';
 
 interface Props {
   onClose: () => void;
-  /** opcional: avisa quem chamou que o resgate foi concluído */
   onRedeemed?: (message: string) => void;
 }
 
@@ -24,19 +24,31 @@ export default function RedeemRewardModal({ onClose, onRedeemed }: Props) {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!code.trim()) return setError('Informe o código');
+    if (!code.trim()) {
+      return setError('Informe o código');
+    }
+
     setError(null);
     setSuccess(null);
     setLoading(true);
+
     try {
       const { data } = await redeemReward(code.trim());
       setSuccess(data.message);
-      setCode('');
       onRedeemed?.(data.message);
-      /* fecha modal alguns segundos depois, se preferir */
-      // setTimeout(onClose, 2000);
+      setCode('');
     } catch (err: any) {
-      setError(err.response?.data?.detail || err.message || 'Falha ao resgatar');
+      // Se for um erro do axios com campo `detail` na resposta:
+      if (axios.isAxiosError(err) && err.response?.data) {
+        const apiData = err.response.data as any;
+        // O FastAPI devolve detail como string ou lista
+        const detail = Array.isArray(apiData.detail)
+          ? apiData.detail.join('\n')
+          : apiData.detail;
+        setError(detail || 'Falha ao resgatar');
+      } else {
+        setError(err.message || 'Falha ao resgatar');
+      }
     } finally {
       setLoading(false);
     }

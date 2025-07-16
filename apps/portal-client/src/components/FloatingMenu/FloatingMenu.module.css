@@ -9,7 +9,7 @@
   border: 1px solid #1D1D1D;
   border-radius: 50px;
   padding: 0.5rem;
-  z-index: 1002;
+  z-index: 99999999999;
 }
 
 .link {
@@ -52,6 +52,7 @@
     padding: 0.5rem;
   }
   .menu {
-    gap: 0.25rem;
+    gap: 0.25rem;    
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 30px);
   }
 }

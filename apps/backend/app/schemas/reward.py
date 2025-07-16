@@ -43,3 +43,12 @@ class RewardRedemptionRead(BaseModel):
     expires_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class RewardCodeResponse(BaseModel):
+    code: str
+    expires_at: datetime
+    reused: bool  # True se for o mesmo que já existia e ainda não expirou
+
+    class Config:
+        orm_mode = True

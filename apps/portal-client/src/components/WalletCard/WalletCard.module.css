@@ -90,8 +90,16 @@
 }
 
 .claimed {
+  color: #ffffff;
+  background: #FF4C00;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.claimedAlreadyButton {
   color: #FF4C00;
-  background: #dcfce7;
+  background: #ffffff;
   padding: 4px 8px;
   border-radius: 12px;
   font-size: 12px;
@@ -427,6 +435,9 @@
   color: #374151;
   margin: 4px 0;
 }
+
+
+
 
 
 @media (max-width: 767px) {

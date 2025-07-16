@@ -2,10 +2,9 @@
 import random, string
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
-from typing import Optional, List
+from typing import Optional, List, Set
 import os
 from pathlib import Path
-from decimal import Decimal
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.loyalty_card import (
@@ -14,6 +13,9 @@ from app.models.loyalty_card import (
 )
 from app.schemas.loyalty_card import TemplateCreate, RuleCreate
 from app.models.inventory_item import InventoryItem
+from app.services.wallet_service import get_wallet_balance, debit_wallet
+from app.services.fee_setting_service import get_effective_fee
+from app.models.fee_setting import SettingTypeEnum
 
 # ───────── helpers ─────────────────────────────────────────────
 def _rand_code(n: int = 6) -> str:
@@ -134,8 +136,14 @@ def stamp_with_code(
     payload: Optional[dict]
 ) -> LoyaltyCardInstance:
     """
-    Valida o código, aplica o payload contra as regras do template,
-    insere um carimbo na instância do cartão e retorna a instância atualizada.
+    1) Valida o código de carimbo
+    2) Verifica expiração do cartão
+    3) Verifica se não está completo
+    4) Avalia regras do template
+    5) Insere o carimbo
+    6) Marca completed_at se for o último
+    7) Cobra taxa de loyalty
+    8) Retorna a instância atualizada
     """
     payload = payload or {}
 
@@ -160,11 +168,18 @@ def stamp_with_code(
     inst = db.get(LoyaltyCardInstance, code_rec.instance_id)
     tpl  = inst.template
 
-    # 3) Se já cheio, não pode carimbar de novo
+    # ← Verifica se o cartão expirou
+    now = datetime.now(timezone.utc)
+    if inst.expires_at and inst.expires_at < now:
+        inst.completed_at = now
+        db.commit()
+        raise ValueError("Cartão expirado")
+
+    # 3) Se já estiver completo
     if inst.stamps_given >= tpl.stamp_total:
         raise ValueError("Cartão já completo")
 
-    # 4) Carrega todas as regras ativas deste template, em ordem
+    # 4) Carrega regras ativas em ordem
     rules = (
         db.query(LoyaltyCardRule)
           .filter_by(template_id=tpl.id, active=True)
@@ -172,9 +187,9 @@ def stamp_with_code(
           .all()
     )
 
-    # 5) Pré-calcula categorias a partir de payload["purchased_items"]
-    purchased: List[str] = [str(uuid) for uuid in (payload.get("purchased_items") or [])]
-    item_categories: set[str] = set()
+    # 5) Pré-calcula categorias de produtos (se houver)
+    purchased: List[str] = [str(u) for u in (payload.get("purchased_items") or [])]
+    item_categories: Set[str] = set()
     if purchased:
         items = (
             db.query(InventoryItem)
@@ -186,11 +201,12 @@ def stamp_with_code(
             for cat in item.categories:
                 item_categories.add(str(cat.id))
 
-    # 6) Tenta casar qualquer regra
+    # 6) Tenta casar alguma regra
+    from decimal import Decimal  # já importado no topo
     matched = False
     for rule in rules:
         cfg = rule.config or {}
-        rtype = rule.rule_type
+        rtype = rule.rule_type.value if hasattr(rule.rule_type, "value") else rule.rule_type
 
         if rtype == "purchase_amount":
             amt = payload.get("amount")
@@ -204,14 +220,11 @@ def stamp_with_code(
                 matched = True
 
         elif rtype == "product_bought":
-            for pid in purchased:
-                if pid in cfg.get("product_ids", []):
-                    matched = True
-                    break
+            if any(pid in cfg.get("product_ids", []) for pid in purchased):
+                matched = True
 
         elif rtype == "category_bought":
-            rule_cats = set(cfg.get("category_ids", []))
-            if item_categories & rule_cats:
+            if item_categories & set(cfg.get("category_ids", [])):
                 matched = True
 
         elif rtype == "service_done":
@@ -235,21 +248,34 @@ def stamp_with_code(
     stamp = LoyaltyCardStamp(
         instance_id=inst.id,
         stamp_no=next_stamp,
-        given_by_id=None  # opcional: id do usuário/admin que deu o carimbo
+        given_by_id=None
     )
     db.add(stamp)
     inst.stamps_given = next_stamp
 
     # 8) Se completou, marca completed_at
     if next_stamp >= tpl.stamp_total:
-        inst.completed_at = datetime.utcnow()
+        inst.completed_at = datetime.now(timezone.utc)
 
     # 9) Marca o código como usado
     code_rec.used = True
 
-    # 10) Salva tudo e retorna
+    # 10) Cobre taxa de loyalty da empresa
+    company_id_str = str(tpl.company_id)
+    fee = Decimal(str(get_effective_fee(db, company_id_str, SettingTypeEnum.loyalty)))
+    balance = get_wallet_balance(db, company_id_str)
+    if balance < fee:
+        raise ValueError(
+            f"Saldo insuficiente para taxa de carimbo no cartão fidelidade (custa R${fee:.2f})"
+        )
+    debit_wallet(
+        db,
+        company_id_str,
+        fee,
+        description="taxa de carimbo no cartão fidelidade"
+    )
+
+    # 11) Persiste e retorna
     db.commit()
     db.refresh(inst)
     return inst
-
-# ───────── consultas utilitárias ───────────────────────────────

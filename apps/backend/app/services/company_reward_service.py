@@ -1,11 +1,9 @@
 # app/services/reward_service.py
-import random, string
-from datetime import datetime, timedelta
-from typing import Optional
-from uuid import UUID
 
+from datetime import datetime, timedelta, timezone
+from sqlalchemy import func
 from sqlalchemy.orm import Session
-
+from uuid import UUID
 from app.models.reward import (
     CompanyReward, TemplateRewardLink, RewardRedemptionCode
 )
@@ -59,55 +57,92 @@ def remove_link(db: Session, link: TemplateRewardLink):
 
 
 # ───────── geração / uso de código de resgate ─────────────────
-def generate_reward_code(db: Session, link: TemplateRewardLink, instance: LoyaltyCardInstance, ttl_minutes: int = 30):
-    # 1 por instância+link em aberto
+def generate_reward_code(
+    db: Session,
+    link: TemplateRewardLink,
+    instance: LoyaltyCardInstance,
+    ttl_minutes: int = 30
+) -> tuple[RewardRedemptionCode, bool]:
+    now = datetime.now(timezone.utc)
+
     code_obj = (
         db.query(RewardRedemptionCode)
           .filter_by(link_id=link.id, instance_id=instance.id, used=False)
           .first()
     )
-    exp_at = datetime.utcnow() + timedelta(minutes=ttl_minutes)
+
+    # se achar e ainda não expirou, devolve reutilizado
+    if code_obj and code_obj.expires_at >= now:
+        return code_obj, True
+
+    new_exp = now + timedelta(minutes=ttl_minutes)
+
     if code_obj:
+        # expirou → atualiza
         code_obj.code = _rand_code()
-        code_obj.expires_at = exp_at
+        code_obj.expires_at = new_exp
     else:
+        # nunca existiu → cria
         code_obj = RewardRedemptionCode(
             link_id=link.id,
             instance_id=instance.id,
             code=_rand_code(),
-            expires_at=exp_at
+            expires_at=new_exp
         )
         db.add(code_obj)
-    db.commit(); db.refresh(code_obj)
-    return code_obj
+
+    db.commit()
+    db.refresh(code_obj)
+    return code_obj, False
 
 
-def redeem_with_code(db: Session, company_id: str, code: str):
+def redeem_with_code(db: Session, company_id: UUID, code: str):
+    # normalize
+    code = code.strip().upper()
+    now = datetime.now(timezone.utc)
+
+    # 1) fetch & lock the redemption record, joining through to company & instance
     rec = (
         db.query(RewardRedemptionCode)
           .join(TemplateRewardLink, TemplateRewardLink.id == RewardRedemptionCode.link_id)
-          .join(CompanyReward, CompanyReward.id == TemplateRewardLink.reward_id)
+          .join(CompanyReward,      CompanyReward.id      == TemplateRewardLink.reward_id)
           .join(LoyaltyCardInstance, LoyaltyCardInstance.id == RewardRedemptionCode.instance_id)
-          .join(LoyaltyCardTemplate, LoyaltyCardTemplate.id == LoyaltyCardInstance.template_id)
           .filter(
-              RewardRedemptionCode.code == code,
+              func.upper(RewardRedemptionCode.code) == code,
               RewardRedemptionCode.used.is_(False),
-              RewardRedemptionCode.expires_at >= datetime.utcnow(),
               CompanyReward.company_id == company_id
           )
           .with_for_update()
           .first()
     )
     if not rec:
-        raise ValueError("Código inválido ou expirado")
+        raise ValueError("Código inexistente ou inválido")
 
+    inst = rec.instance
+
+    # 2) expired?
+    if inst.expires_at and inst.expires_at < now:
+        # mark closed
+        inst.completed_at = now
+        db.commit()
+        raise ValueError("Cartão expirado")
+
+    # 3) enough stamps for this reward?
+    required = rec.link.stamp_no
+    if inst.stamps_given < required:
+        raise ValueError(f"Ainda não atingiu o carimbo #{required} necessário para esse resgate")
+
+    # 4) stock
     reward = rec.link.reward
     if reward.stock_qty is not None and reward.stock_qty <= 0:
         raise ValueError("Sem estoque")
 
-    # desconta
+    # 5) all good → decrement stock, mark code used & card claimed
     if reward.stock_qty is not None:
         reward.stock_qty -= 1
+
     rec.used = True
+    inst.reward_claimed = True
+
     db.commit()
-    return reward   # devolve para mostrar ao admin
+    return reward
