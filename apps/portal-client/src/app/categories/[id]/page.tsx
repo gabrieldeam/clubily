@@ -19,7 +19,9 @@ export default function CategoryPage() {
   const { loading: authLoading } = useRequireAuth();
   const params = useParams();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
-  const { selectedAddress } = useAddress();
+
+  // agora pegamos também o radiusKm
+  const { selectedAddress, radiusKm } = useAddress();
 
   const [cat, setCat] = useState<CategoryRead | null>(null);
   const [loadingCat, setLoadingCat] = useState(true);
@@ -29,14 +31,14 @@ export default function CategoryPage() {
 
   const baseUrl = process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL ?? '';
 
-  // Open address modal if no address
+  // open modal se não tiver endereço
   useEffect(() => {
     if (!selectedAddress) {
       window.dispatchEvent(new Event('openAddressModal'));
     }
   }, [selectedAddress]);
 
-  // Fetch category list and find this one
+  // carregar a categoria atual
   useEffect(() => {
     if (!id) return;
     setLoadingCat(true);
@@ -47,18 +49,30 @@ export default function CategoryPage() {
       .finally(() => setLoadingCat(false));
   }, [id]);
 
-  // Fetch companies for this category and city
+  // buscar empresas por categoria, postal_code e raio
   useEffect(() => {
     let mounted = true;
     async function fetchCompanies() {
       setLoadingCompanies(true);
-      if (!id || !selectedAddress?.city) {
+
+      // se faltar id, endereço ou postal_code, limpa
+      if (
+        !id ||
+        !selectedAddress ||
+        !selectedAddress.postal_code
+      ) {
         if (mounted) setCompanies([]);
         setLoadingCompanies(false);
         return;
       }
+
       try {
-        const res = await searchCompaniesByCategory(id, { city: selectedAddress.city });
+        // passa categoryId, postal_code e radiusKm
+        const res = await searchCompaniesByCategory(
+          id,
+          selectedAddress.postal_code,
+          radiusKm
+        );
         if (mounted) setCompanies(res.data.slice(0, 10));
       } catch {
         if (mounted) setCompanies([]);
@@ -66,9 +80,11 @@ export default function CategoryPage() {
         if (mounted) setLoadingCompanies(false);
       }
     }
+
     fetchCompanies();
+    // re-executa quando mudar category id, endereço ou raio
     return () => { mounted = false; };
-  }, [id, selectedAddress]);
+  }, [id, selectedAddress, radiusKm]);
 
   if (authLoading) return null;
   if (loadingCat) return <p>Carregando...</p>;

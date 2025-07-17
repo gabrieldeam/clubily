@@ -26,7 +26,7 @@ import styles from './Dashboard.module.css';
 export default function Dashboard() {
   const router = useRouter();
   // const { loading: authLoading } = useRequireAuth();
-  const { selectedAddress } = useAddress();
+  const { selectedAddress, radiusKm, setRadiusKm } = useAddress();
 
   /* ───────────── state ───────────── */
   // Categorias
@@ -68,28 +68,22 @@ export default function Dashboard() {
   }, [selectedAddress]);
 
   // Buscar empresas
-  useEffect(() => {
-    if (!selectedAddress) return;
-    let alive = true;
-    (async () => {
-      // setLoadingCompanies(true);
-      const city = selectedAddress.city;
-      if (!city) {
-        if (alive) setCompanies([]);
-        // setLoadingCompanies(false);
-        return;
-      }
-      try {
-        const res = await searchCompanies({ city });
-        if (alive) setCompanies(res.data.slice(0, 10));
-      } catch {
-        if (alive) setCompanies([]);
-      } finally {
-        // if (alive) setLoadingCompanies(false);
-      }
-    })();
-    return () => { alive = false; };
-  }, [selectedAddress]);
+useEffect(() => {
+  if (!selectedAddress) return;
+  let alive = true;
+  (async () => {
+    const postal_code = selectedAddress.postal_code;
+    try {
+      const res = await searchCompanies(postal_code, radiusKm);
+      console.log('>>> searchCompanies.raw', res.data);
+      // …
+      if (alive) setCompanies(res.data.slice(0, 10));
+    } catch {
+      if (alive) setCompanies([]);
+    }
+  })();
+  return () => { alive = false; };
+}, [selectedAddress, radiusKm]);
 
   // Atualizar setas de scroll
   const updateArrows = useCallback(() => {

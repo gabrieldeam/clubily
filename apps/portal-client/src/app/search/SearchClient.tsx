@@ -1,3 +1,4 @@
+// src/app/search/page.tsx
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -15,19 +16,18 @@ export default function SearchClient() {
   const params = useSearchParams();
   const name = params.get('name')?.trim() ?? '';
   const baseUrl = process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL ?? '';
-  const { selectedAddress } = useAddress();
+
+  // 1) vamos puxar o radiusKm também
+  const { selectedAddress, radiusKm } = useAddress();
 
   const [companies, setCompanies] = useState<CompanyReadWithService[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  /* -------------------------------------------------------------------------- */
-  /* BUSCA NA API ------------------------------------------------------------- */
-  /* -------------------------------------------------------------------------- */
   useEffect(() => {
     if (!name) return;
+
     if (!selectedAddress) {
-      // abre modal pedindo endereço
       window.dispatchEvent(new Event('openAddressModal'));
       return;
     }
@@ -35,25 +35,21 @@ export default function SearchClient() {
     setLoading(true);
     setError(null);
 
-    searchCompaniesByName(name, {
-      city: selectedAddress.city,
-      street: selectedAddress.street,
-      postal_code: selectedAddress.postal_code,
-    })
-      .then((res) => setCompanies(res.data))
+    // 2) chamada com postal_code + radiusKm
+    searchCompaniesByName(
+      name,
+      selectedAddress.postal_code,
+      radiusKm
+    )
+      .then(res => setCompanies(res.data))
       .catch(() => setError('Erro ao buscar empresas.'))
       .finally(() => setLoading(false));
-  }, [name, selectedAddress]);
+  }, [name, selectedAddress, radiusKm]); // 3) adiciona radiusKm aqui
 
-  /* -------------------------------------------------------------------------- */
-  /* RENDER ------------------------------------------------------------------- */
-  /* -------------------------------------------------------------------------- */
   return (
     <>
       <Header
-        onSearch={(q) =>
-          router.push(`/search?name=${encodeURIComponent(q)}`)
-        }
+        onSearch={q => router.push(`/search?name=${encodeURIComponent(q)}`)}
       />
 
       <main className={styles.main}>
@@ -70,7 +66,7 @@ export default function SearchClient() {
             {loading && <p>Carregando resultados…</p>}
 
             <ul className={styles.list}>
-              {companies.map((c) => (
+              {companies.map(c => (
                 <li key={c.id}>
                   <Link href={`/companies/${c.id}`} className={styles.item}>
                     <div className={styles.companyInfo}>
