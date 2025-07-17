@@ -12,21 +12,29 @@ interface AddressManagerProps {
 }
 
 export default function AddressManager({ onClose }: AddressManagerProps) {
-  const { addresses, selectedAddress, selectAddress, refreshAddresses } = useAddress();
+  const {
+    addresses,
+    selectedAddress,
+    radiusKm,
+    setRadiusKm,
+    selectAddress,
+    refreshAddresses
+  } = useAddress();
   const [isAdding, setIsAdding] = useState(false);
 
-  // Quando clicar em “Selecionar”
+  // Ajuste de raio
+  const handleRadiusChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = parseFloat(e.target.value);
+    if (!isNaN(v)) setRadiusKm(v);
+  };
+
   const handleSelect = async (addrId: string) => {
-    // Se já estava selecionado, só fecha a modal
     if (selectedAddress?.id === addrId) {
       onClose();
       return;
     }
-
-    // Senão, faz a lógica normal de select
     const addr = addresses.find(a => a.id === addrId);
     if (!addr) return;
-
     await selectAddress(addr);
     onClose();
   };
@@ -53,6 +61,19 @@ export default function AddressManager({ onClose }: AddressManagerProps) {
   return (
     <div>
       <h2>Meus Endereços</h2>
+
+      {/* novo input de raio */}
+      <div className={styles.radiusInput}>
+        <label htmlFor="radiusKm">Raio (km): </label>
+        <input
+          id="radiusKm"
+          type="number"
+          min="1"
+          step="0.5"
+          value={radiusKm}
+          onChange={handleRadiusChange}
+        />
+      </div>
 
       {addresses.length === 0 ? (
         <p className={styles.loading}>Nenhum endereço cadastrado.</p>

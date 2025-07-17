@@ -56,3 +56,22 @@
 .buttonSelected {
   background-color: #FFA600;
 }
+
+
+
+.radiusInput {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.radiusInput label {
+  margin-right: 0.5rem;
+}
+
+.radiusInput input {
+  width: 4rem;
+  padding: 0.25rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}

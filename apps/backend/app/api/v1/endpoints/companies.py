@@ -1,15 +1,14 @@
 # backend/app/api/v1/endpoints/companies.py
 
-from typing import List, Optional
+from typing import List
 import os, uuid
 from fastapi import APIRouter, Depends, Response, BackgroundTasks, HTTPException, status, UploadFile, File, Query
 from fastapi_pagination import Page, Params
 from fastapi_pagination.ext.sqlalchemy import paginate as sqlalchemy_paginate
-from app.db.session import SessionLocal
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 from datetime import datetime
-from sqlalchemy import or_, and_
+from sqlalchemy import or_, and_, func
 from ....schemas.company import CompanyCreate, CompanyRead, CompanyLogin, CompanyUpdate, CompanyReadWithService
 from ....schemas.token import Token
 from ....services.company_service import create, authenticate
@@ -21,65 +20,75 @@ from app.models.user import User
 from app.models.company import Company
 from ....schemas.user import UserRead
 from app.models.category import Category
-from ...deps import get_current_company, get_db, require_admin
+from ...deps import get_current_company, get_db, require_admin, get_redis
 from app.models.association import user_companies
 from ....schemas.referral import ReferralRedeem, ReferralRead
 from ....services.referral_service import redeem_referral_code
 from ....services import company_password_reset_service as comp_reset
+from geoalchemy2 import functions as geo_func
+from app.services.geocode_service import GeocodeService, geocode_and_save
+from redis import Redis
 
 router = APIRouter(tags=["companies"])
 
 @router.post(
     "/register",
-    response_model=Token,  # agora devolve Token (access_token)
+    response_model=Token,
     status_code=status.HTTP_201_CREATED,
 )
 def register_company(
     payload: CompanyCreate,
     background: BackgroundTasks,
-    response: Response,           # para setar o cookie
+    response: Response,
     db: Session = Depends(get_db),
 ):
     """
-    Registra uma nova empresa e, logo após, gera e devolve um JWT no cookie e no JSON.
-    Verifica:
-    - aceitação dos termos (accepted_terms deve ser True)
-    - unicidade de email, telefone e CNPJ
-    Envia um e-mail de confirmação após criar.
+    Registra uma nova empresa e, logo após,
+    - Agenda geocoding do CEP em background (AwesomeAPI → Nominatim → Google)
+    - Gera e devolve um JWT no cookie e no JSON
+    - Envia e‑mail de boas‑vindas com verificação de e‑mail
     """
 
-    # 1) Checa aceitação dos termos
+    # 1) Aceitação dos termos
     if not payload.accepted_terms:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Você precisa aceitar os termos de uso para se registrar.",
         )
 
-    # 2) Verifica unicidade de email
+    # 2) Unicidade de e‑mail
     if db.query(Company).filter(Company.email == payload.email.lower()).first():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Já existe uma empresa cadastrada com esse e-mail.",
         )
 
-    # 3) Verifica unicidade de telefone
+    # 3) Unicidade de telefone
     if db.query(Company).filter(Company.phone == payload.phone).first():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Já existe uma empresa cadastrada com esse telefone.",
         )
 
-    # 4) Verifica unicidade de CNPJ
+    # 4) Unicidade de CNPJ
     if db.query(Company).filter(Company.cnpj == payload.cnpj).first():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Já existe uma empresa cadastrada com esse CNPJ.",
         )
 
-    # 5) Cria a empresa
+    # 5) Cria a empresa (sem location ainda)
     company = create(db, payload)
 
-    # 6) Gera o JWT de sessão e seta no cookie
+    # 6) Agenda geocoding em background
+    background.add_task(
+        geocode_and_save,
+        company.id,
+        payload.postal_code,
+        settings.REDIS_URL,
+    )
+
+    # 7) Gera o JWT de sessão e seta no cookie
     token = create_access_token(str(company.id))
     response.set_cookie(
         key=settings.COOKIE_NAME,
@@ -90,22 +99,21 @@ def register_company(
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
 
-    # 7) envia e-mail de boas-vindas + verificação
+    # 8) Envia e‑mail de boas‑vindas + verificação
     verify_url = f"{settings.FRONTEND_ORIGINS[0]}/verify-email?token={token}"
-
     background.add_task(
         send_templated_email,
         to=company.email,
-        subject="Bem-vindo ao Clubily – Confirme seu e-mail",
+        subject="Bem-vindo ao Clubily – Confirme seu e‑mail",
         template_name="welcome_company.html",
         company_name=company.name,
         verify_url=verify_url,
-        logo_url=f"{settings.FRONTEND_ORIGINS[0]}/static/logo.png",  # opcional
+        logo_url=f"{settings.FRONTEND_ORIGINS[0]}/static/logo.png",
     )
 
-
-    # 8) Retorna o token no JSON
+    # 9) Retorna o token no JSON
     return {"access_token": token}
+
 
 @router.get("/verify-email", status_code=200)
 def verify_email_company(token: str, db: Session = Depends(get_db)):
@@ -339,166 +347,152 @@ async def upload_company_logo(
 
 
 
+# 1) ADMIN: paginado, sem filtro de ativo/online
 @router.get("/searchAdmin", response_model=Page[CompanyRead])
-def search_companies(
-    city: Optional[str] = Query(None),
-    state: Optional[str] = Query(None),
-    postal_code: Optional[str] = Query(None),
-    params: Params = Depends(),          # 👈 injeta page & size
+def search_companies_admin(
+    postal_code: str = Query(..., description="CEP (apenas dígitos) para busca geográfica"),
+    radius_km: float = Query(..., description="Raio em quilômetros"),
+    params: Params = Depends(),
     db: Session = Depends(get_db),
+    redis: Redis = Depends(get_redis),
 ):
     """
-    Filtra empresas pela combinação de city, state e/ou postal_code.
-    Se nenhum parâmetro for passado, retorna todas, paginadas.
+    Busca todas as empresas (inclusive inativas) num raio de `radius_km` km a partir de `postal_code`.
+    Retorna resultados paginados.
     """
-    q = db.query(Company)
-    if city:
-        q = q.filter(Company.city.ilike(f"%{city}%"))
-    if state:
-        q = q.filter(Company.state.ilike(f"%{state}%"))
-    if postal_code:
-        q = q.filter(Company.postal_code == postal_code)
+    # geocode + cache
+    geocoder = GeocodeService(redis)
+    lat, lon = geocoder.geocode_postal_code(postal_code)
 
-    # passa o params para inicializar a paginação corretamente
+    # ponto de busca e distância em metros
+    search_point = func.ST_SetSRID(func.ST_MakePoint(lon, lat), 4326)
+    distance_m = radius_km * 1000
+
+    # consulta espacial
+    q = db.query(Company).filter(
+        geo_func.ST_DWithin(Company.location, search_point, distance_m)
+    )
     return sqlalchemy_paginate(q, params)
 
+# 2) CLIENT: apenas ativas + online ou dentro do raio
 @router.get("/search", response_model=List[CompanyRead])
 def search_companies(
-    city: Optional[str] = Query(None),
-    state: Optional[str] = Query(None),
-    postal_code: Optional[str] = Query(None),
+    postal_code: str = Query(..., description="CEP (apenas dígitos) para busca geográfica"),
+    radius_km: float = Query(..., description="Raio em quilômetros"),
     db: Session = Depends(get_db),
+    redis: Redis = Depends(get_redis),
 ):
     """
-    Filtra empresas ativas pela combinação de city, state e/ou postal_code.
-    Sempre inclui também as empresas com only_online=True.
-    Se nenhum parâmetro for passado, retorna todas as empresas ativas.
+    Busca empresas ativas num raio de `radius_km` km a partir de `postal_code`,
+    sempre incluindo também as `only_online`.
     """
-    q = db.query(Company).filter(Company.is_active == True)
+    geocoder = GeocodeService(redis)
+    lat, lon = geocoder.geocode_postal_code(postal_code)
 
-    # só monta o OR extra se vier AO MENOS um filtro
-    if city or state or postal_code:
-        conds = []
-        if city:
-            conds.append(Company.city.ilike(f"%{city}%"))
-        if state:
-            conds.append(Company.state.ilike(f"%{state}%"))
-        if postal_code:
-            conds.append(Company.postal_code == postal_code)
+    search_point = func.ST_SetSRID(func.ST_MakePoint(lon, lat), 4326)
+    distance_m = radius_km * 1000
 
-        q = q.filter(
-            or_(
-                Company.only_online == True,
-                and_(*conds)
-            )
+    q = db.query(Company).filter(
+        or_(
+            Company.only_online == True,
+            and_(Company.is_active == True,
+                 geo_func.ST_DWithin(Company.location, search_point, distance_m))
         )
-
+    )
     return q.all()
 
-
+# 3) BUSCA POR CATEGORIA + raio
 @router.get(
     "/search-by-category",
     response_model=List[CompanyRead],
     status_code=status.HTTP_200_OK,
-    summary="Busca empresas ativas por localização e categoria"
+    summary="Busca empresas ativas por categoria e raio"
 )
 def search_companies_by_category(
     category_id: str = Query(..., description="ID da categoria para filtrar"),
-    city: Optional[str] = Query(None, description="Parte do nome da cidade"),
-    state: Optional[str] = Query(None, description="Parte do nome do estado"),
-    postal_code: Optional[str] = Query(None, description="CEP exato"),
+    postal_code: str = Query(..., description="CEP (apenas dígitos) para busca geográfica"),
+    radius_km: float = Query(..., description="Raio em quilômetros"),
     db: Session = Depends(get_db),
+    redis: Redis = Depends(get_redis),
 ):
     """
-    Retorna empresas ativas que pertencem à `category_id` e opcionalmente
-    filtradas por cidade, estado e/ou CEP. Sempre inclui também as only_online.
+    Retorna empresas ativas que pertencem à `category_id` e estão no raio
+    de `radius_km` km a partir de `postal_code`, incluindo também as `only_online`.
     """
-    # 1) só ativas e na categoria
+    geocoder = GeocodeService(redis)
+    lat, lon = geocoder.geocode_postal_code(postal_code)
+
+    search_point = func.ST_SetSRID(func.ST_MakePoint(lon, lat), 4326)
+    distance_m = radius_km * 1000
+
     q = (
         db.query(Company)
         .filter(Company.is_active == True)
         .join(Company.categories)
         .filter(Category.id == category_id)
-    )
-
-    # 2) aplica OR(only_online, AND(filtros de localização))
-    if city or state or postal_code:
-        conds = []
-        if city:
-            conds.append(Company.city.ilike(f"%{city}%"))
-        if state:
-            conds.append(Company.state.ilike(f"%{state}%"))
-        if postal_code:
-            conds.append(Company.postal_code == postal_code)
-
-        q = q.filter(
+        .filter(
             or_(
                 Company.only_online == True,
-                and_(*conds)
+                geo_func.ST_DWithin(Company.location, search_point, distance_m)
             )
         )
-
+    )
     return q.distinct().all()
 
+# 4) BUSCA POR NOME + raio + flag serves_address
 @router.get(
     "/search-by-name",
     response_model=List[CompanyReadWithService],
     status_code=status.HTTP_200_OK,
-    summary="Busca empresas ativas por nome e indica se servem o endereço dado"
+    summary="Busca empresas ativas por nome e indica se servem dentro do raio"
 )
 def search_companies_by_name(
     name: str = Query(..., description="Termo de busca no nome da empresa"),
-    city: Optional[str] = Query(None, description="Cidade para verificar atendimento"),
-    street: Optional[str] = Query(None, description="Rua para verificar atendimento"),
-    postal_code: Optional[str] = Query(None, description="CEP para verificar atendimento"),
+    postal_code: str = Query(..., description="CEP (apenas dígitos) para busca geográfica"),
+    radius_km: float = Query(..., description="Raio em quilômetros"),
     db: Session = Depends(get_db),
+    redis: Redis = Depends(get_redis),
 ):
     """
-    Procura empresas ativas cujo nome contenha 'name'.
-    Se vier endereço (city/street/cep), aplica o mesmo OR para only_online.
-    Depois devolve o campo `serves_address` indicando se atende.
+    Procura empresas ativas cujo nome contenha `name`.
+    Filtra por `radius_km` km a partir de `postal_code`, inclui também `only_online`.
+    `serves_address` indica se atende (online ou dentro do raio).
     """
-    # 1) base: só ativas + nome LIKE
+    # geocode + cache
+    geocoder = GeocodeService(redis)
+    lat, lon = geocoder.geocode_postal_code(postal_code)
+
+    search_point = func.ST_SetSRID(func.ST_MakePoint(lon, lat), 4326)
+    distance_m = radius_km * 1000
+
+    # consulta base: só ativas + nome LIKE
     q = db.query(Company).filter(
         Company.is_active == True,
         Company.name.ilike(f"%{name}%")
     )
 
-    # 2) se vier endereço, aplica OR(only_online, AND(endereço bate))
-    if city or street or postal_code:
-        conds = []
-        if city:
-            conds.append(Company.city.ilike(f"%{city}%"))
-        if street:
-            conds.append(Company.street.ilike(f"%{street}%"))
-        if postal_code:
-            conds.append(Company.postal_code == postal_code)
-
-        q = q.filter(
-            or_(
-                Company.only_online == True,
-                and_(*conds)
-            )
+    # aplica OR(only_online, dentro do raio)
+    q = q.filter(
+        or_(
+            Company.only_online == True,
+            geo_func.ST_DWithin(Company.location, search_point, distance_m)
         )
+    )
 
     companies = q.all()
     results: list[dict] = []
     for comp in companies:
-        # 3) calcula o flag serves_address
-        served = True
-        if city and comp.city.lower() != city.lower():
-            served = False
-        if street and comp.street.lower() != street.lower():
-            served = False
-        if postal_code and comp.postal_code != postal_code:
-            served = False
-
-        # 4) monta o dict com o computed field
-        comp_dict = CompanyRead.model_validate(comp).model_dump()
+        # flag served
+        served = comp.only_online or (
+            comp.location is not None and
+            geo_func.ST_DWithin(comp.location, search_point, distance_m)
+        )
+        comp_dict = CompanyReadWithService.model_validate(comp).model_dump()
         comp_dict["serves_address"] = served
         results.append(comp_dict)
 
     return results
+
 
 
 

@@ -1,13 +1,14 @@
 # backend/app/api/deps.py
 
 from fastapi import Depends, Request, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.security import HTTPBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 from ..core.config import settings
 from ..db.session import SessionLocal
 from ..models.user import User, Role
 from ..models.company import Company
+from redis import Redis
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -67,3 +68,6 @@ def get_current_company(request: Request, db: Session = Depends(get_db)) -> Comp
     if not company:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Empresa não encontrada")
     return company
+
+def get_redis() -> Redis:
+    return Redis.from_url(settings.REDIS_URL, decode_responses=True)

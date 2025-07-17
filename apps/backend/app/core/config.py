@@ -60,4 +60,6 @@ class Settings(BaseSettings):
     NOMINATIM_USER_AGENT: str
     REDIS_URL: str
 
+    GOOGLE_MAPS_API_KEY: str
+
 settings = Settings()
