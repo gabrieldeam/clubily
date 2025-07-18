@@ -1,4 +1,4 @@
-// components/Loading.tsx
+// components/Loading/Loading.tsx
 import React from 'react';
 
 const Loading: React.FC = () => (

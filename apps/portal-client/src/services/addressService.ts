@@ -7,13 +7,13 @@ import type { AddressCreate, AddressRead, AddressUpdate } from '@/types/address'
  * Cria um novo endereço para o usuário logado.
  */
 export const createAddress = (payload: AddressCreate) =>
-  api.post<AddressRead>('/addresses', payload);
+  api.post<AddressRead>('/addresses/', payload);
 
 /**
  * Lista todos os endereços do usuário logado.
  */
 export const listAddresses = () =>
-  api.get<AddressRead[]>('/addresses');
+  api.get<AddressRead[]>('/addresses/');
 
 /**
  * Remove um endereço do usuário logado pelo ID.

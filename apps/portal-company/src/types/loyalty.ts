@@ -1,15 +1,15 @@
 // src/types/loyalty.ts
 export interface RuleBase {
   rule_type: string
-  config: Record<string, any>
+  config: Record<string, unknown>
   order?: number
   active?: boolean
 }
 
-export interface RuleCreate extends RuleBase {}
+export type RuleCreate = RuleBase;
 
 export interface RuleRead extends RuleBase {
-  id: string
+  id: string;
 }
 
 
@@ -28,8 +28,10 @@ export interface TemplateBase {
   active?: boolean
 }
 
-export interface TemplateCreate extends Omit<TemplateBase, 'stamp_icon_url'> {}
-export interface TemplateUpdate extends Omit<TemplateBase, 'stamp_icon_url'> {}
+/** Criação de template (sem stamp_icon_url) */
+export type TemplateCreate = Omit<TemplateBase, 'stamp_icon_url'>;
+/** Atualização de template (sem stamp_icon_url) */
+export type TemplateUpdate = Omit<TemplateBase, 'stamp_icon_url'>;
 
 export interface TemplateRead extends TemplateBase {
   id: string

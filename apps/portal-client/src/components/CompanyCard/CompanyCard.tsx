@@ -22,7 +22,8 @@ function getConfigText(rule: RuleRead): string {
     case 'purchase_amount':
       return `Ganhe um carimbo para compras a partir de R$ ${cfg.amount}`;
     case 'visit': {
-      const v = cfg.visits ?? 1;
+      const { visits } = cfg as { visits?: number };
+      const v = visits ?? 1;               
       return `Ganhe um carimbo a cada ${v} visita${v > 1 ? 's' : ''}`;
     }
     case 'service_done':

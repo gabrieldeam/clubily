@@ -21,17 +21,11 @@ export default function RewardsMain() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selected, setSelected] = useState<RewardRead | null>(null);
 
-  // paginação
-  const [skip, setSkip]   = useState(0);
-  const limit             = 10;
-  const [total, setTotal] = useState(0);
-
   const fetchItems = () => {
     setLoading(true);
     listRewards()
       .then(res => {
         setItems(res.data);
-        setTotal(res.data.length);
       })
       .finally(() => setLoading(false));
   };

@@ -47,6 +47,13 @@ import Modal from '@/components/Modal/Modal';
 import Notification from '@/components/Notification/Notification';
 import styles from './page.module.css';
 
+
+const feeTypeLabels: Record<SettingTypeEnum, string> = {
+  cashback: 'Cashback',
+  points:   'Pontos',
+  loyalty:  'Cartão Fidelidade',
+};
+
 // Tipos de configuração de taxa disponíveis
 const allTypes: SettingTypeEnum[] = [
   'cashback',
@@ -571,14 +578,17 @@ export default function AdminCompaniesPage() {
                 const existing = feeSettings.find(f => f.setting_type === type);
                 return (
                   <div key={type} className={styles.fsRow}>
-                    <label htmlFor={'fs-' + type}>{type}</label>
-                    <input
-                      id={'fs-' + type}
-                      defaultValue={existing ? String(existing.fee_amount) : ''}
-                      type="number"
-                      step="0.01"
-                      placeholder="0.00"
-                    />
+                    <label htmlFor={`fs-${type}`}>{feeTypeLabels[type]}</label>
+                    <div className={styles.currencyInput}>
+                      <span className={styles.currencySymbol}>R$</span>
+                      <input
+                        id={`fs-${type}`}
+                        defaultValue={existing ? String(existing.fee_amount) : ''}
+                        type="number"
+                        step="0.01"
+                        placeholder="0,00"
+                      />
+                    </div>
                     <button
                       type="button"
                       onClick={() => handleFsSave(type)}

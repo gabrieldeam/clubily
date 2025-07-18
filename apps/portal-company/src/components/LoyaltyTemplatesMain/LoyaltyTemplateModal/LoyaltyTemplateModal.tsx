@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, FormEvent, useEffect } from 'react';
+import Image from 'next/image';
 import type { TemplateRead, TemplateCreate } from '@/types/loyalty';
 import FloatingLabelInput from '@/components/FloatingLabelInput/FloatingLabelInput';
 import Button from '@/components/Button/Button';
@@ -184,8 +185,10 @@ export default function LoyaltyTemplateModal({ template, onSave, onCancel }: Pro
           onChange={e => setIconFile(e.target.files?.[0])}
         />
         {template?.stamp_icon_url && (
-          <img
+          <Image
             src={`${process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL}${template.stamp_icon_url}`}
+            alt="Ícone de carimbo atual"
+            fill
             className={styles.preview}
           />
         )}

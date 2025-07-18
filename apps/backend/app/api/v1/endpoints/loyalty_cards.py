@@ -7,12 +7,14 @@ from fastapi import (
     APIRouter, Depends, UploadFile, File, Form,
     Query, Path, status, HTTPException, Body, Response
 )
+from geoalchemy2 import functions as geo_func
+from redis import Redis
 from app.models.reward import TemplateRewardLink
 from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import or_
 
 from app.api.deps import (
-    get_db, get_current_company, get_current_user
+    get_db, get_current_company, get_current_user, get_redis
 )
 from app.services.file_service import save_upload, delete_file_from_url
 from app.services.loyalty_service import (
@@ -32,6 +34,7 @@ from app.models.loyalty_card import (
 )
 from app.models.company import Company
 from app.schemas.company import CompanyBasic
+from app.services.geocode_service import GeocodeService
 
 def paginate(query, page: int, size: int):
     """Aplica offset/limit e retorna resultados."""
@@ -415,23 +418,40 @@ def admin_list_instances_by_template(
 @router.get(
     "/templates/active",
     response_model=List[TemplateRead],
-    summary="Usuário: listar templates de empresas ativas"
+    status_code=status.HTTP_200_OK,
+    summary="Usuário: listar templates de empresas ativas por raio de CEP"
 )
 def user_list_active_templates(
-    page: int        = Query(1, ge=1),
-    size: int        = Query(20, ge=1, le=100),
-    db: Session      = Depends(get_db),
-    user            = Depends(get_current_user),
+    postal_code: str = Query(..., description="CEP (apenas dígitos) para busca geográfica"),
+    radius_km: float = Query(5.0, ge=0.1, description="Raio em quilômetros a partir do CEP"),
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+    redis: Redis = Depends(get_redis),
 ):
+    """
+    Lista templates ativos de empresas que:
+    - sejam `is_active == True`
+    - estejam dentro de `radius_km` km de `postal_code` ou marcadas como `only_online`
+    - estejam na janela de emissão (start/end)
+    """
     now = datetime.now(timezone.utc)
+
+    # 1) Geocoding do CEP
+    geocoder = GeocodeService(redis)
+    lat, lon = geocoder.geocode_postal_code(postal_code)
+
+    # 2) Ponto de busca e distância em metros
+    search_point = func.ST_SetSRID(func.ST_MakePoint(lon, lat), 4326)
+    distance_m = radius_km * 1000
+
+    # 3) Consulta
     q = (
         db.query(LoyaltyCardTemplate)
-          # só templates de empresas ativas
           .join(Company, LoyaltyCardTemplate.company)
           .filter(
               Company.is_active.is_(True),
               LoyaltyCardTemplate.active.is_(True),
-              # dentro da janela de emissão
               or_(
                   LoyaltyCardTemplate.emission_start.is_(None),
                   LoyaltyCardTemplate.emission_start <= now
@@ -440,8 +460,11 @@ def user_list_active_templates(
                   LoyaltyCardTemplate.emission_end.is_(None),
                   LoyaltyCardTemplate.emission_end   >= now
               ),
+              or_(
+                  Company.only_online == True,
+                  geo_func.ST_DWithin(Company.location, search_point, distance_m)
+              )
           )
-          # já pré-carrega regras, recompensas e info da empresa
           .options(
               selectinload(LoyaltyCardTemplate.rules),
               selectinload(LoyaltyCardTemplate.rewards_map)
@@ -450,6 +473,8 @@ def user_list_active_templates(
           )
           .order_by(LoyaltyCardTemplate.created_at.desc())
     )
+
+    # 4) Paginação
     return paginate(q, page, size)
 
 

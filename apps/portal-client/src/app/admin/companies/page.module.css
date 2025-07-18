@@ -395,3 +395,14 @@
   align-items: center;
   margin-bottom: 20px;
 }
+
+
+.currencyInput {
+  display: flex;
+  align-items: center;
+}
+
+.currencySymbol {
+  margin-right: 0.25rem;
+  font-weight: bold;
+}

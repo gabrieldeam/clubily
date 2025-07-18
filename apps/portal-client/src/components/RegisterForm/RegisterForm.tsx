@@ -9,6 +9,7 @@ import Button from '@/components/Button/Button';
 import { registerUser } from '@/services/userService';
 import axios from 'axios';
 import type { UserCreate } from '@/types/user';
+import { Eye, EyeOff } from 'lucide-react';
 
 type NotificationType = 'success' | 'error' | 'info';
 interface NotificationData {
@@ -33,6 +34,7 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
     accepted_terms: false,
   });
   const [notification, setNotification] = useState<NotificationData | null>(null);
+  const [showPasswords, setShowPasswords] = useState(false);
 
   const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
 
@@ -114,7 +116,6 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
       return;
     }
 
-    // Monta payload sem o campo confirm_password
     const payload: Omit<LocalForm, 'confirm_password'> = {
       name: form.name,
       email: form.email,
@@ -166,6 +167,7 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
         value={form.name}
         onChange={handleChange}
       />
+
       <FloatingLabelInput
         id="register-email"
         name="email"
@@ -174,6 +176,7 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
         value={form.email}
         onChange={handleChange}
       />
+
       <FloatingLabelInput
         id="register-phone"
         name="phone"
@@ -182,6 +185,7 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
         value={form.phone}
         onChange={handleChange}
       />
+
       <FloatingLabelInput
         id="register-cpf"
         name="cpf"
@@ -197,18 +201,28 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
           id="register-password"
           name="password"
           label="Senha"
-          type="password"
+          type={showPasswords ? 'text' : 'password'}
           value={form.password}
           onChange={handleChange}
+          hideToggle
         />
         <FloatingLabelInput
           id="register-confirm-password"
           name="confirm_password"
           label="Confirme a senha"
-          type="password"
+          type={showPasswords ? 'text' : 'password'}
           value={form.confirm_password}
           onChange={handleChange}
+          hideToggle
         />
+        <button
+          type="button"
+          className={styles.togglePasswordsButton}
+          onClick={() => setShowPasswords(prev => !prev)}
+          tabIndex={-1}
+        >
+          {showPasswords ? <EyeOff size={20} /> : <Eye size={20} />}
+        </button>
       </div>
 
       <div className={styles.termsContainer}>

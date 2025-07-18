@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Gift, Check, X } from 'lucide-react';
+import { Gift, X } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import QRCode from 'react-qr-code';
 import { generateStampCode, generateRewardCode } from '@/services/loyaltyService';   
@@ -29,7 +29,8 @@ function getConfigText(rule: RuleRead): string {
     case 'purchase_amount':
       return `Ganhe um carimbo para compras a partir de R$ ${cfg.amount}`;
     case 'visit': {
-      const v = cfg.visits ?? 1;
+      const { visits } = cfg as { visits?: number };
+      const v = visits ?? 1;          
       return `Ganhe um carimbo a cada ${v} visita${v > 1 ? 's' : ''}`;
     }
     case 'service_done':
@@ -53,10 +54,7 @@ export default function WalletCard({ card }: Props) {
   const baseUrl = process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL ?? '';
   const [claimedRewards, setClaimedRewards] = useState<Record<string, boolean>>({});
   const [loadingReward, setLoadingReward] = useState(false);
-  const [claimError, setClaimError] = useState<string | null>(null);
   const [rewardCode, setRewardCode] = useState<RewardCodeResponse | null>(null);
-
-  const isCompleted = card.completed_at !== null;
 
   const total = tpl.stamp_total;
   const given = new Set(card.stamps.map(s => s.stamp_no));
@@ -87,7 +85,6 @@ export default function WalletCard({ card }: Props) {
   }
 
   async function handleClaimReward(linkId: string) {
-    setClaimError(null);
     setLoadingReward(true);
     try {
     const { data } = await generateRewardCode(card.id, linkId);
@@ -119,7 +116,6 @@ export default function WalletCard({ card }: Props) {
       setSelectedRewardStamp(null);
     } catch (err) {
       console.error(err);
-      setClaimError('Falha ao gerar código de recompensa.');
     } finally {
       setLoadingReward(false);
     }
@@ -341,14 +337,7 @@ export default function WalletCard({ card }: Props) {
 
         const isClaimed = redemptions.some(r => r.link_id === link.id && r.used);
         const isBlinking = link.stamp_no === selectedRewardStamp;
-        const redemption = redemptions.find(r => r.link_id === link.id);
-        const expiresAt = redemption?.expires_at
-          ? new Date(redemption.expires_at)
-          : null;
-        const isExpired = expiresAt ? expiresAt < new Date() : false;
-        const expiresText = expiresAt
-          ? expiresAt.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
-          : '';
+        
 
         return (
           <div

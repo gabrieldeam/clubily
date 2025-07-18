@@ -5,6 +5,8 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import Loading from '@/components/Loading/Loading';
+
 
 // import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { useAddress } from '@/context/AddressContext';
@@ -26,7 +28,8 @@ import styles from './Dashboard.module.css';
 export default function Dashboard() {
   const router = useRouter();
   // const { loading: authLoading } = useRequireAuth();
-  const { selectedAddress, radiusKm, setRadiusKm } = useAddress();
+  const { selectedAddress, radiusKm } = useAddress();
+  const [loadingCompanies, setLoadingCompanies] = useState(true);
 
   /* ───────────── state ───────────── */
   // Categorias
@@ -35,6 +38,9 @@ export default function Dashboard() {
 
   // Empresas
   const [companies, setCompanies] = useState<CompanyRead[]>([]);
+  const [page, setPage] = useState(1);
+  const size = 10;
+  const [totalPages, setTotalPages] = useState(1);
   // const [loadingCompanies, setLoadingCompanies] = useState(true);
 
   // Scroll categorias
@@ -47,16 +53,10 @@ export default function Dashboard() {
   useEffect(() => {
     if (!selectedAddress) return;
     let alive = true;
-    (async () => {
-      // setLoadingCats(true);
-      const city = selectedAddress.city;
-      if (!city) {
-        if (alive) setCats([]);
-        // setLoadingCats(false);
-        return;
-      }
+    (async () => { 
+      const postal_code = selectedAddress.postal_code;     
       try {
-        const res = await listUsedCategories({ city });
+        const res = await listUsedCategories(postal_code, radiusKm);
         if (alive) setCats(res.data);
       } catch {
         if (alive) setCats([]);
@@ -65,25 +65,39 @@ export default function Dashboard() {
       }
     })();
     return () => { alive = false; };
-  }, [selectedAddress]);
+  }, [selectedAddress , radiusKm]);
 
   // Buscar empresas
+// useEffect de busca de empresas com paginação
 useEffect(() => {
   if (!selectedAddress) return;
   let alive = true;
+  setLoadingCompanies(true);
+
   (async () => {
     const postal_code = selectedAddress.postal_code;
     try {
-      const res = await searchCompanies(postal_code, radiusKm);
-      console.log('>>> searchCompanies.raw', res.data);
-      // …
-      if (alive) setCompanies(res.data.slice(0, 10));
+      const res = await searchCompanies(postal_code, radiusKm, page, size);
+      if (!alive) return;
+
+      // na primeira página, substitui; nas seguintes, concatena
+      setCompanies(prev =>
+        page === 1 ? res.data.items : [...prev, ...res.data.items]
+      );
+      // calcula total de páginas a partir do total e do size
+      setTotalPages(Math.ceil(res.data.total / res.data.size));
     } catch {
       if (alive) setCompanies([]);
+    } finally {
+      if (alive) setLoadingCompanies(false);
     }
   })();
-  return () => { alive = false; };
-}, [selectedAddress, radiusKm]);
+
+  return () => {
+    alive = false;
+  };
+}, [selectedAddress, radiusKm, page]);
+
 
   // Atualizar setas de scroll
   const updateArrows = useCallback(() => {
@@ -130,18 +144,22 @@ useEffect(() => {
           <CashbackSummaryCard />
         </section>
 
-        {cats.length === 0 ? (
+      {cats.length === 0 ? (
+        loadingCompanies ? (
+          <section className={styles.gridItemNoData}>
+            <Loading />
+          </section>
+        ) : (
           <section className={styles.gridItemNoData}>
             <p>Infelizmente não temos empresas parceiras na sua região.</p>
             <button
               className={styles.changeBtn}
-              onClick={() =>
-                window.dispatchEvent(new Event('openAddressModal'))
-              }
+              onClick={() => window.dispatchEvent(new Event('openAddressModal'))}
             >
               Trocar de endereço
             </button>
           </section>
+        )
         ) : (
           <>
             {/* CATEGORIAS */}
@@ -222,6 +240,16 @@ useEffect(() => {
                   </div>
                 ))}
               </div>
+               {/* Botão “Carregar mais” */}
+                  {page < totalPages && (
+                    <button
+                      className={styles.loadMoreBtn}
+                      onClick={() => setPage(p => p + 1)}
+                      disabled={loadingCompanies}
+                    >
+                      {loadingCompanies ? 'Carregando...' : 'Carregar mais'}
+                    </button>
+                  )}
             </section>
           </>
         )}

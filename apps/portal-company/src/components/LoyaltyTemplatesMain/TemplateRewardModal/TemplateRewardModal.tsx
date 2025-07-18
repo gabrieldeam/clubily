@@ -49,8 +49,14 @@ export default function TemplateRewardModal({ tplId, onClose }: Props) {
 
         setRewards(allRewards.filter(r => (r.stock_qty ?? 0) > 0));
         setLinks(tplLinks.filter(l => (l.reward.stock_qty ?? 0) > 0));
-      } catch (err: any) {
-        setError(err.message || 'Falha ao carregar recompensas');
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          // pega a mensagem real
+          setError(err.message);
+        } else {
+          // caso não seja um Error normal
+          setError('Falha ao carregar recompensas');
+        }
       } finally {
         setLoading(false);
       }
@@ -60,33 +66,55 @@ export default function TemplateRewardModal({ tplId, onClose }: Props) {
   /* ------------------------------------------------------------------ */
   /* util – extrai mensagem de erro do Axios                            */
   /* ------------------------------------------------------------------ */
-  function extractMsg(err: unknown, fallback: string): string {
-    if (!axios.isAxiosError(err)) return fallback;
-
-    const data = err.response?.data;
-
-    // 1) se o backend devolveu string
-    if (typeof data === 'string') return data;
-
-    // 2) se devolveu objeto com detail
-    if (data && typeof data === 'object' && 'detail' in data) {
-      const d: any = (data as any).detail;
-      if (typeof d === 'string') return d;
-      if (Array.isArray(d)) return d.join('\n');
-      if (d && typeof d === 'object' && typeof d.detail === 'string') {
-        return d.detail;
-      }
-    }
-
-    // 3) procura por message ou outros campos de texto
-    if (data && typeof data === 'object') {
-      const firstText = Object.values(data).find(v => typeof v === 'string');
-      if (typeof firstText === 'string') return firstText;
-    }
-
-    // 4) se nada deu certo, usa err.message ou fallback
-    return err.message || fallback;
+ function extractMsg(err: unknown, fallback: string): string {
+  if (!axios.isAxiosError(err)) {
+    return fallback;
   }
+
+  const data = err.response?.data;
+
+  // 1) Se vier string pura
+  if (typeof data === 'string') {
+    return data;
+  }
+
+  // 2) Se vier objeto com campo "detail"
+  if (data && typeof data === 'object' && 'detail' in data) {
+    const detailProp = (data as Record<string, unknown>).detail;
+
+    if (typeof detailProp === 'string') {
+      return detailProp;
+    }
+
+    if (Array.isArray(detailProp)) {
+      // concatena tudo como string
+      return (detailProp as unknown[])
+        .map(item => (typeof item === 'string' ? item : JSON.stringify(item)))
+        .join('\n');
+    }
+
+    // se detailProp for um objeto com outro .detail dentro
+    if (
+      detailProp &&
+      typeof detailProp === 'object' &&
+      'detail' in detailProp &&
+      typeof (detailProp as Record<string, unknown>).detail === 'string'
+    ) {
+      return (detailProp as { detail: string }).detail;
+    }
+  }
+
+  // 3) Procura qualquer campo de texto no objeto
+  if (data && typeof data === 'object') {
+    const firstText = Object.values(data).find(v => typeof v === 'string');
+    if (typeof firstText === 'string') {
+      return firstText;
+    }
+  }
+
+  // 4) Se nada funcionou, usa err.message (se for Error) ou fallback
+  return err instanceof Error ? err.message : fallback;
+}
 
   /* ------------------------------------------------------------------ */
   /* ações                                                               */

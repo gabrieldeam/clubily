@@ -17,7 +17,7 @@ export default function CategoriesPage() {
 
   // always call hooks at top
   const { loading: authLoading } = useRequireAuth();
-  const { selectedAddress } = useAddress();
+  const { selectedAddress, radiusKm } = useAddress();
 
   const [cats, setCats] = useState<CategoryRead[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
@@ -30,32 +30,49 @@ export default function CategoriesPage() {
   }, [selectedAddress]);
 
   // Fetch categories when address changes
+
   useEffect(() => {
     let mounted = true;
+
     async function fetchCategories() {
       setDataLoading(true);
 
-      if (!selectedAddress?.city) {
-        if (mounted) setCats([]);
-        setDataLoading(false);
+      // Se não tiver endereço ou postal code, limpa lista
+      if (!selectedAddress?.postal_code) {
+        if (mounted) {
+          setCats([]);
+          setDataLoading(false);
+        }
         return;
       }
 
       try {
-        const res = await listUsedCategories({ city: selectedAddress.city });
-        if (mounted) setCats(res.data);
-      } catch {
-        if (mounted) setCats([]);
+        // Chama o serviço passando postalCode e radiusKm
+        const res = await listUsedCategories(
+          selectedAddress.postal_code,
+          radiusKm
+        );
+        if (mounted) {
+          setCats(res.data);
+        }
+      } catch (err) {
+        console.error('Erro ao buscar categorias:', err);
+        if (mounted) {
+          setCats([]);
+        }
       } finally {
-        if (mounted) setDataLoading(false);
+        if (mounted) {
+          setDataLoading(false);
+        }
       }
     }
 
     fetchCategories();
+
     return () => {
       mounted = false;
     };
-  }, [selectedAddress]);
+  }, [selectedAddress, radiusKm]);
 
   // render guards after hooks
   if (authLoading) {

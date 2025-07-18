@@ -7,18 +7,17 @@ import { Eye, EyeOff } from 'lucide-react';
 
 interface FloatingLabelInputProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
+  /** se true, não mostra o ícone de olho interno */
+  hideToggle?: boolean;
 }
 
-/**
- * Input com label que flutua acima quando o campo está focado ou contém valor.
- * Se for type="password", exibe um ícone para alternar visibilidade.
- */
 export default function FloatingLabelInput({
   label,
   id,
   type = 'text',
   value,
   onChange,
+  hideToggle = false,
   ...rest
 }: FloatingLabelInputProps) {
   const [focused, setFocused] = useState(false);
@@ -26,6 +25,7 @@ export default function FloatingLabelInput({
 
   const hasValue = !!(value as string)?.toString().length;
   const isPassword = type === 'password';
+  const showToggle = isPassword && !hideToggle;
   const inputType = isPassword ? (showPassword ? 'text' : 'password') : type;
 
   return (
@@ -44,7 +44,7 @@ export default function FloatingLabelInput({
       <label htmlFor={id} className={styles.label}>
         {label}
       </label>
-      {isPassword && (
+      {showToggle && (
         <button
           type="button"
           className={styles.toggleButton}

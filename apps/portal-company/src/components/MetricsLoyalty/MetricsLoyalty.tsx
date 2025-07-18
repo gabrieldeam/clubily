@@ -8,9 +8,7 @@ import {
 } from '@/services/loyaltyMetricsService';
 import type {
   MetricSummary,
-  MetricsCharts,
   ChartSeries,
-  SeriesPoint,
 } from '@/types/LoyaltyMetrics';
 import CalendarRange from '@/components/CalendarRange/CalendarRange';
 import Modal from '@/components/Modal/Modal';
@@ -23,7 +21,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
 } from 'recharts';
 
 import styles from './MetricsLoyalty.module.css';

@@ -5,7 +5,6 @@ import type {
   CategoryRead,
   CategoryCreate,
   CategoryUpdate,
-  CategoryFilter,
 } from '@/types/category';
 
 /**
@@ -20,9 +19,15 @@ export const listCategories = () =>
  * filtradas por localização.
  * GET /categories/used?city=&state=&postal_code=
  */
-export const listUsedCategories = (filters: CategoryFilter = {}) =>
+export const listUsedCategories = (
+  postalCode: string,
+  radiusKm: number,
+) =>
   api.get<CategoryRead[]>('/categories/used', {
-    params: filters,
+    params: {
+      postal_code: postalCode,
+      radius_km: radiusKm,
+    },
   });
 
 /**

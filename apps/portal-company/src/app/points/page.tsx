@@ -24,6 +24,7 @@ export default function PointsPage() {
   const [countdown, setCountdown] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const intervalRef = useRef<number | null>(null);
+  const [copied, setCopied] = useState(false);
 
   // load plans
   useEffect(() => {
@@ -193,13 +194,20 @@ export default function PointsPage() {
             <div className={styles.card}>
               <div className={styles.status}>
                 <h2 className={styles.title}>Status da Compra</h2>
-                <div className={styles.infoGrid}>
-                  <div><strong>Plano</strong></div>
-                  <div>{purchase.plan?.name}</div>
-                  <div><strong>Valor</strong></div>
-                  <div>R$ {purchase.amount.toFixed(2)}</div>
-                  <div><strong>Status</strong></div>
-                  <div className={statusClass}>{status}</div>
+                <div>
+                  <div className={styles.infoGrid}>
+                    <div><strong>Plano</strong></div>
+                    <div>{purchase.plan?.name}</div>
+                  </div>
+                  <div className={styles.infoGrid}>
+                    <div><strong>Valor</strong></div>
+                    <div>R$ {purchase.amount.toFixed(2)}</div>
+                  </div>
+                  <div className={styles.infoGrid}>
+                    <div><strong>Status</strong></div>
+                    <div className={statusClass}>{status}</div>
+                  </div>
+                  
                 </div>
                 {qrSrc && (
                   <div className={styles.qrContainer}>
@@ -222,13 +230,15 @@ export default function PointsPage() {
                       className={styles.copyInput}
                     />
                     <button
-                      type="button"
-                      onClick={() =>
-                        navigator.clipboard.writeText(purchase.pix_copy_paste_code ?? '')
-                      }
+                      onClick={() => {
+                        navigator.clipboard.writeText(purchase.pix_copy_paste_code ?? '');
+                        setCopied(true);
+                        // volta ao texto original após 3s
+                        setTimeout(() => setCopied(false), 3000);
+                      }}
                       className={styles.copyBtn}
-                    >
-                      Copiar
+                    >                    
+                      {copied ? 'Copiado' : 'Copiar'}
                     </button>
                   </div>
                 </div>

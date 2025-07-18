@@ -1,4 +1,3 @@
-// src/components/PointsBalanceCard/PointsBalanceCard.tsx
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
@@ -12,11 +11,11 @@ import styles from './PointsBalanceCard.module.css';
 
 export default function PointsBalanceCard() {
   /* ---------- State ---------- */
-  const [balanceData,   setBalanceData]   = useState<UserPointsWalletRead | null>(null);
-  const [milestones,    setMilestones]    = useState<UserMilestoneRead[]>([]);
-  const [nextData,      setNextData]      = useState<NextMilestoneRead | null>(null);
-  const [loading,       setLoading]       = useState(true);
-  const [error,         setError]         = useState<string | null>(null);
+  const [balanceData, setBalanceData] = useState<UserPointsWalletRead | null>(null);
+  const [milestones, setMilestones] = useState<UserMilestoneRead[]>([]);
+  const [nextData, setNextData] = useState<NextMilestoneRead | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const baseUrl = process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL ?? '';
 
@@ -32,12 +31,11 @@ export default function PointsBalanceCard() {
         setBalanceData(balRes.data);
 
         /* estrutura flexível p/ { items: [...] } ou [] */
-        const raw = myRes.data as unknown;                        // ① qualquer estrutura
+        const raw = myRes.data as unknown;
         const arr = Array.isArray(raw)
           ? raw
-          : (raw as { items?: UserMilestoneRead[] }).items ?? []; // ② segurança
+          : (raw as { items?: UserMilestoneRead[] }).items ?? [];
         setMilestones(arr);
-
 
         /* next milestone pode retornar 404 se já no topo */
         try {
@@ -61,15 +59,15 @@ export default function PointsBalanceCard() {
   const { currentMilestone, progress } = useMemo(() => {
     if (!balanceData) return { currentMilestone: null, progress: 0 };
 
-    const ordered  = [...milestones].sort((a, b) => a.milestone.points - b.milestone.points);
+    const ordered = [...milestones].sort((a, b) => a.milestone.points - b.milestone.points);
     const achieved = ordered.filter(m => m.achieved_at);
-    const current  = achieved.at(-1) ?? null;
+    const current = achieved.at(-1) ?? null;
 
     /* Progresso baseado no próximo milestone (caso exista) */
     if (nextData) {
-      const lower     = current?.milestone.points ?? 0;
-      const upper     = nextData.points;
-      const pct       = Math.min(100, ((balanceData.balance - lower) / (upper - lower)) * 100);
+      const lower = current?.milestone.points ?? 0;
+      const upper = nextData.points;
+      const pct = Math.min(100, ((balanceData.balance - lower) / (upper - lower)) * 100);
       return { currentMilestone: current, progress: pct };
     }
 
@@ -79,17 +77,13 @@ export default function PointsBalanceCard() {
 
   /* ---------- Loading ---------- */
   if (loading) {
-    return (
-      <div className={styles.content}>
-        <div className={styles.card}>          
-          <div className={styles.cardText}>Carregando…</div>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   /* ---------- Erro ---------- */
-  if (error) return <div className={styles.card}>{error}</div>;
+  if (error) {
+    return <div className={styles.card}>{error}</div>;
+  }
 
   /* ---------- Render ---------- */
   return (
