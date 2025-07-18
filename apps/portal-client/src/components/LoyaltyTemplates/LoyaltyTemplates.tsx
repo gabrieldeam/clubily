@@ -10,6 +10,7 @@ import { Gift } from 'lucide-react';
 import { listTemplatesByCompany, claimLoyaltyCard } from '@/services/loyaltyService';
 import { useAuth } from '@/context/AuthContext';
 import type { TemplateRead, RuleRead} from '@/types/loyalty';
+import type { AxiosError } from 'axios';
 import styles from './LoyaltyTemplates.module.css';
 
 interface Props {
@@ -22,7 +23,8 @@ function getConfigText(rule: RuleRead): string {
     case 'purchase_amount':
       return `Ganhe um carimbo para compras a partir de R$ ${cfg.amount}`;
     case 'visit': {
-      const v = cfg.visits ?? 1;
+      const { visits } = cfg as { visits?: number };
+      const v = visits ?? 1;          
       return `Ganhe um carimbo a cada ${v} visita${v > 1 ? 's' : ''}`;
     }
     case 'service_done':
@@ -65,8 +67,9 @@ export default function LoyaltyTemplates({ companyId }: Props) {
       await claimLoyaltyCard(tplId);
       setClaimedMap(prev => ({ ...prev, [tplId]: true }));
       setShowNameFor(tplId);
-    } catch (err: any) {
-      const msg = err.response?.data?.detail ?? 'Erro ao resgatar o cartão.';
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ detail: string }>;
+      const msg = axiosErr.response?.data.detail ?? 'Erro ao resgatar o cartão.';
       if (msg === 'Limite por usuário excedido') {
         setLimitExceededMap(prev => ({ ...prev, [tplId]: true }));
       } else {

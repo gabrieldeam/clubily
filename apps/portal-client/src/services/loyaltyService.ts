@@ -17,11 +17,19 @@ import type { CompanyBasic } from '@/types/company';
  * List templates from a company (endpoint `GET /templates`)
  */
 export const listActiveTemplates = (
+  postalCode: string,
+  radiusKm: number,
   page: number = 1,
   size: number = 20,
-) => api.get<TemplateRead[]>('/loyalty/templates/active', {
-  params: { page, size },
-});
+) =>
+  api.get<TemplateRead[]>('/loyalty/templates/active', {
+    params: {
+      postal_code: postalCode,
+      radius_km: radiusKm,
+      page,
+      size,
+    },
+  });
 
 
 /**

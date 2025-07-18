@@ -1,4 +1,3 @@
-// src/components/CashbackSummaryCard.tsx
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -38,16 +37,12 @@ export default function CashbackSummaryCard() {
     })();
   }, []);
 
+  // não renderiza nada enquanto carrega
   if (loading) {
-    return (
-      <div className={styles.cardConteiner}>
-        <div className={styles.card}>
-          <p className={styles.loading}>Carregando resumo…</p>
-        </div>
-      </div>
-    );
+    return null;
   }
 
+  // mostra apenas erro se ocorrer
   if (error || !summary) {
     return (
       <div className={styles.cardConteiner}>

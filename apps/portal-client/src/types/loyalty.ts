@@ -22,7 +22,7 @@ export interface RewardRead {
 export interface RuleRead {
   id: string;                // UUID
   rule_type: string;         // e.g. "value_spent"
-  config: Record<string, any>;
+  config: Record<string, unknown>;
   order: number;
   active: boolean;
 }

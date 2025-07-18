@@ -21,30 +21,51 @@ export default function SearchClient() {
   const { selectedAddress, radiusKm } = useAddress();
 
   const [companies, setCompanies] = useState<CompanyReadWithService[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+const [loading, setLoading] = useState(false);
+const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!name) return;
+const [page, setPage] = useState(1);
+const size = 10;
+const [totalPages, setTotalPages] = useState(1);
 
-    if (!selectedAddress) {
-      window.dispatchEvent(new Event('openAddressModal'));
-      return;
-    }
+useEffect(() => {
+  if (!name) return;
+  if (!selectedAddress) {
+    window.dispatchEvent(new Event('openAddressModal'));
+    return;
+  }
 
-    setLoading(true);
-    setError(null);
+  let mounted = true;
+  setLoading(true);
+  setError(null);
 
-    // 2) chamada com postal_code + radiusKm
-    searchCompaniesByName(
-      name,
-      selectedAddress.postal_code,
-      radiusKm
-    )
-      .then(res => setCompanies(res.data))
-      .catch(() => setError('Erro ao buscar empresas.'))
-      .finally(() => setLoading(false));
-  }, [name, selectedAddress, radiusKm]); // 3) adiciona radiusKm aqui
+  searchCompaniesByName(
+    name,
+    selectedAddress.postal_code,
+    radiusKm,
+    page,
+    size
+  )
+    .then(res => {
+      if (!mounted) return;
+      // na página 1: substitui; caso contrário concatena
+      setCompanies(prev =>
+        page === 1 ? res.data.items : [...prev, ...res.data.items]
+      );
+      setTotalPages(Math.ceil(res.data.total / res.data.size));
+    })
+    .catch(() => {
+      if (mounted) setError('Erro ao buscar empresas.');
+    })
+    .finally(() => {
+      if (mounted) setLoading(false);
+    });
+
+  return () => {
+    mounted = false;
+  };
+}, [name, selectedAddress, radiusKm, page]);
+
 
   return (
     <>
@@ -94,8 +115,17 @@ export default function SearchClient() {
                     </span>
                   </Link>
                 </li>
-              ))}
+              ))}              
             </ul>
+            {page < totalPages && (
+                <button
+                  className={styles.loadMoreBtn}
+                  onClick={() => setPage(p => p + 1)}
+                  disabled={loading}
+                >
+                  {loading ? 'Carregando...' : 'Carregar mais'}
+                </button>
+              )}
           </>
         )}
       </main>

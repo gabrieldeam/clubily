@@ -23,36 +23,49 @@ export default function RedeemRewardModal({ onClose, onRedeemed }: Props) {
   const [success, setSuccess] = useState<string | null>(null);
 
   async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    if (!code.trim()) {
-      return setError('Informe o código');
-    }
-
-    setError(null);
-    setSuccess(null);
-    setLoading(true);
-
-    try {
-      const { data } = await redeemReward(code.trim());
-      setSuccess(data.message);
-      onRedeemed?.(data.message);
-      setCode('');
-    } catch (err: any) {
-      // Se for um erro do axios com campo `detail` na resposta:
-      if (axios.isAxiosError(err) && err.response?.data) {
-        const apiData = err.response.data as any;
-        // O FastAPI devolve detail como string ou lista
-        const detail = Array.isArray(apiData.detail)
-          ? apiData.detail.join('\n')
-          : apiData.detail;
-        setError(detail || 'Falha ao resgatar');
-      } else {
-        setError(err.message || 'Falha ao resgatar');
-      }
-    } finally {
-      setLoading(false);
-    }
+  e.preventDefault();
+  if (!code.trim()) {
+    setError('Informe o código');
+    return;
   }
+
+  setError(null);
+  setSuccess(null);
+  setLoading(true);
+
+  try {
+    const { data } = await redeemReward(code.trim());
+    setSuccess(data.message);
+    onRedeemed?.(data.message);
+    setCode('');
+  } catch (err: unknown) {
+    // Erro Axios com campo detail
+    if (axios.isAxiosError(err) && err.response?.data) {
+      const payload = err.response.data as unknown;
+      let msg: string | undefined;
+
+      if (typeof payload === 'object' && payload !== null && 'detail' in payload) {
+        const d = (payload as Record<string, unknown>).detail;
+        if (typeof d === 'string') {
+          msg = d;
+        } else if (Array.isArray(d)) {
+          msg = (d.filter(item => typeof item === 'string') as string[]).join('\n');
+        }
+      }
+
+      setError(msg ?? err.message ?? 'Falha ao resgatar');
+    }
+    // Erro genérico
+    else if (err instanceof Error) {
+      setError(err.message);
+    } else {
+      setError('Falha ao resgatar');
+    }
+  } finally {
+    setLoading(false);
+  }
+}
+
 
   return (
     <div className={styles.container}>

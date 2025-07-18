@@ -172,7 +172,7 @@ def register(
         template_name="welcome_user.html",
         user_name=user.name or user.name or "cliente",
         explore_url=explore_url,
-        logo_url=f"{settings.FRONTEND_ORIGINS[0]}/static/logo.png",
+        logo_url=f"{settings.BACKEND_ORIGINS}/static/logo.png",
     )
 
     # 6) Envia e‐mail de verificação em background
@@ -232,18 +232,45 @@ def login(
     return {"access_token": token}
 
 
-@router.post("/forgot-password", status_code=202)
-def forgot_password(*, email: str, background: BackgroundTasks, db: Session = Depends(get_db)):
+@router.post(
+    "/forgot-password",
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Solicita código de redefinição de senha via e-mail"
+)
+def forgot_password(
+    *,
+    email: str,
+    background: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    # 1) Verifica existência do usuário
     user = user_service.get_by_email(db, email.lower())
-    if user:
-        code = create_code(db, user, minutes=30)   # 6 dígitos, 30 min
-        html = f"""
-        <p>Use o código abaixo para redefinir sua senha (válido por 30 min):</p>
-        <h2 style="font-family:monospace;">{code}</h2>
-        """
-        background.add_task(send_email, to=user.email,
-                            subject="Código para redefinição de senha", html=html)
-    return {"msg": "Se o e-mail existir, enviaremos instruções"}
+    if not user:
+        # Não envia nada e informa que o e-mail não está cadastrado
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="E‑mail não encontrado"
+        )
+
+    # 2) Gera código de 6 dígitos, válido por 30 minutos
+    code = create_code(db, user, minutes=30)
+
+    # 3) Monta o corpo do e‑mail
+    html = f"""
+    <p>Use o código abaixo para redefinir sua senha (válido por 30 minutos):</p>
+    <h2 style="font-family:monospace;">{code}</h2>
+    """
+
+    # 4) Agenda envio em background
+    background.add_task(
+        send_email,
+        to=user.email,
+        subject="Código para redefinição de senha",
+        html=html
+    )
+
+    # 5) Retorna confirmação
+    return {"msg": f"Código enviado para {user.email}"}
 
 
 

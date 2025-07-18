@@ -2,6 +2,7 @@
 'use client';
 
 import { FormEvent, useState, useEffect } from 'react';
+import Image from 'next/image';
 import styles from './RewardModal.module.css';
 import FloatingLabelInput from '@/components/FloatingLabelInput/FloatingLabelInput';
 import Button from '@/components/Button/Button';
@@ -148,9 +149,10 @@ export default function RewardModal({ reward, onSave, onCancel }: Props) {
         </label>
 
         {preview && (
-          <img
+          <Image
             src={preview}
             alt="Pré-visualização"
+            fill
             className={styles.preview}
           />
         )}

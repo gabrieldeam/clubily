@@ -2,6 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import OverlappingCards from '@/components/OverlappingCards/OverlappingCards';
 import CompanyCard from '@/components/CompanyCard/CompanyCard';
@@ -13,6 +14,7 @@ import {
   listCompaniesWithCards,
   listMyCardsByCompany,
 } from '@/services/loyaltyService';
+import { useAddress } from '@/context/AddressContext'
 import type {
   InstanceDetail,
   TemplateRead
@@ -50,14 +52,13 @@ export default function WalletPage() {
 
   const CARD_PAGE_SIZE = 10;
 
+  const { selectedAddress, radiusKm } = useAddress()
+
   useEffect(() => {
-    // carrega empresas e cartões iniciais
     fetchCompanies();
     fetchAllCards(1, true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /** Busca todas as empresas que o usuário tem cards **/
   const fetchCompanies = async () => {
     setLoadingCompanies(true);
     try {
@@ -148,7 +149,14 @@ export default function WalletPage() {
   const fetchMoreTemplates = async (page: number) => {
     setLoadingTpl(true);
     try {
-      const { data } = await listActiveTemplates(page);
+      if (!selectedAddress) {
+        throw new Error('Selecione um endereço para explorar templates')
+      }
+      const { data } = await listActiveTemplates(
+        selectedAddress.postal_code,
+        radiusKm,
+        page,
+      )
       setTemplates((prev) => [...prev, ...data]);
       setTplPage(page);
       setTplHasMore(data.length === 20);
@@ -216,9 +224,10 @@ export default function WalletPage() {
                     onClick={() => handleCompanyClick(c.id)}
                   >
                     <div className={styles.companyLogoWrapper}>
-                      <img
+                      <Image
                         src={`${baseUrl}${c.logo_url}`}
                         alt={c.name}
+                        fill
                         className={styles.companyLogo}
                       />
                     </div>

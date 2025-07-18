@@ -10,6 +10,8 @@ import { getPointsBalance } from '@/services/pointsWalletService'
 import { historyPoints } from '@/services/pointPurchaseService'
 import type { CompanyPaymentRead, PaginatedPayments } from '@/types/companyPayment'
 import type { PointPurchaseRead, PaginatedPointPurchases } from '@/types/pointPurchase'
+import { paymentStatusPt } from '@/utils/paymentStatusPt'
+
 import styles from './page.module.css'
 
 export default function WalletPage() {
@@ -194,7 +196,7 @@ export default function WalletPage() {
                           </div>
                           <div className={styles.cellPhone} data-label="Status">
                             <span className={styles[p.status.toLowerCase()]}>
-                              {p.status}
+                              {paymentStatusPt[p.status]}
                             </span>
                           </div>
                           <div className={styles.cellPhone} data-label="Criado em">
@@ -248,7 +250,7 @@ export default function WalletPage() {
                           </div>
                           <div className={styles.cellPhone} data-label="Status">
                             <span className={styles[p.status.toLowerCase()]}>
-                              {p.status}
+                              {paymentStatusPt[p.status]}
                             </span>
                           </div>
                           <div className={styles.cellPhone} data-label="Criado em">

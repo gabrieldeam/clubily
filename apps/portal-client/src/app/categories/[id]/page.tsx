@@ -28,6 +28,9 @@ export default function CategoryPage() {
 
   const [companies, setCompanies] = useState<CompanyRead[]>([]);
   const [loadingCompanies, setLoadingCompanies] = useState(true);
+  const [page, setPage] = useState(1);
+  const size = 10;
+  const [totalPages, setTotalPages] = useState(1);
 
   const baseUrl = process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL ?? '';
 
@@ -50,41 +53,42 @@ export default function CategoryPage() {
   }, [id]);
 
   // buscar empresas por categoria, postal_code e raio
-  useEffect(() => {
-    let mounted = true;
-    async function fetchCompanies() {
-      setLoadingCompanies(true);
+useEffect(() => {
+  if (!id || !selectedAddress?.postal_code) {
+    setCompanies([]);
+    setLoadingCompanies(false);
+    return;
+  }
 
-      // se faltar id, endereço ou postal_code, limpa
-      if (
-        !id ||
-        !selectedAddress ||
-        !selectedAddress.postal_code
-      ) {
-        if (mounted) setCompanies([]);
-        setLoadingCompanies(false);
-        return;
-      }
+  let mounted = true;
+  setLoadingCompanies(true);
 
-      try {
-        // passa categoryId, postal_code e radiusKm
-        const res = await searchCompaniesByCategory(
-          id,
-          selectedAddress.postal_code,
-          radiusKm
-        );
-        if (mounted) setCompanies(res.data.slice(0, 10));
-      } catch {
-        if (mounted) setCompanies([]);
-      } finally {
-        if (mounted) setLoadingCompanies(false);
-      }
+  (async () => {
+    try {
+      const res = await searchCompaniesByCategory(
+        id,
+        selectedAddress.postal_code,
+        radiusKm,
+        page,
+        size
+      );
+      if (!mounted) return;
+
+      // na primeira página, substitui; nas seguintes, concatena
+      setCompanies(prev =>
+        page === 1 ? res.data.items : [...prev, ...res.data.items]
+      );
+      // totalPages = ceil(total / size)
+      setTotalPages(Math.ceil(res.data.total / res.data.size));
+    } catch {
+      if (mounted) setCompanies([]);
+    } finally {
+      if (mounted) setLoadingCompanies(false);
     }
+  })();
 
-    fetchCompanies();
-    // re-executa quando mudar category id, endereço ou raio
-    return () => { mounted = false; };
-  }, [id, selectedAddress, radiusKm]);
+  return () => { mounted = false; };
+}, [id, selectedAddress, radiusKm, page]);
 
   if (authLoading) return null;
   if (loadingCat) return <p>Carregando...</p>;
@@ -144,6 +148,15 @@ export default function CategoryPage() {
                   </Link>
                 </div>
               ))}
+               {page < totalPages && (
+                  <button
+                    className={styles.loadMoreBtn}
+                    onClick={() => setPage(p => p + 1)}
+                    disabled={loadingCompanies}
+                  >
+                    {loadingCompanies ? 'Carregando...' : 'Carregar mais'}
+                  </button>
+                )}
             </div>
           )}
         </section>

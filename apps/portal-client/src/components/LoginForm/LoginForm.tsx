@@ -69,22 +69,19 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
     }
   }
 
-  async function handleForgot(e: FormEvent) {
-    e.preventDefault();
-    setNotification(null);
-    try {
-      await forgotPasswordUser(email);
-      setNotification({ type: 'info', message: 'Código enviado para seu e-mail.' });
-      setMode('reset');
-    } catch (err: unknown) {
-      let detail = 'Erro ao enviar código.';
-      const serverDetail = extractErrorDetail(err);
-      if (serverDetail) {
-        detail = serverDetail;
-      }
-      setNotification({ type: 'error', message: detail });
-    }
+async function handleForgot(e: FormEvent) {
+  e.preventDefault();
+  setNotification(null);
+
+  try {
+    const { data } = await forgotPasswordUser(email);
+    setNotification({ type: 'info', message: data.msg });
+    setMode('reset');
+  } catch (err: unknown) {
+    const serverDetail = extractErrorDetail(err) ?? 'Erro ao enviar código.';
+    setNotification({ type: 'error', message: serverDetail });
   }
+}
 
   async function handleReset(e: FormEvent) {
     e.preventDefault();

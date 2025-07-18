@@ -1,5 +1,11 @@
 import type { CategoryRead } from '@/types/category';
 
+export interface CompanyFilter {
+  city?: string;
+  state?: string;
+  postal_code?: string;
+  street?: string;
+}
 
 export interface PaginationParams {
   page?: number;

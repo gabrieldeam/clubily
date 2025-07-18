@@ -30,19 +30,51 @@ function parseErrorDetail(detail: unknown): string {
   if (typeof detail === 'string') {
     return detail;
   }
+
   if (Array.isArray(detail)) {
     return detail
-      .map(item => (item as any).msg || JSON.stringify(item))
+      .map(item => {
+        if (
+          typeof item === 'object' &&
+          item !== null &&
+          'msg' in item &&
+          typeof (item as Record<string, unknown>).msg === 'string'
+        ) {
+          return (item as Record<string, unknown>).msg;
+        }
+        return JSON.stringify(item);
+      })
       .join('; ');
   }
+
   if (detail && typeof detail === 'object') {
-    if ('errors' in detail && Array.isArray((detail as any).errors)) {
-      return (detail as any).errors.map((e: any) => e.message).join('; ');
+    const obj = detail as Record<string, unknown>;
+
+    if (
+      'errors' in obj &&
+      Array.isArray(obj.errors)
+    ) {
+      return (obj.errors as unknown[])
+        .map(e => {
+          if (
+            typeof e === 'object' &&
+            e !== null &&
+            'message' in e &&
+            typeof (e as Record<string, unknown>).message === 'string'
+          ) {
+            return (e as Record<string, unknown>).message;
+          }
+          return JSON.stringify(e);
+        })
+        .join('; ');
     }
-    return JSON.stringify(detail);
+
+    return JSON.stringify(obj);
   }
+
   return 'Ocorreu um erro desconhecido';
 }
+
 
 export default function LoyaltyTemplatesMain() {
   const [templates, setTemplates] = useState<TemplateRead[]>([]);
@@ -119,8 +151,12 @@ export default function LoyaltyTemplatesMain() {
     try {
       await adminDeleteTemplate(id);
       await fetchTemplates();
-    } catch (err) {
-      alert('Falha ao excluir: ' + (err as any).message);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        alert('Falha ao excluir: ' + err.message);
+      } else {
+        alert('Falha ao excluir: erro desconhecido');
+      }
     }
   }
   

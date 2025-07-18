@@ -7,8 +7,11 @@ import styles from './RegisterForm.module.css';
 import FloatingLabelInput from '@/components/FloatingLabelInput/FloatingLabelInput';
 import Notification from '@/components/Notification/Notification';
 import Button from '@/components/Button/Button';
+import { Eye, EyeOff } from 'lucide-react';
 import { registerCompany, redeemReferral } from '@/services/companyService';
 import type { CompanyCreate, ReferralRedeem } from '@/types/company';
+
+// Tipos
 
 type NotificationType = 'success' | 'error' | 'info';
 interface NotificationData {
@@ -24,7 +27,6 @@ interface RegisterFormProps {
 }
 
 export default function RegisterForm({ onSuccess }: RegisterFormProps) {
-  // formulário principal
   const [form, setForm] = useState<LocalForm>({
     name: '',
     email: '',
@@ -45,18 +47,18 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
     accepted_terms: false,
   });
 
-  const [notification, setNotification] =
-    useState<NotificationData | null>(null);
+  const [notification, setNotification] = useState<NotificationData | null>(null);
   const [showAddress, setShowAddress] = useState(false);
   const [stage, setStage] = useState<Stage>('register');
 
+  // controla se as senhas estão visíveis
+  const [showPasswords, setShowPasswords] = useState(false);
+
   // estado para referral
   const [referralCode, setReferralCode] = useState('');
-  const [referralNotification, setReferralNotification] =
-    useState<NotificationData | null>(null);
+  const [referralNotification, setReferralNotification] = useState<NotificationData | null>(null);
 
-  const passwordRegex =
-    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
 
   // ViaCEP
   useEffect(() => {
@@ -66,24 +68,19 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
         .then(res => res.json())
         .then(data => {
           if (data.erro) {
-            setNotification({
-              type: 'error',
-              message: 'CEP não encontrado.',
-            });
+            setNotification({ type: 'error', message: 'CEP não encontrado.' });
           } else {
             setForm(prev => ({
               ...prev,
               street: data.logradouro || '',
+              neighborhood: data.bairro   || '',
               city: data.localidade || '',
               state: data.uf || '',
             }));
           }
         })
         .catch(() =>
-          setNotification({
-            type: 'error',
-            message: 'Erro ao buscar CEP.',
-          })
+          setNotification({ type: 'error', message: 'Erro ao buscar CEP.' })
         );
     }
   }, [form.postal_code, showAddress]);
@@ -123,8 +120,7 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
     if (form.online_url && !/^https?:\/\//i.test(form.online_url)) {
       setNotification({
         type: 'error',
-        message:
-          'Informe a URL completa, incluindo http:// ou https://.',
+        message: 'Informe a URL completa, incluindo http:// ou https://.',
       });
       return;
     }
@@ -132,13 +128,7 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
     if (missing.length > 0) {
       setNotification({
         type: 'error',
-        message: `Campo${
-          missing.length > 1 ? 's' : ''
-        } ${missing.join(', ')} ${
-          missing.length > 1 ? 'são' : 'é'
-        } obrigatório${
-          missing.length > 1 ? 's' : ''
-        }.`,
+        message: `Campo${missing.length > 1 ? 's' : ''} ${missing.join(', ')} ${missing.length > 1 ? 'são' : 'é'} obrigatório${missing.length > 1 ? 's' : ''}.`,
       });
       return;
     }
@@ -146,38 +136,28 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
     if (!passwordRegex.test(form.password)) {
       setNotification({
         type: 'error',
-        message:
-          'Senha deve ter ≥8 caracteres, incluindo 1 maiúscula, 1 minúscula, 1 número e 1 especial.',
+        message: 'Senha deve ter ≥8 caracteres, incluindo 1 maiúscula, 1 minúscula, 1 número e 1 especial.',
       });
       return;
     }
 
     if (form.password !== form.confirm_password) {
-      setNotification({
-        type: 'error',
-        message: 'As senhas não coincidem.',
-      });
+      setNotification({ type: 'error', message: 'As senhas não coincidem.' });
       return;
     }
 
-    // remove confirm_password sem deixar variável pendente
+    // remove confirm_password
     const payload: CompanyCreate = { ...form };
     delete (payload as { confirm_password?: string }).confirm_password;
     try {
       await registerCompany(payload);
-      // sucesso → vai para etapa de indicação
       setStage('referral');
     } catch (err) {
       const data = isAxiosError(err) ? err.response?.data : undefined;
       let msg = 'Erro no cadastro. Tente novamente.';
       if (data) {
-        if (typeof data.detail === 'string') {
-          msg = data.detail;
-        } else if (Array.isArray(data.detail)) {
-          msg = (data.detail as { msg: string }[])
-            .map(d => d.msg)
-            .join(', ');
-        }
+        if (typeof data.detail === 'string') msg = data.detail;
+        else if (Array.isArray(data.detail)) msg = (data.detail as { msg: string }[]).map(d => d.msg).join(', ');
       }
       setNotification({ type: 'error', message: msg });
     }
@@ -187,29 +167,16 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
   const handleRedeem = async () => {
     setReferralNotification(null);
     if (!referralCode.trim()) {
-      setReferralNotification({
-        type: 'error',
-        message: 'Informe o código.',
-      });
+      setReferralNotification({ type: 'error', message: 'Informe o código.' });
       return;
     }
     try {
-      await redeemReferral({
-        referral_code: referralCode,
-      } as ReferralRedeem);
-      setReferralNotification({
-        type: 'success',
-        message: 'Código registrado com sucesso!',
-      });
+      await redeemReferral({ referral_code: referralCode } as ReferralRedeem);
+      setReferralNotification({ type: 'success', message: 'Código registrado com sucesso!' });
       setTimeout(onSuccess, 800);
     } catch (err) {
-      const detail = isAxiosError(err)
-        ? err.response?.data?.detail
-        : undefined;
-      setReferralNotification({
-        type: 'error',
-        message: detail || 'Código inválido.',
-      });
+      const detail = isAxiosError(err) ? err.response?.data?.detail : undefined;
+      setReferralNotification({ type: 'error', message: detail || 'Código inválido.' });
     }
   };
 
@@ -220,26 +187,11 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
     return (
       <div className={styles.form}>
         <h2 className={styles.title}>Código de indicação</h2>
-        {referralNotification && (
-          <Notification
-            type={referralNotification.type}
-            message={referralNotification.message}
-            onClose={() => setReferralNotification(null)}
-          />
-        )}
-        <FloatingLabelInput
-          id="referral_code"
-          name="referral_code"
-          label="Código de indicação"
-          type="text"
-          value={referralCode}
-          onChange={e => setReferralCode(e.target.value)}
-        />
+        {referralNotification && <Notification type={referralNotification.type} message={referralNotification.message} onClose={() => setReferralNotification(null)} />}
+        <FloatingLabelInput id="referral_code" name="referral_code" label="Código de indicação" type="text" value={referralCode} onChange={e => setReferralCode(e.target.value)} />
         <div className={styles.actions}>
           <Button onClick={handleRedeem}>Registrar indicação</Button>
-          <Button bgColor="#AAA" onClick={handleSkipReferral}>
-            Não tenho código
-          </Button>
+          <Button bgColor="#AAA" onClick={handleSkipReferral}>Não tenho código</Button>
         </div>
       </div>
     );
@@ -248,87 +200,31 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
   return (
     <form onSubmit={handleSubmit} className={styles.form}>
       <h2 className={styles.title}>Cadastro</h2>
-      {notification && (
-        <Notification
-          type={notification.type}
-          message={notification.message}
-          onClose={() => setNotification(null)}
-        />
-      )}
+      {notification && <Notification type={notification.type} message={notification.message} onClose={() => setNotification(null)} />}
 
       {/* ETAPA 1 */}
       {!showAddress && (
-        <>
-          <FloatingLabelInput
-            id="register-name"
-            name="name"
-            label="Nome da empresa"
-            type="text"
-            value={form.name}
-            onChange={handleChange}
-          />
-          <FloatingLabelInput
-            id="register-email"
-            name="email"
-            label="E-mail"
-            type="email"
-            value={form.email}
-            onChange={handleChange}
-          />
+        <>          
+          <FloatingLabelInput id="register-name" name="name" label="Nome da empresa" type="text" value={form.name} onChange={handleChange} />
+          <FloatingLabelInput id="register-email" name="email" label="E-mail" type="email" value={form.email} onChange={handleChange} />
           <div className={styles.flex}>
-            <FloatingLabelInput
-              id="register-phone"
-              name="phone"
-              label="Telefone"
-              type="text"
-              value={form.phone}
-              onChange={handleChange}
-            />
-            <FloatingLabelInput
-              id="register-cnpj"
-              name="cnpj"
-              label="CNPJ"
-              type="text"
-              value={form.cnpj}
-              onChange={handleChange}
-            />
+            <FloatingLabelInput id="register-phone" name="phone" label="Telefone" type="text" value={form.phone} onChange={handleChange} />
+            <FloatingLabelInput id="register-cnpj" name="cnpj" label="CNPJ" type="text" value={form.cnpj} onChange={handleChange} />
           </div>
-          <button
-            type="button"
-            className={styles.addressButton}
-            onClick={() => setShowAddress(true)}
-          >
-            Adicionar Endereço
-          </button>
+          <button type="button" className={styles.addressButton} onClick={() => setShowAddress(true)}>Adicionar Endereço</button>
+
           <div className={styles.flex}>
-            <FloatingLabelInput
-              id="register-password"
-              name="password"
-              label="Senha"
-              type="password"
-              value={form.password}
-              onChange={handleChange}
-            />
-            <FloatingLabelInput
-              id="register-confirm-password"
-              name="confirm_password"
-              label="Confirme a senha"
-              type="password"
-              value={form.confirm_password}
-              onChange={handleChange}
-            />
-          </div>
+            <FloatingLabelInput id="register-password" name="password" label="Senha" type="password" value={form.password} onChange={handleChange} showPassword={showPasswords} />
+            <FloatingLabelInput id="register-confirm-password" name="confirm_password" label="Confirme a senha" type="password" value={form.confirm_password} onChange={handleChange} showPassword={showPasswords} />
+            {/* botão externo de visibilidade */}
+            <button type="button" className={styles.eyeToggle} onClick={() => setShowPasswords(prev => !prev)}>
+              {showPasswords ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+          </div>       
+
           <div className={styles.termsContainer}>
-            <input
-              type="checkbox"
-              id="accepted_terms"
-              name="accepted_terms"
-              checked={form.accepted_terms}
-              onChange={handleChange}
-            />
-            <label htmlFor="accepted_terms">
-              Aceito os termos de uso
-            </label>
+            <input type="checkbox" id="accepted_terms" name="accepted_terms" checked={form.accepted_terms} onChange={handleChange} />
+            <label htmlFor="accepted_terms">Aceito os termos de uso</label>
           </div>
           <Button type="submit">Cadastrar</Button>
         </>

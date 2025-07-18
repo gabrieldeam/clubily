@@ -10,6 +10,12 @@ const nextConfig: NextConfig = {
         port: '8000',
         pathname: '/static/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'api.clubi.ly',
+        port: '',                    // sem porta explícita
+        pathname: '/static/**',
+      },
     ],
   },
 

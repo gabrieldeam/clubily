@@ -1,6 +1,6 @@
 # backend/app/api/v1/endpoints/companies.py
 
-from typing import List
+from typing import List, Optional
 import os, uuid
 from fastapi import APIRouter, Depends, Response, BackgroundTasks, HTTPException, status, UploadFile, File, Query
 from fastapi_pagination import Page, Params
@@ -108,7 +108,7 @@ def register_company(
         template_name="welcome_company.html",
         company_name=company.name,
         verify_url=verify_url,
-        logo_url=f"{settings.FRONTEND_ORIGINS[0]}/static/logo.png",
+        logo_url=f"{settings.BACKEND_ORIGINS}/static/logo.png",
     )
 
     # 9) Retorna o token no JSON
@@ -170,8 +170,13 @@ def read_current_company(
     """
     return current_company
 
-@router.post("/forgot-password", status_code=202)
+@router.post(
+    "/forgot-password/company",
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Solicita código de redefinição de senha para empresa"
+)
 def forgot_password_company(
+    *,
     email: str,
     background: BackgroundTasks,
     db: Session = Depends(get_db),
@@ -179,20 +184,33 @@ def forgot_password_company(
     """
     Envia código de 6 dígitos para o e-mail cadastrado da empresa.
     """
+
+    # 1) Busca empresa por e-mail
     comp = db.query(Company).filter(Company.email == email.lower()).first()
-    if comp:
-        code = comp_reset.create_code(db, comp, minutes=30)
-        html = f"""
-        <p>Use o código abaixo para redefinir a senha da sua empresa (válido por 30 min):</p>
-        <h2 style="font-family:monospace;">{code}</h2>
-        """
-        background.add_task(
-            send_email,
-            to=comp.email,
-            subject="Código para redefinição de senha empresarial",
-            html=html,
+    if not comp:
+        # 2) Se não existir, retorna 404
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="E‑mail não encontrado"
         )
-    return {"msg": "Se o e-mail existir, enviaremos instruções."}
+
+    # 3) Gera código válido por 30 minutos
+    code = comp_reset.create_code(db, comp, minutes=30)
+
+    # 4) Monta HTML e agenda envio
+    html = f"""
+    <p>Use o código abaixo para redefinir a senha da sua empresa (válido por 30 minutos):</p>
+    <h2 style="font-family:monospace;">{code}</h2>
+    """
+    background.add_task(
+        send_email,
+        to=comp.email,
+        subject="Código para redefinição de senha empresarial",
+        html=html,
+    )
+
+    # 5) Retorna confirmação com o próprio e‑mail
+    return {"msg": f"Código enviado para {comp.email}"}
 
 # ---------- RESET COM CÓDIGO ----------
 @router.post("/reset-password", status_code=200)
@@ -347,82 +365,67 @@ async def upload_company_logo(
 
 
 
-# 1) ADMIN: paginado, sem filtro de ativo/online
+# 1) ADMIN: já paginado
 @router.get("/searchAdmin", response_model=Page[CompanyRead])
 def search_companies_admin(
-    postal_code: str = Query(..., description="CEP (apenas dígitos) para busca geográfica"),
-    radius_km: float = Query(..., description="Raio em quilômetros"),
+    city: Optional[str] = Query(None),
+    state: Optional[str] = Query(None),
+    postal_code: Optional[str] = Query(None),
+    params: Params = Depends(),          # injeta page & size
+    db: Session = Depends(get_db),
+):
+    q = db.query(Company)
+    if city:
+        q = q.filter(Company.city.ilike(f"%{city}%"))
+    if state:
+        q = q.filter(Company.state.ilike(f"%{state}%"))
+    if postal_code:
+        q = q.filter(Company.postal_code == postal_code)
+    return sqlalchemy_paginate(q, params)
+
+# 2) CLIENT: ativas/online ou dentro do raio
+@router.get("/search", response_model=Page[CompanyRead])
+def search_companies(
+    postal_code: str = Query(..., description="CEP (apenas dígitos)"),
+    radius_km: float = Query(..., description="Raio em km"),
     params: Params = Depends(),
     db: Session = Depends(get_db),
     redis: Redis = Depends(get_redis),
 ):
-    """
-    Busca todas as empresas (inclusive inativas) num raio de `radius_km` km a partir de `postal_code`.
-    Retorna resultados paginados.
-    """
-    # geocode + cache
     geocoder = GeocodeService(redis)
     lat, lon = geocoder.geocode_postal_code(postal_code)
-
-    # ponto de busca e distância em metros
-    search_point = func.ST_SetSRID(func.ST_MakePoint(lon, lat), 4326)
-    distance_m = radius_km * 1000
-
-    # consulta espacial
-    q = db.query(Company).filter(
-        geo_func.ST_DWithin(Company.location, search_point, distance_m)
-    )
-    return sqlalchemy_paginate(q, params)
-
-# 2) CLIENT: apenas ativas + online ou dentro do raio
-@router.get("/search", response_model=List[CompanyRead])
-def search_companies(
-    postal_code: str = Query(..., description="CEP (apenas dígitos) para busca geográfica"),
-    radius_km: float = Query(..., description="Raio em quilômetros"),
-    db: Session = Depends(get_db),
-    redis: Redis = Depends(get_redis),
-):
-    """
-    Busca empresas ativas num raio de `radius_km` km a partir de `postal_code`,
-    sempre incluindo também as `only_online`.
-    """
-    geocoder = GeocodeService(redis)
-    lat, lon = geocoder.geocode_postal_code(postal_code)
-
-    search_point = func.ST_SetSRID(func.ST_MakePoint(lon, lat), 4326)
+    point = func.ST_SetSRID(func.ST_MakePoint(lon, lat), 4326)
     distance_m = radius_km * 1000
 
     q = db.query(Company).filter(
         or_(
             Company.only_online == True,
-            and_(Company.is_active == True,
-                 geo_func.ST_DWithin(Company.location, search_point, distance_m))
+            and_(
+                Company.is_active == True,
+                geo_func.ST_DWithin(Company.location, point, distance_m)
+            )
         )
     )
-    return q.all()
+    return sqlalchemy_paginate(q, params)
 
 # 3) BUSCA POR CATEGORIA + raio
 @router.get(
     "/search-by-category",
-    response_model=List[CompanyRead],
+    response_model=Page[CompanyRead],
     status_code=status.HTTP_200_OK,
-    summary="Busca empresas ativas por categoria e raio"
+    summary="Busca empresas ativas por categoria e raio",
 )
 def search_companies_by_category(
-    category_id: str = Query(..., description="ID da categoria para filtrar"),
-    postal_code: str = Query(..., description="CEP (apenas dígitos) para busca geográfica"),
-    radius_km: float = Query(..., description="Raio em quilômetros"),
+    category_id: str = Query(..., description="ID da categoria"),
+    postal_code: str = Query(..., description="CEP (apenas dígitos)"),
+    radius_km: float = Query(..., description="Raio em km"),
+    params: Params = Depends(),
     db: Session = Depends(get_db),
     redis: Redis = Depends(get_redis),
 ):
-    """
-    Retorna empresas ativas que pertencem à `category_id` e estão no raio
-    de `radius_km` km a partir de `postal_code`, incluindo também as `only_online`.
-    """
     geocoder = GeocodeService(redis)
     lat, lon = geocoder.geocode_postal_code(postal_code)
-
-    search_point = func.ST_SetSRID(func.ST_MakePoint(lon, lat), 4326)
+    point = func.ST_SetSRID(func.ST_MakePoint(lon, lat), 4326)
     distance_m = radius_km * 1000
 
     q = (
@@ -433,65 +436,63 @@ def search_companies_by_category(
         .filter(
             or_(
                 Company.only_online == True,
-                geo_func.ST_DWithin(Company.location, search_point, distance_m)
+                geo_func.ST_DWithin(Company.location, point, distance_m)
             )
         )
+        .distinct()
     )
-    return q.distinct().all()
+    return sqlalchemy_paginate(q, params)
 
-# 4) BUSCA POR NOME + raio + flag serves_address
+# 4) BUSCA POR NOME + raio + serves_address
 @router.get(
     "/search-by-name",
-    response_model=List[CompanyReadWithService],
+    response_model=Page[CompanyReadWithService],
     status_code=status.HTTP_200_OK,
-    summary="Busca empresas ativas por nome e indica se servem dentro do raio"
+    summary="Busca empresas ativas por nome e indica se servem dentro do raio",
 )
 def search_companies_by_name(
-    name: str = Query(..., description="Termo de busca no nome da empresa"),
-    postal_code: str = Query(..., description="CEP (apenas dígitos) para busca geográfica"),
-    radius_km: float = Query(..., description="Raio em quilômetros"),
+    name: str = Query(..., description="Termo no nome da empresa"),
+    postal_code: str = Query(..., description="CEP (apenas dígitos)"),
+    radius_km: float = Query(..., description="Raio em km"),
+    params: Params = Depends(),
     db: Session = Depends(get_db),
     redis: Redis = Depends(get_redis),
 ):
-    """
-    Procura empresas ativas cujo nome contenha `name`.
-    Filtra por `radius_km` km a partir de `postal_code`, inclui também `only_online`.
-    `serves_address` indica se atende (online ou dentro do raio).
-    """
-    # geocode + cache
     geocoder = GeocodeService(redis)
     lat, lon = geocoder.geocode_postal_code(postal_code)
-
-    search_point = func.ST_SetSRID(func.ST_MakePoint(lon, lat), 4326)
+    point = func.ST_SetSRID(func.ST_MakePoint(lon, lat), 4326)
     distance_m = radius_km * 1000
 
-    # consulta base: só ativas + nome LIKE
+    # consulta base
     q = db.query(Company).filter(
         Company.is_active == True,
-        Company.name.ilike(f"%{name}%")
-    )
-
-    # aplica OR(only_online, dentro do raio)
-    q = q.filter(
+        Company.name.ilike(f"%{name}%"),
         or_(
             Company.only_online == True,
-            geo_func.ST_DWithin(Company.location, search_point, distance_m)
+            geo_func.ST_DWithin(Company.location, point, distance_m)
         )
     )
 
-    companies = q.all()
-    results: list[dict] = []
-    for comp in companies:
-        # flag served
-        served = comp.only_online or (
-            comp.location is not None and
-            geo_func.ST_DWithin(comp.location, search_point, distance_m)
-        )
-        comp_dict = CompanyReadWithService.model_validate(comp).model_dump()
-        comp_dict["serves_address"] = served
-        results.append(comp_dict)
+    # 1) pagina
+    page = sqlalchemy_paginate(q, params)
 
-    return results
+    # 2) adiciona o served flag em cada item
+    resultado = []
+    for comp in page.items:
+        served = comp.only_online or (
+            comp.location is not None
+            and geo_func.ST_DWithin(comp.location, point, distance_m)
+        )
+        # transforma em dict + injeta o campo
+        data = CompanyReadWithService.model_validate(comp).model_dump()
+        data["serves_address"] = served
+        resultado.append(CompanyReadWithService.model_validate(data))
+
+    # 3) devolve novo Page com items customizados
+    return Page[CompanyReadWithService](
+        items=resultado,
+        meta=page.meta
+    )
 
 
 

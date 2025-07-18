@@ -3,6 +3,7 @@
 import api from './api';
 import type {
   CompanyRead,
+  CompanyFilter,
   CompanyReadWithService,
   PaginationParams,
   Page
@@ -60,48 +61,54 @@ export const getCompaniesByReferralCode = (code: string) =>
 
 
 
-// 1) ADMIN: busca paginada, sem filtro de ativo/online
-// GET /companies/searchAdmin?postal_code=…&radius_km=…&page=…&size=…
+/**
+ * Busca empresas por localização (city/state/postal_code)
+ * GET /companies/search
+ */
 export const searchCompaniesAdmin = (
-  postal_code: string,
-  radius_km: number,
-  pagination: PaginationParams = {}
-) =>
-  api.get<Page<CompanyRead>>('/companies/searchAdmin', {
-    params: { postal_code, radius_km, ...pagination },
-  });
+  params: CompanyFilter & PaginationParams = {}
+) => api.get<Page<CompanyRead>>('/companies/searchAdmin', { params });
 
 
-// 2) CLIENT: só ativas + online ou dentro do raio
-// GET /companies/search?postal_code=…&radius_km=…
+
+
+// 2) CLIENT: ativas + online / dentro do raio
 export const searchCompanies = (
   postal_code: string,
-  radius_km: number
+  radius_km: number,
+  page = 1,
+  size = 10
 ) =>
-  api.get<CompanyRead[]>('/companies/search', {
-    params: { postal_code, radius_km },
+  api.get<Page<CompanyRead>>('/companies/search', {
+    params: { postal_code, radius_km, page, size },
   });
 
-
-// 3) BUSCA POR CATEGORIA + raio
-// GET /companies/search-by-category?category_id=…&postal_code=…&radius_km=…
+// 3) POR CATEGORIA + raio
 export const searchCompaniesByCategory = (
   categoryId: string,
   postal_code: string,
-  radius_km: number
+  radius_km: number,
+  page = 1,
+  size = 10
 ) =>
-  api.get<CompanyRead[]>('/companies/search-by-category', {
-    params: { category_id: categoryId, postal_code, radius_km },
+  api.get<Page<CompanyRead>>('/companies/search-by-category', {
+    params: { 
+      category_id: categoryId, 
+      postal_code, 
+      radius_km,
+      page,
+      size,
+    },
   });
 
-
-// 4) BUSCA POR NOME + raio + flag serves_address
-// GET /companies/search-by-name?name=…&postal_code=…&radius_km=…
+// 4) POR NOME + raio + serves_address
 export const searchCompaniesByName = (
   name: string,
   postal_code: string,
-  radius_km: number
+  radius_km: number,
+  page = 1,
+  size = 10
 ) =>
-  api.get<CompanyReadWithService[]>('/companies/search-by-name', {
-    params: { name, postal_code, radius_km },
+  api.get<Page<CompanyReadWithService>>('/companies/search-by-name', {
+    params: { name, postal_code, radius_km, page, size },
   });

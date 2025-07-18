@@ -2,15 +2,18 @@
 
 import os
 import uuid
-from typing import Optional, List
+from typing import List
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status, Query
 from sqlalchemy.orm import Session
-from app.api.deps import get_db, require_admin, get_current_company
+from app.api.deps import get_db, require_admin, get_current_company, get_redis
+from app.services.geocode_service import GeocodeService
 from app.models.category import Category
 from app.models.company import Company
 from app.schemas.category import CategoryRead
 from app.services.category_service import list_categories
-from sqlalchemy import or_, and_
+from sqlalchemy import or_, func
+from geoalchemy2 import functions as geo_func
+from redis import Redis
 
 router = APIRouter(tags=["categories"])
 
@@ -126,43 +129,39 @@ async def update_category(
     "/used",
     response_model=List[CategoryRead],
     status_code=status.HTTP_200_OK,
-    summary="Categorias com pelo menos uma empresa ativa (OU only_online), filtradas por localização"
+    summary="Categorias com pelo menos uma empresa ativa (OU only_online), filtradas por raio"
 )
 def read_used_categories(
-    city: Optional[str] = Query(None, description="Filtrar por parte do nome da cidade"),
-    state: Optional[str] = Query(None, description="Filtrar por parte do nome do estado"),
-    postal_code: Optional[str] = Query(None, description="Filtrar por CEP exato"),
+    postal_code: str = Query(..., description="CEP (apenas dígitos) para busca geográfica"),
+    radius_km: float = Query(..., description="Raio em quilômetros"),
     db: Session = Depends(get_db),
+    redis: Redis = Depends(get_redis),
 ):
     """
-    Retorna categorias que têm pelo menos uma empresa ATIVA associada,
-    opcionalmente filtrando empresas por cidade, estado e/ou CEP,
-    mas **sempre incluindo** as empresas marcadas como only_online.
+    Retorna categorias que têm pelo menos uma empresa ATIVA associada
+    dentro de `radius_km` km de `postal_code`, sempre incluindo as only_online.
     """
-    # 1) join com Category.companies e filtra apenas empresas ativas
-    q = db.query(Category).join(Category.companies).filter(Company.is_active == True)
+    # 1) Geocode + cache
+    geocoder = GeocodeService(redis)
+    lat, lon = geocoder.geocode_postal_code(postal_code)
 
-    # 2) se vier qualquer filtro de localização, aplique-o *apenas* às empresas não-online,
-    #    mas sempre deixe passar as only_online
-    if city or state or postal_code:
-        loc_conditions = []
-        if city:
-            loc_conditions.append(Company.city.ilike(f"%{city}%"))
-        if state:
-            loc_conditions.append(Company.state.ilike(f"%{state}%"))
-        if postal_code:
-            loc_conditions.append(Company.postal_code == postal_code)
+    # 2) Constrói ponto de busca e distância em metros
+    search_point = func.ST_SetSRID(func.ST_MakePoint(lon, lat), 4326)
+    distance_m = radius_km * 1000
 
-        # only_online == True  OU  (todas as condições de localização)
-        q = q.filter(
+    # 3) Query espacial: join em Category→Company, filtra ativa e dentro do raio OU online
+    q = (
+        db.query(Category)
+        .join(Category.companies)
+        .filter(Company.is_active == True)
+        .filter(
             or_(
                 Company.only_online == True,
-                and_(*loc_conditions)
+                geo_func.ST_DWithin(Company.location, search_point, distance_m)
             )
         )
-
-    # 3) distinct para não repetir categorias
-    q = q.distinct()
+        .distinct()
+    )
 
     return q.all()
 

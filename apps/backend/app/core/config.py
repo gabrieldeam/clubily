@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     POSTGRES_USER: str = "postgres"
     POSTGRES_PASSWORD: str = "postgres"
     POSTGRES_DB: str = "clubily_db"
+    POSTGRES_PORT: str = "5433"
     DATABASE_URI: PostgresDsn | None = None  # calculada abaixo
 
     # Auth
@@ -43,6 +44,7 @@ class Settings(BaseSettings):
 
     # CORS
     FRONTEND_ORIGINS: list[str]
+    BACKEND_ORIGINS: str
     COOKIE_DOMAIN: str
 
     def __init__(self, **kwargs):
@@ -50,8 +52,9 @@ class Settings(BaseSettings):
         if not self.DATABASE_URI:
             self.DATABASE_URI = (
                 f"postgresql+psycopg2://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
-                f"@{self.POSTGRES_SERVER}/{self.POSTGRES_DB}"
+                f"@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
             )
+
 
     ASAAS_API_KEY: str
     ASAAS_BASE_URL: str

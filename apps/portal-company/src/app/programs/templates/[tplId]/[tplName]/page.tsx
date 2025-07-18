@@ -67,7 +67,12 @@ export default function TemplateInstancesPage() {
           <div className={styles.filters}>
             <select
               value={status}
-              onChange={e => { setStatus(e.target.value as any); setPage(1); }}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                // e.target.value é string — vamos assegurar que cai no nosso union
+                const newStatus = e.target.value as 'active' | 'completed' | '';
+                setStatus(newStatus);
+                setPage(1);
+              }}
             >
               <option value="">Todos</option>
               <option value="active">Ativos</option>

@@ -11,6 +11,7 @@ import Button from '@/components/Button/Button';
 import Notification from '@/components/Notification/Notification';
 import { buyCredits, getCharge } from '@/services/companyPaymentService';
 import type { CompanyPaymentRead } from '@/types/companyPayment';
+
 import styles from './page.module.css';
 
 export default function CreditsPage() {
@@ -20,6 +21,7 @@ export default function CreditsPage() {
   const [status, setStatus] = useState<CompanyPaymentRead['status'] | null>(null);
   const [countdown, setCountdown] = useState(0);
   const intervalRef = useRef<number | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const handleBuy = async (e: FormEvent) => {
     e.preventDefault();
@@ -119,11 +121,15 @@ export default function CreditsPage() {
             ) : (
               <div className={styles.status}>
                 <h2 className={styles.title}>Status da Cobrança</h2>
-                <div className={styles.infoGrid}>
-                  <div><strong>Valor</strong></div>
-                  <div>R$ {payment.amount.toFixed(2)}</div>
-                  <div><strong>Status</strong></div>
-                  <div className={statusClass}>{status}</div>
+                <div>
+                  <div className={styles.infoGrid}>
+                    <div><strong>Valor</strong></div>
+                    <div>R$ {payment.amount.toFixed(2)}</div>
+                  </div>
+                  <div className={styles.infoGrid}>
+                    <div><strong>Status</strong></div>
+                    <div className={statusClass}>Pedente</div>
+                  </div>                 
                 </div>
                 {qrSrc && (
                   <div className={styles.qrContainer}>
@@ -146,10 +152,15 @@ export default function CreditsPage() {
                       className={styles.copyInput}
                     />
                     <button
-                      onClick={() => navigator.clipboard.writeText(payment.pix_copy_paste_code)}
+                      onClick={() => {
+                        navigator.clipboard.writeText(payment.pix_copy_paste_code);
+                        setCopied(true);
+                        // volta ao texto original após 3s
+                        setTimeout(() => setCopied(false), 3000);
+                      }}
                       className={styles.copyBtn}
                     >
-                      Copiar
+                      {copied ? 'Copiado' : 'Copiar'}
                     </button>
                   </div>
                 </div>
