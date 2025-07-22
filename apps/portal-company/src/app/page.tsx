@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { useAuth } from '@/context/AuthContext';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import LoginForm from '@/components/LoginForm/LoginForm';
 import RegisterForm from '@/components/RegisterForm/RegisterForm';
 import Dashboard from '@/components/Dashboard/Dashboard';
@@ -11,6 +12,7 @@ import styles from './page.module.css';
 export default function Home() {
   const [view, setView] = useState<'login' | 'register'>('login');
   const { user, loading, refreshUser } = useAuth();
+  const router = useRouter();
 
   if (loading) {
     return <div className={styles.container}>Carregando...</div>;
@@ -50,7 +52,12 @@ export default function Home() {
               </>
             ) : (
               <>
-                <RegisterForm onSuccess={refreshUser} />
+                <RegisterForm 
+                   onSuccess={async () => {
+                   await refreshUser();
+                   router.replace('/?welcome=true');
+                 }}  
+                />
                 <div className={styles.toggleText}>
                   Já tem uma conta?
                   <span

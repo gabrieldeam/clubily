@@ -6,9 +6,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Loading from '@/components/Loading/Loading';
+import { useSearchParams } from 'next/navigation';
+import WelcomeSlider from '@/components/WelcomeSlider/WelcomeSlider';
 
-
-// import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { useAddress } from '@/context/AddressContext';
 
 import { listUsedCategories } from '@/services/categoryService';
@@ -20,36 +20,29 @@ import type { CompanyRead } from '@/types/company';
 import Header from '@/components/Header/Header';
 import CashbackSummaryCard from '@/components/CashbackSummaryCard/CashbackSummaryCard';
 import PointsBalanceCard from '@/components/PointsBalanceCard/PointsBalanceCard';
-// import Loading from '@/components/Loading/Loading';
 
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import styles from './Dashboard.module.css';
 
 export default function Dashboard() {
   const router = useRouter();
-  // const { loading: authLoading } = useRequireAuth();
   const { selectedAddress, radiusKm } = useAddress();
   const [loadingCompanies, setLoadingCompanies] = useState(true);
 
-  /* ───────────── state ───────────── */
-  // Categorias
   const [cats, setCats] = useState<CategoryRead[]>([]);
-  // const [loadingCats, setLoadingCats] = useState(true);
 
-  // Empresas
   const [companies, setCompanies] = useState<CompanyRead[]>([]);
   const [page, setPage] = useState(1);
   const size = 10;
   const [totalPages, setTotalPages] = useState(1);
-  // const [loadingCompanies, setLoadingCompanies] = useState(true);
-
-  // Scroll categorias
   const listRef = useRef<HTMLDivElement>(null);
   const [canLeft, setCanLeft] = useState(false);
   const [canRight, setCanRight] = useState(false);
 
-  /* ───────────── effects ───────────── */
-  // Buscar categorias
+  const searchParams = useSearchParams();
+  const initialShow = Boolean(searchParams.get('welcome'));
+  const [showWelcome, setShowWelcome] = useState(initialShow);
+
   useEffect(() => {
     if (!selectedAddress) return;
     let alive = true;
@@ -61,14 +54,11 @@ export default function Dashboard() {
       } catch {
         if (alive) setCats([]);
       } finally {
-        // if (alive) setLoadingCats(false);
       }
     })();
     return () => { alive = false; };
   }, [selectedAddress , radiusKm]);
 
-  // Buscar empresas
-// useEffect de busca de empresas com paginação
 useEffect(() => {
   if (!selectedAddress) return;
   let alive = true;
@@ -80,11 +70,9 @@ useEffect(() => {
       const res = await searchCompanies(postal_code, radiusKm, page, size);
       if (!alive) return;
 
-      // na primeira página, substitui; nas seguintes, concatena
       setCompanies(prev =>
         page === 1 ? res.data.items : [...prev, ...res.data.items]
       );
-      // calcula total de páginas a partir do total e do size
       setTotalPages(Math.ceil(res.data.total / res.data.size));
     } catch {
       if (alive) setCompanies([]);
@@ -99,7 +87,6 @@ useEffect(() => {
 }, [selectedAddress, radiusKm, page]);
 
 
-  // Atualizar setas de scroll
   const updateArrows = useCallback(() => {
     const el = listRef.current;
     if (!el) return;
@@ -124,12 +111,6 @@ useEffect(() => {
 
   const baseUrl = process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL ?? '';
 
-  // Early return para o nosso loading
-  // if (authLoading || loadingCats || loadingCompanies || !selectedAddress) {
-  //   return <Loading />;
-  // }
-
-  /* ───────────── renderização principal ───────────── */
   return (
     <>
       <Header
@@ -137,6 +118,9 @@ useEffect(() => {
           router.push(`/search?name=${encodeURIComponent(q)}`)
         }
       />
+      {showWelcome && (
+        <WelcomeSlider onClose={() => setShowWelcome(false)} />
+      )}
 
       <div className={styles.page}>
         <section className={styles.gridItem}>

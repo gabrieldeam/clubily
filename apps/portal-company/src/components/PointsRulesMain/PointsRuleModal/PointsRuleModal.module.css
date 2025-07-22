@@ -136,3 +136,25 @@
   font-size: 1rem;
   margin-bottom: 0.75rem;
 }
+
+/* helper ao verificar slug */
+.helperText {
+  font-size: 0.875rem;      /* 14px */
+  color: #6B7280;           /* Tailwind gray-500 */
+  margin-top: 0.25rem;      /* 4px */
+  font-style: italic;
+}
+
+/* mensagem de erro */
+.errorText {
+  font-size: 0.875rem;      /* 14px */
+  color: #DC2626;           /* Tailwind red-600 */
+  margin-top: 0.25rem;      /* 4px */
+}
+
+/* mensagem de sucesso */
+.successText {
+  font-size: 0.875rem;      /* 14px */
+  color: #16A34A;           /* Tailwind green-600 */
+  margin-top: 0.25rem;      /* 4px */
+}

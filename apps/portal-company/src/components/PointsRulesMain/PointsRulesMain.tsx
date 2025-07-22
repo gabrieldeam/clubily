@@ -12,6 +12,7 @@ import {
   updatePointsRule,
   deletePointsRule,
 } from '@/services/pointsService';
+import { RuleType } from '@/types/points';
 import type { PointsRuleRead, PointsRuleCreate } from '@/types/points';
 import PointsRuleModal from './PointsRuleModal/PointsRuleModal';
 import { getRuleTypeLabel } from '@/utils/roleUtils';
@@ -29,6 +30,25 @@ export default function PointsRulesMain() {
   const [viewMode, setViewMode] = useState<'list' | 'card'>('list');
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+const handleCopyLink = (rule: PointsRuleRead) => {
+  const slug = (rule.config as any).slug;
+  if (!slug) {
+    setError('Slug não configurado para esta regra.');
+    return;
+  }
+  const url = `${process.env.NEXT_PUBLIC_PUBLIC_FRONT_BASE_URL}/c/${slug}`;
+  navigator.clipboard.writeText(url)
+    .then(() => {
+      setSuccessMessage(`Link copiado: ${url}`);
+    })
+    .catch(() => {
+      setError('Falha ao copiar o link.');
+    });
+};
+
 
   /* ------------------------- initial fetch & resize ------------------------ */
   useEffect(() => {
@@ -138,6 +158,14 @@ export default function PointsRulesMain() {
             />
           )}
 
+          {successMessage && (
+            <Notification
+              type="success"
+              message={successMessage}
+              onClose={() => setSuccessMessage(null)}
+            />
+          )}
+
           <div className={styles.actionsHeader}>
             <button className={styles.addBtn} onClick={openCreate}>
               + Nova Regra
@@ -185,6 +213,15 @@ export default function PointsRulesMain() {
                   <div>{r.active ? 'Sim' : 'Não'}</div>
                   <div>{r.visible ? 'Sim' : 'Não'}</div>
                   <div className={styles.actions}>
+                    {r.rule_type === RuleType.digital_behavior && (
+                      <button
+                        className={styles.copyLink}
+                        onClick={() => handleCopyLink(r)}
+                        title="Copiar link de digital behavior"
+                      >
+                        🔗
+                      </button>
+                    )}
                     <Link
                       href={`/programs/rules/${r.id}/${r.name}`}
                       className={styles.view}
@@ -232,6 +269,18 @@ export default function PointsRulesMain() {
                   </p>
                 </div>
                 <div className={styles.cardActions}>
+                {r.rule_type === RuleType.digital_behavior && (
+                    <button
+                      className={styles.copyLink}
+                      onClick={e => {
+                        e.stopPropagation();
+                        handleCopyLink(r);
+                      }}
+                      title="Copiar link de digital behavior"
+                    >
+                      🔗 Copiar Link
+                    </button>
+                  )}
                   <Link
                     href={`/programs/rules/${r.id}/${r.name}`}
                     className={styles.view}

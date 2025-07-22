@@ -1,20 +1,20 @@
 // app/layout.tsx
 import './globals.css'
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Providers } from './providers'
 
 export const metadata: Metadata = {
   title: 'Clubily',
   description: 'Clubily — seu programa de fidelidade',
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#FFA600' },
-    { media: '(prefers-color-scheme: dark)',  color: '#FFA600' },
-  ],
   icons: {
-    icon: '/icon.svg',
-    shortcut: '/icon.svg',
-    apple: '/icon.svg',
+    icon: '/icon.svg',       
+    shortcut: '/icon.svg',   
+    apple: '/icon.svg',      
   },
+}
+
+export const viewport: Viewport = {
+  themeColor: '#FFA600',
 }
 
 export default function RootLayout({

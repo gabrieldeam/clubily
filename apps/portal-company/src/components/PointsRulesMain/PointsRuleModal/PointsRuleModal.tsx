@@ -15,6 +15,9 @@ import { listBranches } from '@/services/branchService';
 import { listProductCategories } from '@/services/productCategoryService';
 import { listInventoryItems } from '@/services/inventoryItemService';
 import styles from './PointsRuleModal.module.css';
+import { checkSlugAvailable } from '@/services/digitalBehaviorService';
+import { slugify, validateSlug } from '@/utils/slug';
+
 
 /** Campos possíveis dentro de `config` — e assinatura de índice para flexibilidade */
 interface RuleConfig extends Record<string, unknown> {
@@ -35,7 +38,11 @@ interface RuleConfig extends Record<string, unknown> {
   events?: Record<string, unknown>;
   date?: string;
   start?: string;
-  end?: string;
+  end?: string;  
+  slug?: string;
+  valid_from?: string;   
+  valid_to?: string; 
+  max_attributions?: number;
 }
 
 interface Props {
@@ -49,10 +56,11 @@ export default function PointsRuleModal({ rule, onSave, onCancel }: Props) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [ruleType, setRuleType] = useState<RuleType>(RuleType.value_spent);
-  const hiddenRuleTypes = [RuleType.event, RuleType.digital_behavior];
+  const hiddenRuleTypes = [RuleType.event];
   const [config, setConfig] = useState<RuleConfig>({});
   const [active, setActive] = useState(true);
   const [visible, setVisible] = useState(true);
+  const [originalSlug, setOriginalSlug] = useState<string>('');
 
   const [branches, setBranches] = useState<BranchRead[]>([]);
   const [categories, setCategories] = useState<ProductCategoryRead[]>([]);
@@ -64,6 +72,9 @@ export default function PointsRuleModal({ rule, onSave, onCancel }: Props) {
   const itemLimit = 10;
   const [itemSkip, setItemSkip] = useState(0);
   const [itemTotal, setItemTotal] = useState(0);
+  
+  const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
+  const [checkingSlug, setCheckingSlug] = useState(false);
 
   useEffect(() => {
     listProductCategories(catSkip, catLimit).then(res => {
@@ -89,6 +100,7 @@ export default function PointsRuleModal({ rule, onSave, onCancel }: Props) {
       setDescription(rule.description ?? '');
       setRuleType(rule.rule_type);
       setConfig(rule.config ?? {});
+     setOriginalSlug((rule.config?.slug as string) || '');
       setActive(rule.active);
       setVisible(rule.visible);
     } else {
@@ -96,17 +108,50 @@ export default function PointsRuleModal({ rule, onSave, onCancel }: Props) {
       setDescription('');
       setRuleType(RuleType.value_spent);
       setConfig({});
+      setOriginalSlug('');
       setActive(true);
       setVisible(true);
     }
   }, [rule]);
 
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) return;
-    const payload: PointsRuleCreate = { name, description, rule_type: ruleType, config, active, visible };
-    onSave(payload, rule?.id);
+const handleSubmit = async (e: FormEvent) => {
+  e.preventDefault();
+  if (!name.trim()) return;
+
+  if (ruleType === RuleType.digital_behavior) {
+    const s = config.slug as string;
+    // só valida se for nova regra ou se o slug mudou
+    const slugChanged = !rule || s !== originalSlug;
+    if (slugChanged) {
+      // verifica formato
+      if (!validateSlug(s)) {
+        alert('Slug inválido: use apenas letras, números e hífens.');
+        return;
+      }
+      // checa disponibilidade no backend
+      setCheckingSlug(true);
+      const ok = await checkSlugAvailable(s);
+      setCheckingSlug(false);
+      if (!ok) {
+        alert('Este slug já está em uso. Escolha outro.');
+        return;
+      }
+    }
+  }
+
+  const payload: PointsRuleCreate = {
+    name,
+    description,
+    rule_type: ruleType,
+    config,
+    active,
+    visible
   };
+  onSave(payload, rule?.id);
+};
+
+
+
 
   const num = (v: unknown) => (typeof v === 'number' ? v : '');
   const str = (v: unknown) => (typeof v === 'string' ? v : '');
@@ -192,6 +237,85 @@ export default function PointsRuleModal({ rule, onSave, onCancel }: Props) {
           </div>
         );
 
+      case RuleType.digital_behavior:
+        return (
+          <>
+            <FloatingLabelInput
+              label="Slug (único)"
+              type="text"
+              value={typeof config.slug === 'string' ? config.slug : ''}
+              onChange={e => {
+                const raw = e.target.value;
+                // gera base slug (trim remove espaços das pontas)
+                let s = slugify(raw);
+                // se terminou num espaço, adiciona '-' no final
+                if (raw.endsWith(' ')) {
+                  s = slugify(raw.trim()) + '-';
+                }
+                setConfig({ ...config, slug: s });
+                setSlugAvailable(null);
+              }}
+              onBlur={async () => {
+                const s = config.slug as string;
+                if (!validateSlug(s)) {
+                  setSlugAvailable(false);
+                  return;
+                }
+                setCheckingSlug(true);
+                const ok = await checkSlugAvailable(s);
+                setSlugAvailable(ok);
+                setCheckingSlug(false);
+              }}
+            />
+            {/* mínimo de 1 caractere */}
+            {!(config.slug as string)?.length && (
+              <div className={styles.errorText}>
+                O slug precisa ter ao menos 1 caractere.
+              </div>
+            )}
+            {checkingSlug && (
+              <div className={styles.helperText}>Verificando...</div>
+            )}
+            {config.slug && !validateSlug(config.slug as string) && (
+              <div className={styles.errorText}>
+                Formato inválido. Use apenas a–z, 0–9 e hífens.
+              </div>
+            )}
+            {slugAvailable === false && validateSlug(config.slug as string) && (
+              <div className={styles.errorText}>Este slug já está em uso.</div>
+            )}
+            {slugAvailable === true && validateSlug(config.slug as string) && (
+              <div className={styles.successText}>Slug disponível ✅</div>
+            )}
+
+            <FloatingLabelInput
+              label="Pontos a atribuir"
+              type="number"
+              value={num(config.points)}
+              onChange={e => setConfig({ ...config, points: Number(e.target.value) })}
+            />
+            <FloatingLabelInput
+              label="Validade (início)"
+              type="datetime-local"
+              value={str(config.valid_from)}
+              onChange={e => setConfig({ ...config, valid_from: e.target.value })}
+            />
+            <FloatingLabelInput
+              label="Validade (fim)"
+              type="datetime-local"
+              value={str(config.valid_to)}
+              onChange={e => setConfig({ ...config, valid_to: e.target.value })}
+            />
+            <FloatingLabelInput
+              label="Máximo de usos por usuário"
+              type="number"
+              value={num(config.max_attributions)}
+              onChange={e => setConfig({ ...config, max_attributions: Number(e.target.value) })}
+            />
+          </>
+        );
+
+
       default:
         return <p>Configuração não implementada para este tipo.</p>;
     }
@@ -205,7 +329,25 @@ export default function PointsRuleModal({ rule, onSave, onCancel }: Props) {
       <div className={styles.field}><label>Tipo de Regra</label><select value={ruleType} onChange={e => setRuleType(e.target.value as RuleType)} className={styles.select}>{Object.values(RuleType).filter(rt => !hiddenRuleTypes.includes(rt)).map(rt => <option key={rt} value={rt}>{getRuleTypeLabel(rt)}</option>)}</select></div>
       <div className={styles.configSection}><h3>Configuração</h3>{renderConfigFields()}</div>
       <div className={styles.switches}><label><input type="checkbox" checked={active} onChange={e => setActive(e.target.checked)} /> Ativa</label><label><input type="checkbox" checked={visible} onChange={e => setVisible(e.target.checked)} /> Visível</label></div>
-      <div className={styles.actions}><Button onClick={handleSubmit}>Salvar</Button><Button onClick={onCancel} bgColor="#f3f4f6" style={{ color: '#374151' }}>Cancelar</Button></div>
+      
+      <div className={styles.actions}>
+        <Button
+          onClick={handleSubmit}
+          disabled={
+            ruleType === RuleType.digital_behavior &&
+            (
+              !(config.slug as string)?.length || 
+              !validateSlug(config.slug as string) || 
+              checkingSlug ||                        
+              slugAvailable === false            
+            )
+          }
+        >
+          Salvar
+        </Button>
+
+        <Button onClick={onCancel} bgColor="#f3f4f6" style={{ color: '#374151' }}>Cancelar</Button>
+      </div>
     </div>
   );
 }

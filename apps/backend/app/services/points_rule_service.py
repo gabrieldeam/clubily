@@ -333,9 +333,6 @@ def evaluate_all_rules(
                 pts = floor(pl.get("base_points", 0) * multiplier)
 
 
-        elif rule.rule_type == RuleType.digital_behavior:
-            pts = int(cfg.get("events", {}).get(pl.get("event"), 0))
-
         elif rule.rule_type == RuleType.geolocation:
             if pl.get("branch_id") == cfg.get("branch_id"):
                 pts = int(cfg.get("points", 0))

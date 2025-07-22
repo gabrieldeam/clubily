@@ -174,18 +174,19 @@ export default function LoyaltyTemplatesMain() {
     <main className={styles.main}>
       <div className={styles.topBar}>
         <h2>Cartões de Fidelidade</h2>
+
+        {error && (
+          <Notification
+            type="error"
+            message={error}
+            onClose={() => setError(null)}
+          />
+        )}
+
         <button className={styles.addBtn} onClick={openCreateTpl}>
           + Novo Cartão
         </button>
       </div>
-
-      {error && (
-        <Notification
-          type="error"
-          message={error}
-          onClose={() => setError(null)}
-        />
-      )}
 
       {loading ? (
         <p className={styles.loading}>Carregando...</p>
