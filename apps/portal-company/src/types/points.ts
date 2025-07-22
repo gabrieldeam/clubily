@@ -33,3 +33,16 @@ export interface PointsRuleRead extends PointsRuleBase {
   created_at: string; // ISO
   updated_at: string; // ISO
 }
+
+
+export function isDigitalBehaviorRule(
+  rule: PointsRuleRead
+): rule is PointsRuleRead & { config: DigitalBehaviorConfig } {
+  return rule.rule_type === RuleType.digital_behavior;
+}
+
+export interface DigitalBehaviorConfig {
+  /** O slug usado no link de digital behavior */
+  slug: string;
+  // se houver outras props específicas, adicione aqui…
+}

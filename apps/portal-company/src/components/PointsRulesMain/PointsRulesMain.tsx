@@ -13,7 +13,8 @@ import {
   deletePointsRule,
 } from '@/services/pointsService';
 import { RuleType } from '@/types/points';
-import type { PointsRuleRead, PointsRuleCreate } from '@/types/points';
+import type { PointsRuleRead, PointsRuleCreate  } from '@/types/points';
+import { isDigitalBehaviorRule } from '@/types/points';
 import PointsRuleModal from './PointsRuleModal/PointsRuleModal';
 import { getRuleTypeLabel } from '@/utils/roleUtils';
 import styles from './PointsRulesMain.module.css';
@@ -33,21 +34,25 @@ export default function PointsRulesMain() {
   
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+
 const handleCopyLink = (rule: PointsRuleRead) => {
-  const slug = (rule.config as any).slug;
+  if (!isDigitalBehaviorRule(rule)) {
+    setError('Esta regra não gera link de comport. digital.');
+    return;
+  }
+  const { slug } = rule.config;
+
   if (!slug) {
     setError('Slug não configurado para esta regra.');
     return;
   }
+
   const url = `${process.env.NEXT_PUBLIC_PUBLIC_FRONT_BASE_URL}/c/${slug}`;
   navigator.clipboard.writeText(url)
-    .then(() => {
-      setSuccessMessage(`Link copiado: ${url}`);
-    })
-    .catch(() => {
-      setError('Falha ao copiar o link.');
-    });
+    .then(() => setSuccessMessage(`Link copiado: ${url}`))
+    .catch(() => setError('Falha ao copiar o link.'));
 };
+
 
 
   /* ------------------------- initial fetch & resize ------------------------ */

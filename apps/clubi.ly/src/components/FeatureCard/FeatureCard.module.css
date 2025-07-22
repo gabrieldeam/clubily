@@ -1,0 +1,9 @@
+.card{
+  background:#fff;border:1px solid #E5E7EB;border-radius: 20px;
+  padding:2rem;text-align:left;box-shadow:0 2px 4px rgba(0,0,0,0.04);
+  transition:box-shadow .2s;
+}
+.card:hover{box-shadow:0 6px 14px rgba(0,0,0,0.08);}
+.icon{font-size:2rem;color:#FFA600;margin-bottom:1rem;}
+.card h3{font-size:1.25rem;font-weight:600;margin-bottom:0.5rem;color:#222;}
+.card p{font-size:1rem;color:#555;}

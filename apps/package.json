@@ -1,0 +1,30 @@
+{
+  "name": "clubily-apps",
+  "private": true,
+  "scripts": {
+    "build:backend": "echo Backend não requer build",
+    "build:cliby":    "cd clubi.ly     && npm install && npm run build",
+    "build:kiosk":    "cd kiosk-next   && npm install && npm run build",
+    "build:client":   "cd portal-client&& npm install && npm run build",
+    "build:company":  "cd portal-company&& npm install && npm run build",
+    "build":          "npm-run-all --sequential build:*",
+
+    "start:backend":  "cd backend && venv\\Scripts\\activate && uvicorn app.main:app --host 0.0.0.0 --port 8000 --env-file .env.production",
+    "start:cliby":    "cd clubi.ly     && npm run start",
+    "start:kiosk":    "cd kiosk-next   && npm run start",
+    "start:client":   "cd portal-client&& npm run start",
+    "start:company":  "cd portal-company&& npm run start",
+    "start":          "concurrently \"npm run start:backend\" \"npm run start:cliby\" \"npm run start:kiosk\" \"npm run start:client\" \"npm run start:company\"",
+
+    "dev:backend":    "cd backend && venv\\Scripts\\activate && uvicorn app.main:app --reload --env-file .env.local",
+    "dev:cliby":      "cd clubi.ly     && npm run dev",
+    "dev:kiosk":      "cd kiosk-next   && npm run dev",
+    "dev:client":     "cd portal-client&& npm run dev",
+    "dev:company":    "cd portal-company&& npm run dev",
+    "dev":            "concurrently \"npm run dev:backend\" \"npm run dev:cliby\" \"npm run dev:kiosk\" \"npm run dev:client\" \"npm run dev:company\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "npm-run-all":  "^4.1.5"
+  }
+}

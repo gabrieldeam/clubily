@@ -1,5 +1,4 @@
 import "./globals.css";
-import { AuthProvider } from '@/context/AuthContext';
 import 'leaflet/dist/leaflet.css';
 
 export default function RootLayout({
@@ -10,9 +9,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body>
-        <AuthProvider>
           {children}
-        </AuthProvider>
       </body>
     </html>
   );

@@ -1,0 +1,254 @@
+.container {
+  display: flex;
+  width: 100%;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+@media (max-width: 768px) {
+  .container {
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+
+.hero {
+  position: relative;
+  padding: 4rem 2rem;
+  text-align: center;
+  border-radius: 20px;
+  overflow: hidden;
+  isolation: isolate;
+  width: 100%;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease;
+}
+
+.hero:hover {
+  transform: translateY(-5px);
+}
+
+.inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 2;
+}
+
+.content {
+  position: relative;
+  z-index: 3;
+}
+
+.hero h1 {
+  font-weight: 700;
+  line-height: 1.2;
+  font-size: 2.2rem;
+  margin-bottom: 1rem;
+}
+
+.hero p {
+  font-weight: 500;
+  line-height: 1.6;
+  margin: 0 auto;
+  font-size: 1.1rem;
+  max-width: 600px;
+}
+
+.actions {
+  margin-top: 2.5rem;
+  display: flex;
+  justify-content: center;
+}
+
+.primaryBtn, .secondaryBtn {
+  padding: 0.85rem 2rem;
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 1rem;
+  text-decoration: none;
+  display: inline-block;
+  transition: all 0.3s ease;
+  z-index: 2;
+}
+
+.primaryBtn {
+  background: #FF4C00;
+  color: #fff;
+}
+
+.primaryBtn:hover {
+  background: #e04500;
+  box-shadow: 0 5px 15px rgba(255, 76, 0, 0.3);
+}
+
+.secondaryBtn {
+  border: 2px solid #fff;
+  color: #fff;
+  background: transparent;
+}
+
+.secondaryBtn:hover {
+  background: #fff;
+  color: #FF4C00;
+  box-shadow: 0 5px 15px rgba(255, 255, 255, 0.3);
+}
+
+/* Grid de benefícios */
+.benefitsGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 800px;
+  margin: 2rem auto;
+}
+
+.benefitPair {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+}
+
+@media (max-width: 768px) {
+  .benefitPair {
+    flex-direction: column;
+    gap: 15px;
+  }
+}
+
+.benefitCard {
+  background: #f8f8f8;
+  border-radius: 15px;
+  padding: 20px;
+  text-align: center;
+  width: 100%;
+  max-width: 350px;
+  border: 1px solid #eee;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.benefitCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.benefitCard h3 {
+  color: #000;
+  font-size: 1.1rem;
+  margin-bottom: 10px;
+}
+
+.benefitCard p {
+  color: #555;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* Seção de Empresas */
+.heroBusiness {
+  background: #fff;
+  border: 1px solid #f0f0f0;
+}
+
+/* Seção de Clientes */
+.heroClient {
+  background: linear-gradient(135deg, #FFA600 0%, #FF4C00 100%);
+  color: #fff;
+}
+
+.heroClient h1,
+.heroClient p {
+  color: #fff;
+}
+
+.heroClient .benefitCard {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.heroClient .benefitCard h3 {
+  color: #fff;
+}
+
+.heroClient .benefitCard p {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Formas flutuantes */
+.floatingShape1, .floatingShape2, .floatingShape3,
+.floatingShape4, .floatingShape5 {
+  position: absolute;
+  border-radius: 50%;
+  z-index: 1;
+  animation: float 15s infinite ease-in-out;
+}
+
+.floatingShape1 {
+  width: 120px;
+  height: 120px;
+  background: rgba(255, 76, 0, 0.08);
+  top: 10%;
+  left: 15%;
+  animation-duration: 20s;
+}
+
+.floatingShape2 {
+  width: 80px;
+  height: 80px;
+  background: rgba(255, 166, 0, 0.1);
+  bottom: 20%;
+  right: 10%;
+  animation-duration: 25s;
+}
+
+.floatingShape3 {
+  width: 60px;
+  height: 60px;
+  background: rgba(255, 76, 0, 0.05);
+  top: 40%;
+  left: 5%;
+  animation-duration: 18s;
+}
+
+.floatingShape4 {
+  width: 100px;
+  height: 100px;
+  background: rgba(255, 255, 255, 0.15);
+  top: 15%;
+  right: 20%;
+  animation-duration: 22s;
+}
+
+.floatingShape5 {
+  width: 70px;
+  height: 70px;
+  background: rgba(255, 255, 255, 0.1);
+  bottom: 25%;
+  left: 15%;
+  animation-duration: 17s;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(10px, 15px);
+  }
+  50% {
+    transform: translate(-15px, 10px);
+  }
+  75% {
+    transform: translate(-10px, -15px);
+  }
+}
+
+/* Animação adicional para formas */
+@media (prefers-reduced-motion: reduce) {
+  .floatingShape1, .floatingShape2, .floatingShape3,
+  .floatingShape4, .floatingShape5 {
+    animation: none;
+  }
+}

@@ -1,0 +1,160 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background-color: #FFA600;
+  backdrop-filter: blur(8px);
+  border-radius: 0 0 20px 20px;
+}
+
+.noRadius {
+  border-radius: 0 !important;
+}
+
+.nav {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+}
+
+/* MENU PRINCIPAL */
+.menu {
+  display: flex;
+  gap: 1.5rem;
+  list-style: none;
+}
+.menu.open {
+  display: flex;
+}
+.link {
+  color: white;
+  font-weight: 500;
+  text-decoration: none;
+}
+.link:hover,
+.active {
+  color: #000;
+}
+
+/* DROPDOWN CLICK-TOGGLE */
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+.dropdownMenu {
+  display: none; /* escondido por padrão */
+  position: absolute;
+  right: 0;
+  margin-top: 0.1rem;
+  background-color: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  list-style: none;
+  padding: 0.25rem;
+  min-width: 150px;
+  z-index: 40;
+}
+/* mostrado quando .dropdownOpen está presente */
+.dropdownOpen .dropdownMenu {
+  display: block;
+}
+.dropdownItem {
+  display: block;
+  padding: 0.5rem 1rem;
+  color: #000;
+  text-decoration: none;
+  font-weight: 500;
+  white-space: nowrap;
+  border-radius: 20px;
+  transition: background-color 0.2s, color 0.2s;
+}
+.dropdownItem:hover,
+.dropdownItem:focus {
+  background-color: #000;
+  color: #fff;
+}
+
+/* BOTÃO ENTRAR */
+.loginBtn {
+  background-color: #000;
+  color: #fff;
+  padding: 0.5rem 1.25rem;
+  border: none;
+  border-radius: 20px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.loginBtn:hover {
+  background-color: #FF4C00;
+}
+
+/* HAMBURGER */
+.hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 40px;
+  height: 32px;
+  background-color: #000;
+  border: none;
+  border-radius: 20px;
+  padding: 0.6rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.hamburger span {
+  display: block;
+  height: 2px;
+  border-radius: 2px;
+  background-color: #fff;
+}
+.hamburger:hover,
+.hamburger:focus {
+  background-color: #FF4C00;
+}
+
+/* alinhamento do dropdown e hamburger */
+.menudrops {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* MOBILE */
+@media (max-width: 767px) {
+  .hamburger {
+    display: flex;
+  }
+
+  .menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background-color: #FFA600;
+    flex-direction: column;
+    gap: 0;
+    padding: 1rem 0;
+    border-radius: 0 0 20px 20px;
+  }
+
+  .menu.open {
+    display: flex;
+  }
+
+  .menu li {
+    text-align: center;
+    margin: 0.5rem 0;
+  }
+}

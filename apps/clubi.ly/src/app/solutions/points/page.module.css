@@ -1,0 +1,4 @@
+.wrapper{max-width:900px;margin:0 auto;padding:4rem 1rem;text-align:center;}
+.wrapper h1{font-size:2rem;font-weight:700;margin-bottom:1rem;color:#222;}
+.wrapper p{font-size:1.125rem;margin-bottom:2rem;color:#555;}
+.img{border-radius:var(--radius-lg);box-shadow:0 4px 10px rgba(0,0,0,0.05);}
