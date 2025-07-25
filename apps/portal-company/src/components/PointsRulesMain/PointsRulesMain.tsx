@@ -47,7 +47,7 @@ const handleCopyLink = (rule: PointsRuleRead) => {
     return;
   }
 
-  const url = `${process.env.NEXT_PUBLIC_PUBLIC_FRONT_BASE_URL}/c/${slug}`;
+  const url = `${process.env.NEXT_PUBLIC_PUBLIC_FRONT_BASE_URL}/link/${slug}`;
   navigator.clipboard.writeText(url)
     .then(() => setSuccessMessage(`Link copiado: ${url}`))
     .catch(() => setError('Falha ao copiar o link.'));

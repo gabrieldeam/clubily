@@ -30,31 +30,35 @@ export default function Home() {
       </section>
 
       <ValueProposition 
-        title="Para empresas: Transforme clientes em fãs da sua marca"
+        tag="Para empresas"
+        title="Transforme clientes em fãs da sua marca"
         description="Nossa plataforma oferece tudo que você precisa para criar programas de fidelidade que realmente engajam"
         features={[
           { icon: <BarChart />, title: "Dashboard intuitivo", description: "Acompanhe métricas de desempenho em tempo real" },
-          { icon: <Smartphone />, title: "App personalizado", description: "Seu programa com sua marca no celular do cliente" },
-          { icon: <Gift />, title: "Gestão de recompensas", description: "Crie e gerencie catálogo de prêmios" },
+          { icon: <Smartphone />, title: "Programas personalizado", description: "Seu programa com suas regras para e atrair clientes" },
+          { icon: <Gift />, title: "Gestão de recompensas", description: "Distribua pontos para seus clientes para eles trocar por recompensas" },
           { icon: <Users />, title: "Segmentação avançada", description: "Identifique seus melhores clientes" }
         ]}
-        image="/business-dashboard.jpg" // Exemplo: https://images.unsplash.com/photo-1460925895917-afdab827c52f
+        image="/dashboard.png" // Exemplo: https://images.unsplash.com/photo-1460925895917-afdab827c52f
         cta={{ text: "Experimente grátis", link: "/companies" }}
+        sectionBorderRadius="20px 20px 0 0"
         bgColor="light"
       />
 
       <ValueProposition 
-        title="Para clientes: Tudo em um só lugar, benefícios em todo lugar"
+        tag="Para clientes"
+        title="Tudo em um só lugar, benefícios em todo lugar"
         description="Gerencie todos os seus programas de fidelidade de forma simples e prática"
         features={[
           { icon: <Zap />, title: "Acumule instantaneamente", description: "Cashback e pontos creditados na hora" },
           { icon: <CreditCard />, title: "Cartões digitais", description: "Todos seus cartões de fidelidade no celular" },
           { icon: <Gift />, title: "Resgate quando quiser", description: "Troque pontos por produtos e serviços" },
-          { icon: <Star />, title: "Ofertas exclusivas", description: "Descontos especiais para membros fiéis" }
+          { icon: <Star />, title: "Descubra empresas", description: "Descubra empresas confiáveis e ganhe mais por isso" }
         ]}
-        image="/client-app.jpg" // Exemplo: https://images.unsplash.com/photo-1607082350899-7e105aa886ae
+        image="/ly.png" // Exemplo: https://images.unsplash.com/photo-1607082350899-7e105aa886ae
         cta={{ text: "Ver meus programas", link: "/clients" }}
         bgColor="gradient"
+        sectionBorderRadius=" 0 0 20px 20px"
         reverse
       />
 

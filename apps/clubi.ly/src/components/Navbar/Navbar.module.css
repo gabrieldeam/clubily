@@ -44,13 +44,18 @@
   color: #000;
 }
 
+.active {
+  font-weight: 600;
+}
+
 /* DROPDOWN CLICK-TOGGLE */
 .dropdown {
   position: relative;
   display: inline-block;
 }
 .dropdownMenu {
-  display: none; /* escondido por padrão */
+  display: none;
+  flex-direction: column;
   position: absolute;
   right: 0;
   margin-top: 0.1rem;
@@ -63,12 +68,13 @@
   min-width: 150px;
   z-index: 40;
 }
-/* mostrado quando .dropdownOpen está presente */
-.dropdownOpen .dropdownMenu {
-  display: block;
+
+/* mostra quando a classe .open está presente */
+.dropdownMenu.open {
+  display: flex;
 }
 .dropdownItem {
-  display: block;
+  display: flex;
   padding: 0.5rem 1rem;
   color: #000;
   text-decoration: none;
@@ -102,7 +108,8 @@
 .hamburger {
   display: none;
   flex-direction: column;
-  justify-content: space-between;
+  align-items: center;
+  justify-content: center;
   width: 40px;
   height: 32px;
   background-color: #000;
@@ -111,12 +118,8 @@
   padding: 0.6rem;
   cursor: pointer;
   transition: background-color 0.2s;
-}
-.hamburger span {
-  display: block;
-  height: 2px;
-  border-radius: 2px;
-  background-color: #fff;
+  color: white;
+
 }
 .hamburger:hover,
 .hamburger:focus {

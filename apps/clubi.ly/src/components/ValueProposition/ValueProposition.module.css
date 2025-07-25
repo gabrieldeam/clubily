@@ -17,6 +17,23 @@
   color: white;
 }
 
+
+.tag {
+  /* cor sólida à esquerda → transparente à direita */
+  background: linear-gradient(
+    90deg,                 /* direção: esquerda → direita */
+    #ff4d0052 0%,          /* início: mesma cor/alpha que você já usava */
+    #ff4d0052 60%,         /* mantém sólido até ±60 % */
+    transparent 100%       /* desaparece no fim */
+  );
+
+  color: #fff;
+  padding: 5px 10px;
+  border-radius: 20px;
+  margin-bottom: 5px;
+  width: auto;
+}
+
 .container {
   display: flex;
   align-items: center;
@@ -37,20 +54,20 @@
 .imageContainer {
   flex: 1;
   position: relative;
+  width: 100%;
   height: 500px;
 }
 
 .imagePlaceholder {
+  position: relative;
   width: 100%;
   height: 100%;
-  background: #f0f0f0;
   border-radius: 15px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #999;
   font-weight: bold;
-  position: relative;
   overflow: hidden;
 }
 
@@ -62,11 +79,6 @@
   right: 0;
   bottom: 0;
   background: linear-gradient(45deg, transparent 50%, rgba(255,76,0,0.05) 100%);
-}
-
-.imageCaption {
-  position: relative;
-  z-index: 2;
 }
 
 .section h2 {
@@ -146,17 +158,20 @@
   box-shadow: 0 5px 15px rgba(255, 255, 255, 0.2);
 }
 
+/* ---------- Breakpoints ---------- */
 @media (max-width: 1024px) {
   .container {
     flex-direction: column;
     gap: 3rem;
   }
-  
+
   .reverse {
     flex-direction: column;
   }
-  
+
+  /* REMOVER flex:1 para evitar altura 0 */
   .imageContainer {
+    flex: 0 0 auto;
     width: 100%;
     height: 400px;
   }
@@ -166,11 +181,11 @@
   .featuresGrid {
     grid-template-columns: 1fr;
   }
-  
+
   .imageContainer {
-    height: 300px;
+    height: 310px;
   }
-  
+
   .section h2 {
     font-size: 2rem;
   }

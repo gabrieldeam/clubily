@@ -1,112 +1,434 @@
-.wrapper{
-  max-width:1000px;
-  margin:0 auto;
-  padding:4rem 1rem 6rem;
-  text-align:center;
+:export {
+  primary: #FF4C00;
+  secondary: #FF9D00;
+  dark: #2c3e50;
+  grey: #7f8c8d;
+  lightGrey: #f9f9ff;
 }
 
-.wrapper h1{
-  font-size:2.25rem;
-  font-weight:700;
-  margin-bottom:0.75rem;
-  color:#222;
+.container {
+  width: min(100% - 2rem, 1200px);
+  margin-inline: auto;
+  overflow-x: hidden;
 }
 
-.lead{
-  font-size:1.125rem;
-  margin-bottom:3rem;
-  color:#555;
-  max-width:600px;
-  line-height:1.5;
-  margin-left:auto;
-  margin-right:auto;
+/* ---------- Typography ----------- */
+.sectionTitle {
+  font-size: clamp(1.75rem, 1.2rem + 2vw, 2.5rem);
+  margin-bottom: .75rem;
+  color: var(--dark, #2c3e50);
+  text-align: center;
 }
 
-.grid{
-  display:grid;
-  gap:2rem;
-  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
-  margin-bottom:4rem;
+.sectionSubtitle {
+  font-size: clamp(1rem, 0.85rem + .5vw, 1.25rem);
+  color: var(--grey, #7f8c8d);
+  text-align: center;
+  max-width: 42ch;
+  margin: 0 auto 2.5rem;
 }
 
-.card{
-  background:#fff;
-  border:1px solid #E5E7EB;
-  border-radius:var(--radius-lg);
-  padding:2rem;
-  box-shadow:0 2px 4px rgba(0,0,0,0.04);
-  text-align:left;
+.highlight {
+  color: var(--primary, #FF4C00);
+  position: relative;
 }
 
-.card h2{
-  font-size:1.25rem;
-  font-weight:600;
-  margin-bottom:0.5rem;
-  color:#222;
+.highlight::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: -4px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary, #FF4C00), var(--secondary, #FF9D00));
+  border-radius: 2px;
 }
 
-.card p{
-  font-size:1rem;
-  color:#555;
-  line-height:1.5;
+/* ---------- Hero ----------- */
+.hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3rem;
+  padding-block: 4rem;
 }
 
-.appSection{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:2rem;
-  margin-bottom:3.5rem;
+.heroContent {
+  flex: 1 1 320px;
 }
 
-.phone{
-  border-radius:1rem;
-  box-shadow:0 8px 20px rgba(0,0,0,0.08);
+.heroTitle {
+  font-size: clamp(2.25rem, 1.5rem + 2.5vw, 3.5rem);
+  line-height: 1.2;
+  margin-bottom: 1rem;
+  color: var(--dark, #2c3e50);
 }
 
-.appCopy{
-  max-width:360px;
+.heroSubtitle {
+  font-size: clamp(1.125rem, 1rem + .5vw, 1.35rem);
+  margin-bottom: 2rem;
+  color: #34495e;
+  line-height: 1.5;
 }
 
-.appCopy h3{
-  font-size:1.5rem;
-  font-weight:600;
-  margin-bottom:0.5rem;
-  color:#222;
+.ctaContainer {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
-.appCopy p{
-  font-size:1rem;
-  color:#555;
-  margin-bottom:1.25rem;
+.primaryBtn {
+  background: var(--primary, #FF4C00);
+  color: #fff;
+  padding: .9rem 2.2rem;
+  border-radius: 2.5rem;
+  text-decoration: none;
+  font-weight: 600;
+  transition: transform .3s, box-shadow .3s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 15px rgba(255, 76, 0, 0.3);
 }
 
-.storeBtns{
-  display:flex;
-  gap:1rem;
-  justify-content:center;
-  flex-wrap:wrap;
+.primaryBtn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(255, 76, 0, 0.4);
 }
 
-.loginBtn{
-  display:inline-block;
-  margin-top:1rem;
-  background:var(--color-primary);
-  color:#fff;
-  padding:0.75rem 2rem;
-  border-radius:var(--radius-lg);
-  font-weight:600;
+.secondaryBtn {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  color: var(--primary, #FF4C00);
+  font-weight: 600;
+  transition: gap .3s;
 }
 
-.loginBtn:hover{
-  background:var(--color-primary-light);
+.secondaryBtn:hover {
+  gap: .8rem;
 }
 
-@media(min-width:768px){
-  .appSection{
-    flex-direction:row;
-    align-items:center;
-    justify-content:center;
+.heroImage {
+  flex: 1 1 320px;
+  position: relative;
+  aspect-ratio: 5/4;
+  border-radius: 1.25rem;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, .1);
+}
+
+/* ---------- How it works ----------- */
+.howItWorks {
+  padding-block: 4rem;
+  background: linear-gradient(to bottom, #ffffff 0%, var(--lightGrey, #f9f9ff) 100%);
+}
+
+.stepsContainer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2rem;
+  counter-reset: steps;
+}
+
+.stepCard {
+  background: #fff;
+  border-radius: 1rem;
+  padding: 2rem 1.5rem;
+  text-align: center;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .05);
+  flex: 1 1 220px;
+  max-width: 280px;
+  transition: transform .3s;
+}
+
+.stepCard:hover {
+  transform: translateY(-6px);
+}
+
+.stepNumber {
+  display: grid;
+  place-items: center;
+  inline-size: 42px;
+  block-size: 42px;
+  background: var(--primary, #FF4C00);
+  color: #fff;
+  border-radius: 50%;
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-inline: auto 1.2rem auto;
+}
+
+.stepDivider {
+  width: 36px;
+  height: 3px;
+  background: #3498db;
+  align-self: center;
+}
+
+/* ---------- Features ----------- */
+.featuresSection {
+  padding-block: 5rem;
+}
+
+.featuresGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.featureCard {
+  background: #fff;
+  border-radius: 1rem;
+  padding: 2rem 1.5rem;
+  text-align: center;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .05);
+  transition: transform .3s;
+}
+
+.featureCard:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, .08);
+}
+
+.featureIconContainer {
+  display: grid;
+  place-items: center;
+  inline-size: 68px;
+  block-size: 68px;
+  background: rgba(255, 76, 0, 0.1);
+  border-radius: 50%;
+  margin: 0 auto 1rem;
+}
+
+.featureIcon {
+  color: var(--primary, #FF4C00);
+}
+
+/* ---------- Rewards ----------- */
+.rewardsSection {
+  padding-block: 4rem;
+  background: linear-gradient(to bottom, var(--lightGrey, #f9f9ff) 0%, #ffffff 100%);
+}
+
+.productGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 2rem;
+  margin-block: 2.5rem;
+}
+
+.productCard {
+  background: #fff;
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .05);
+  transition: transform .3s;
+}
+
+.productCard:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, .08);
+}
+
+.imageWrapper {
+  position: relative;
+  aspect-ratio: 4/3;
+}
+
+.productInfo {
+  padding: 1.3rem 1.1rem;
+}
+
+.productFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.pointsCost {
+  font-weight: 700;
+  color: var(--primary, #FF4C00);
+  font-size: 1.15rem;
+}
+
+.redeemBtn {
+  background: var(--primary, #FF4C00);
+  color: #fff;
+  border: none;
+  padding: .6rem 1.2rem;
+  border-radius: .5rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  transition: gap .3s, background .3s;
+}
+
+.redeemBtn:hover {
+  background: #ff5c1a;
+  gap: .6rem;
+}
+
+/* ---------- Referral ----------- */
+.referralSection {
+  padding-block: 5rem;
+  background: linear-gradient(135deg, var(--dark, #2c3e50) 0%, #1a2530 100%);
+  color: #fff;
+  border-radius: 1.5rem;
+  margin-block: 3rem;
+}
+
+.referralContent {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3rem;
+  max-width: 1200px;
+  margin-inline: auto;
+  align-items: center;
+}
+
+.referralText {
+  flex: 1 1 320px;
+}
+
+.referralBenefits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-block: 1.5rem 2rem;
+}
+
+.benefitCard {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  background: rgba(255, 255, 255, .12);
+  padding: .8rem 1.2rem;
+  border-radius: .75rem;
+  font-size: .9rem;
+}
+
+.referralSubtitle {
+  margin-bottom: .8rem;
+  font-size: 1.15rem;
+}
+
+.referralSteps {
+  margin-block: 2rem;
+}
+
+.referralSteps li {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  align-items: flex-start;
+}
+
+.stepIndicator {
+  inline-size: 32px;
+  block-size: 32px;
+  background: var(--primary, #FF4C00);
+  color: #fff;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+}
+
+.referralImage {
+  flex: 1 1 320px;
+  position: relative;
+  aspect-ratio: 5/4;
+  border-radius: 1.25rem;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, .3);
+}
+
+/* ---------- Global benefits ----------- */
+.benefitsSection {
+  padding-block: 4rem;
+}
+
+.benefitsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 2rem;
+  margin-top: 2.5rem;
+}
+
+.benefitCard {
+  background: #fff;
+  border-radius: 1rem;
+  padding: 2rem 1.5rem;
+  text-align: center;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .05);
+  transition: transform .3s;
+}
+
+.benefitCard:hover {
+  transform: translateY(-6px);
+}
+
+.benefitIcon {
+  color: var(--primary, #FF4C00);
+  margin-bottom: 1rem;
+}
+
+/* ---------- Final CTA ----------- */
+.finalCta {
+  padding: 5rem 2rem;
+  background: linear-gradient(135deg, var(--primary, #FF4C00) 0%, var(--secondary, #FF9D00) 100%);
+  border-radius: 1.5rem;
+  color: #fff;
+  text-align: center;
+  margin-block: 3rem;
+}
+
+.ctaContent {
+  max-width: 640px;
+  margin-inline: auto;
+}
+
+.ctaContent h2 {
+  font-size: clamp(1.75rem, 1.2rem + 2vw, 2.5rem);
+  margin-bottom: 1rem;
+}
+
+.ctaContent p {
+  font-size: clamp(1rem, .9rem + .4vw, 1.2rem);
+  margin-bottom: 2rem;
+  opacity: .9;
+}
+
+.ctaBtn {
+  background: #fff;
+  color: var(--primary, #FF4C00);
+  padding: 1rem 2.5rem;
+  border-radius: 2.5rem;
+  text-decoration: none;
+  font-weight: 700;
+  transition: transform .3s, box-shadow .3s;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, .2);
+  display: inline-block;
+}
+
+.ctaBtn:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .3);
+}
+
+/* ---------- Media queries ----------- */
+@media (max-width: 640px) {
+  .hero {
+    padding-block: 3rem;
   }
-  .appCopy{text-align:left;}
+  .howItWorks, .featuresSection, .rewardsSection, .benefitsSection {
+    padding-block: 3.5rem;
+  }
+  .referralSection {
+    padding-block: 4rem;
+  }
 }

@@ -7,10 +7,10 @@ import { usePathname } from 'next/navigation';
 import styles from './Navbar.module.css';
 
 const links = [
-  { href: '/solutions', label: 'Soluções' },
   { href: '/companies', label: 'Para Empresas' },
   { href: '/clients', label: 'Para Clientes' },
-  { href: '/pricing', label: 'Preços' }
+  { href: '/about', label: 'Sobre nós' },
+  { href: '/faq', label: 'Perguntas e respostas' },
 ];
 
 export default function Navbar() {
@@ -30,35 +30,41 @@ export default function Navbar() {
   const closeMobile = () => setMobileOpen(false);
   const closeLogin = () => setLoginOpen(false);
 
-  // click fora fecha ambos
-  useEffect(() => {
-    function handleClickOutside(ev: MouseEvent) {
-      const tgt = ev.target as Node;
-
-      // fechar login dropdown
-      if (
-        loginOpen &&
-        dropdownRef.current &&
-        !dropdownRef.current.contains(tgt)
-      ) {
-        closeLogin();
-      }
-
-      // fechar menu mobile
-      if (
-        mobileOpen &&
-        menuRef.current &&
-        hamburgerRef.current &&
-        !menuRef.current.contains(tgt) &&
-        !hamburgerRef.current.contains(tgt)
-      ) {
-        closeMobile();
-      }
+// useEffect só para o mobile menu (mantém como está)
+useEffect(() => {
+  function handleClickOutsideMobile(ev: MouseEvent) {
+    if (
+      mobileOpen &&
+      menuRef.current &&
+      hamburgerRef.current &&
+      !menuRef.current.contains(ev.target as Node) &&
+      !hamburgerRef.current.contains(ev.target as Node)
+    ) {
+      closeMobile();
     }
+  }
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [loginOpen, mobileOpen]);
+  document.addEventListener('mousedown', handleClickOutsideMobile);
+  return () =>
+    document.removeEventListener('mousedown', handleClickOutsideMobile);
+}, [mobileOpen]);
+
+// useEffect separado só para fechar o dropdown de login
+useEffect(() => {
+  function handleClickOutsideDropdown(ev: MouseEvent) {
+    if (
+      loginOpen &&
+      dropdownRef.current &&
+      !dropdownRef.current.contains(ev.target as Node)
+    ) {
+      closeLogin();
+    }
+  }
+
+  document.addEventListener('mousedown', handleClickOutsideDropdown);
+  return () =>
+    document.removeEventListener('mousedown', handleClickOutsideDropdown);
+}, [loginOpen]);
 
   return (
     <header className={`${styles.header} ${mobileOpen ? styles.noRadius : ''}`}>
@@ -132,9 +138,7 @@ export default function Navbar() {
             onClick={toggleMobile}
             aria-label="Abrir menu"
           >
-            <span />
-            <span />
-            <span />
+            ☰
           </button>
         </div>
       </nav>
