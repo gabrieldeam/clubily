@@ -1,4 +1,3 @@
-// /components/ProductCategoriesMain/CategoryModal/CategoryModal.tsx
 'use client';
 
 import { FormEvent, useState, useEffect, useRef } from 'react';
@@ -15,6 +14,8 @@ interface Props {
   onCancel: () => void;
 }
 
+const DRAFT_KEY = 'categoryModalDraft';
+
 export default function CategoryModal({ category, onSave, onCancel }: Props) {
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
@@ -22,27 +23,42 @@ export default function CategoryModal({ category, onSave, onCancel }: Props) {
     useState<{ type: 'error'; message: string } | null>(null);
   const slugTouched = useRef(false);
 
+  // 1. Inicialização / Restauração do draft
   useEffect(() => {
     if (category) {
       setName(category.name);
       setSlug(category.slug);
       slugTouched.current = true;
     } else {
-      setName('');
-      setSlug('');
-      slugTouched.current = false;
+      const draft = localStorage.getItem(DRAFT_KEY);
+      if (draft) {
+        const { name: n, slug: s } = JSON.parse(draft);
+        setName(n);
+        setSlug(s);
+        slugTouched.current = true;
+      } else {
+        setName('');
+        setSlug('');
+        slugTouched.current = false;
+      }
       setNotification(null);
     }
   }, [category]);
+
+  // 2. Salvamento automático do draft
+  useEffect(() => {
+    if (!category) {
+      localStorage.setItem(
+        DRAFT_KEY,
+        JSON.stringify({ name: name.trim(), slug })
+      );
+    }
+  }, [name, slug, category]);
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const v = e.target.value;
     setName(v);
     if (!slugTouched.current) setSlug(slugify(v));
-  };
-  const handleSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    slugTouched.current = true;
-    setSlug(e.target.value);
   };
 
   const handleSubmit = (e: FormEvent) => {
@@ -59,6 +75,12 @@ export default function CategoryModal({ category, onSave, onCancel }: Props) {
       return;
     }
     onSave({ name: name.trim(), slug }, category?.id);
+    if (!category) localStorage.removeItem(DRAFT_KEY);
+  };
+
+  const handleCancel = () => {
+    if (!category) localStorage.removeItem(DRAFT_KEY);
+    onCancel();
   };
 
   return (
@@ -77,23 +99,15 @@ export default function CategoryModal({ category, onSave, onCancel }: Props) {
 
       <FloatingLabelInput
         id="cat-name"
-        label="Nome"
+        label="Nome da categoria"
         value={name}
         onChange={handleNameChange}
       />
 
-      <FloatingLabelInput
-        id="cat-slug"
-        label="Slug"
-        value={slug}
-        onChange={handleSlugChange}
-      />
-      <div className={styles.helperText}>somente a–z, 0–9 e hífens</div>
-
       <div className={styles.actions}>
         <Button type="submit">{category ? 'Salvar' : 'Criar'}</Button>
-        <Button bgColor="#AAA" onClick={onCancel}>Cancelar</Button>
+        <Button bgColor="#AAA" onClick={handleCancel}>Cancelar</Button>
       </div>
     </form>
-);
+  );
 }

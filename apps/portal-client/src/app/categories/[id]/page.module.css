@@ -132,7 +132,11 @@
 
 .companyLogo {
   width: 80px;
-  height: 80px;
+  height: 80px;  
+  min-width: 80px;
+  min-height: 80px;
+  max-width: 80px;
+  max-height: 80px;
   border-radius: 50%;
   background-color: #FFA600;
   display: flex;
@@ -236,6 +240,10 @@
     .companyLogo {
     width: 60px;
     height: 60px;
+    min-width: 60px;
+    min-height: 60px;
+    max-width: 60px;
+    max-height: 60px;
   }
 
   .companyName {

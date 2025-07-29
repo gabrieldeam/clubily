@@ -99,9 +99,9 @@ export default function PointsPage() {
           {!purchase && (
             <section className={styles.pricingBlock}>
               <h2 className={styles.pricingTitle}>Planos de Pontos</h2>
-              <p className={styles.pricingSubtitle}>
+              {/* <p className={styles.pricingSubtitle}>
                 -50% em todos os planos durante a Black Friday • Garanta até 1 de Dezembro
-              </p>
+              </p> */}
 
               {planError && (
                 <Notification

@@ -64,11 +64,11 @@ def register_company(
         )
 
     # 3) Unicidade de telefone
-    if db.query(Company).filter(Company.phone == payload.phone).first():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Já existe uma empresa cadastrada com esse telefone.",
-        )
+    # if db.query(Company).filter(Company.phone == payload.phone).first():
+    #     raise HTTPException(
+    #         status_code=status.HTTP_400_BAD_REQUEST,
+    #         detail="Já existe uma empresa cadastrada com esse telefone.",
+    #     )
 
     # 4) Unicidade de CNPJ
     if db.query(Company).filter(Company.cnpj == payload.cnpj).first():

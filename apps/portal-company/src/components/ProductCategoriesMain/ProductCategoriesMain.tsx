@@ -112,7 +112,7 @@ export default function ProductCategoriesMain() {
         <div className={styles.tableWrapper}>
           <div className={styles.tableHeader}>
             <div className={styles.colName}>Nome</div>
-            <div className={styles.colSlug}>Slug</div>
+            {/* <div className={styles.colSlug}>Slug</div> */}
             <div className={styles.colCreated}>Criado em</div>
             <div className={styles.colActions}>Ações</div>
           </div>
@@ -122,9 +122,9 @@ export default function ProductCategoriesMain() {
                 <div className={styles.colName} data-label="Nome:">
                   {c.name}
                 </div>
-                <div className={styles.colSlug} data-label="Slug:">
+                {/* <div className={styles.colSlug} data-label="Slug:">
                   {c.slug}
-                </div>
+                </div> */}
                 <div className={styles.colCreated} data-label="Criado em:">
                   {new Date(c.created_at).toLocaleDateString('pt-BR')}
                 </div>

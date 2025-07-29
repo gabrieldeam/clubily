@@ -178,15 +178,42 @@ function renderConfigExplanation(rule: PointsRuleRead): ReactNode {
         </p>
       );
     }
-    case RuleType.digital_behavior: {
-      const cfg = rule.config as { events: string[]; points: number };
-      return (
-        <p>
-          A cada ocorrência dos eventos digitais ({cfg.events.join(', ')}), ganha{' '}
-          pontos.
-        </p>
-      );
-    }
+      case RuleType.digital_behavior: {
+        const cfg = rule.config as {
+          points: number;
+          valid_from?: string | null;
+          valid_to?: string | null;
+          max_attributions?: number;
+        };
+
+        // formata datas (você pode ajustar o locale/data conforme sua necessidade)
+        const from = cfg.valid_from
+          ? new Date(cfg.valid_from).toLocaleDateString('pt-BR')
+          : null;
+        const to = cfg.valid_to
+          ? new Date(cfg.valid_to).toLocaleDateString('pt-BR')
+          : null;
+
+        // monta o trecho de período
+        let periodText = '';
+        if (from && to) periodText = `de ${from} até ${to}`;
+        else if (from) periodText = `a partir de ${from}`;
+        else if (to) periodText = `até ${to}`;
+
+        // monta o trecho de limite
+        const maxText = cfg.max_attributions
+          ? `máximo de ${cfg.max_attributions} atribuições por usuário`
+          : '';
+
+        return (
+          <p>
+            Ganha <strong>{cfg.points}</strong> pontos por evento digital{' '}
+            {periodText && <><em>({periodText})</em>{' '}</>}
+            {maxText && <><em>– {maxText}</em>.</>}
+          </p>
+        );
+      }
+
     case RuleType.special_date: {
       const cfg = rule.config as {
         date: string;

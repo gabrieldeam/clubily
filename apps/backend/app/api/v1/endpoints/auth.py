@@ -128,7 +128,7 @@ def register(
 ):
     """
     Registra um usuário completo (exige cpf + senha + accepted_terms).
-    Reaproveita lead (pre_registered) se existir via phone/cpf/email.
+    Reaproveita lead (pre_registered) se existir via phone/cpf.
     Retorna JWT no cookie e no JSON.
     """
 

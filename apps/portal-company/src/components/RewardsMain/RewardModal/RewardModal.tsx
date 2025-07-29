@@ -1,7 +1,6 @@
-// src/components/RewardModal/RewardModal.tsx
 'use client';
 
-import { FormEvent, useState, useEffect } from 'react';
+import { FormEvent, useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import styles from './RewardModal.module.css';
 import FloatingLabelInput from '@/components/FloatingLabelInput/FloatingLabelInput';
@@ -16,21 +15,23 @@ interface Props {
   onCancel: () => void;
 }
 
+const DRAFT_KEY = 'rewardModalDraft';
+
 export default function RewardModal({ reward, onSave, onCancel }: Props) {
-  // ─── Campos do formulário ─────────────────────────────────────
+  // campos do formulário
   const [name, setName] = useState('');
-  const [description, setDescription] = useState<string | undefined>('');
+  const [description, setDescription] = useState('');
   const [secret, setSecret] = useState(false);
   const [stock, setStock] = useState<number | undefined>(undefined);
   const [image, setImage] = useState<File | null>(null);
 
-  // ─── UI/estado auxiliar ───────────────────────────────────────
+  // UI/estado auxiliar
   const [preview, setPreview] = useState<string | undefined>(undefined);
-  const [notification, setNotification] = useState<
-    { type: 'error'; message: string } | null
-  >(null);
+  const [notification, setNotification] = useState<{ type: 'error'; message: string } | null>(null);
 
-  // ─── Carrega valores quando abre modal (create | edit) ────────
+  const isFirstRun = useRef(true);
+
+  // 1) inicialização / restauração do rascunho
   useEffect(() => {
     if (reward) {
       setName(reward.name);
@@ -40,17 +41,50 @@ export default function RewardModal({ reward, onSave, onCancel }: Props) {
       setImage(null);
       setPreview(getImageUrl(reward.image_url) ?? undefined);
     } else {
-      setName('');
-      setDescription('');
-      setSecret(false);
-      setStock(undefined);
+      const draft = localStorage.getItem(DRAFT_KEY);
+      if (draft) {
+        const { name: dn, description: dd, secret: ds, stock: dsq } = JSON.parse(draft);
+        setName(dn);
+        setDescription(dd);
+        setSecret(ds);
+        setStock(dsq);
+      } else {
+        setName('');
+        setDescription('');
+        setSecret(false);
+        setStock(undefined);
+      }
       setImage(null);
       setPreview(undefined);
     }
     setNotification(null);
   }, [reward]);
 
-  // ─── Manipulador de arquivo ───────────────────────────────────
+  // 2) salvamento automático do rascunho (pulando gravação vazia na 1ª montagem)
+  useEffect(() => {
+    if (reward) return;
+    if (isFirstRun.current) {
+      isFirstRun.current = false;
+      return;
+    }
+    if (
+      name.trim() !== '' ||
+      description.trim() !== '' ||
+      secret !== false ||
+      (stock !== undefined && stock !== 0)
+    ) {
+      localStorage.setItem(
+        DRAFT_KEY,
+        JSON.stringify({
+          name: name.trim(),
+          description: description.trim(),
+          secret,
+          stock,
+        })
+      );
+    }
+  }, [name, description, secret, stock, reward]);
+
   const handleFile = (file: File | null) => {
     setImage(file);
     if (file) {
@@ -62,7 +96,6 @@ export default function RewardModal({ reward, onSave, onCancel }: Props) {
     }
   };
 
-  // ─── Envio do formulário ──────────────────────────────────────
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
@@ -77,25 +110,26 @@ export default function RewardModal({ reward, onSave, onCancel }: Props) {
         stock_qty: stock,
         image: image ?? undefined,
       },
-      reward?.id,
+      reward?.id
     );
+    // 4) limpa draft
+    if (!reward) localStorage.removeItem(DRAFT_KEY);
   };
 
-  // ─── Render ───────────────────────────────────────────────────
+  // 5) limpa draft ao cancelar
+  const handleCancel = () => {
+    if (!reward) localStorage.removeItem(DRAFT_KEY);
+    onCancel();
+  };
+
   return (
     <form onSubmit={handleSubmit} className={styles.form}>
       <h2 className={styles.title}>
         {reward ? 'Editar Recompensa' : 'Nova Recompensa'}
       </h2>
-
       {notification && (
-        <Notification
-          type="error"
-          message={notification.message}
-          onClose={() => setNotification(null)}
-        />
+        <Notification type="error" message={notification.message} onClose={() => setNotification(null)} />
       )}
-
       <FloatingLabelInput
         id="reward-name"
         label="Nome"
@@ -103,7 +137,6 @@ export default function RewardModal({ reward, onSave, onCancel }: Props) {
         onChange={e => setName(e.target.value)}
         required
       />
-
       <div className={styles.fieldGroup}>
         <label htmlFor="reward-desc" className={styles.label}>
           Descrição (opcional)
@@ -116,7 +149,6 @@ export default function RewardModal({ reward, onSave, onCancel }: Props) {
           onChange={e => setDescription(e.target.value)}
         />
       </div>
-
       <div className={styles.switches}>
         <label>
           <input
@@ -127,17 +159,13 @@ export default function RewardModal({ reward, onSave, onCancel }: Props) {
           Secreto
         </label>
       </div>
-
       <FloatingLabelInput
         id="reward-stock"
         label="Estoque (opcional)"
         type="number"
         value={stock ?? ''}
-        onChange={e =>
-          setStock(e.target.value === '' ? undefined : Number(e.target.value))
-        }
+        onChange={e => setStock(e.target.value === '' ? undefined : Number(e.target.value))}
       />
-
       <div className={styles.fieldGroup}>
         <label className={styles.fileLabel}>
           Ícone / Imagem (opcional)
@@ -147,20 +175,19 @@ export default function RewardModal({ reward, onSave, onCancel }: Props) {
             onChange={e => handleFile(e.target.files?.[0] ?? null)}
           />
         </label>
-
         {preview && (
           <Image
             src={preview}
             alt="Pré-visualização"
-            fill
+            width={120}
+            height={120}
             className={styles.preview}
           />
         )}
       </div>
-
       <div className={styles.actions}>
         <Button type="submit">{reward ? 'Salvar' : 'Criar'}</Button>
-        <Button bgColor="#AAA" onClick={onCancel}>
+        <Button bgColor="#AAA" onClick={handleCancel}>
           Cancelar
         </Button>
       </div>

@@ -1,4 +1,3 @@
-// /components/BranchesMain/BranchModal/BranchModal.tsx
 'use client';
 
 import { FormEvent, useState, useEffect, useRef } from 'react';
@@ -15,25 +14,52 @@ interface Props {
   onCancel: () => void;
 }
 
+const DRAFT_KEY = 'branchModalDraft';
+
 export default function BranchModal({ branch, onSave, onCancel }: Props) {
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [notification, setNotification] =
     useState<{ type: 'error'; message: string } | null>(null);
   const slugTouched = useRef(false);
+  const isFirstRun = useRef(true);
 
+  // 1) Restauração do rascunho ou init
   useEffect(() => {
     if (branch) {
       setName(branch.name);
       setSlug(branch.slug);
       slugTouched.current = true;
     } else {
-      setName('');
-      setSlug('');
-      slugTouched.current = false;
+      const draft = localStorage.getItem(DRAFT_KEY);
+      if (draft) {
+        const { name: dn, slug: ds } = JSON.parse(draft);
+        setName(dn);
+        setSlug(ds);
+        slugTouched.current = true;
+      } else {
+        setName('');
+        setSlug('');
+        slugTouched.current = false;
+      }
       setNotification(null);
     }
   }, [branch]);
+
+  // 2) Salvamento automático do rascunho
+  useEffect(() => {
+    if (branch) return;
+    if (isFirstRun.current) {
+      isFirstRun.current = false;
+      return;
+    }
+    if (name.trim() !== '' || slug.trim() !== '') {
+      localStorage.setItem(
+        DRAFT_KEY,
+        JSON.stringify({ name: name.trim(), slug: slug.trim() })
+      );
+    }
+  }, [name, slug, branch]);
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const v = e.target.value;
@@ -48,9 +74,9 @@ export default function BranchModal({ branch, onSave, onCancel }: Props) {
     setSlug(e.target.value);
   };
 
+  // 3) Salvamento final e limpeza do draft
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-
     if (!name.trim()) {
       setNotification({ type: 'error', message: 'O nome é obrigatório.' });
       return;
@@ -58,13 +84,18 @@ export default function BranchModal({ branch, onSave, onCancel }: Props) {
     if (!slug.trim() || !validateSlug(slug)) {
       setNotification({
         type: 'error',
-        message:
-          'Slug inválido. Use apenas letras minúsculas, números e hífens.',
+        message: 'Slug inválido. Use apenas letras minúsculas, números e hífens.',
       });
       return;
     }
+    onSave({ name: name.trim(), slug: slug.trim() }, branch?.id);
+    if (!branch) localStorage.removeItem(DRAFT_KEY);
+  };
 
-    onSave({ name: name.trim(), slug }, branch?.id);
+  // 4) Cancelar e limpar draft
+  const handleCancel = () => {
+    if (!branch) localStorage.removeItem(DRAFT_KEY);
+    onCancel();
   };
 
   return (
@@ -83,14 +114,14 @@ export default function BranchModal({ branch, onSave, onCancel }: Props) {
 
       <FloatingLabelInput
         id="branch-name"
-        label="Nome"
+        label="Nome da filial"
         value={name}
         onChange={handleNameChange}
       />
 
       <FloatingLabelInput
         id="branch-slug"
-        label="Slug"
+        label="Nome simples"
         value={slug}
         onChange={handleSlugChange}
       />
@@ -100,7 +131,7 @@ export default function BranchModal({ branch, onSave, onCancel }: Props) {
 
       <div className={styles.actions}>
         <Button type="submit">{branch ? 'Salvar' : 'Criar'}</Button>
-        <Button bgColor="#AAA" onClick={onCancel}>
+        <Button bgColor="#AAA" onClick={handleCancel}>
           Cancelar
         </Button>
       </div>
