@@ -16,6 +16,20 @@ export const listInventoryItems = (skip = 0, limit = 10) =>
   api.get<PaginatedInventoryItems>("/inventory", {
     params: { skip, limit },
   });
+
+
+/**
+ * Busca itens de inventário por nome ou SKU, paginado.
+ * GET /inventory/search?q={q}&skip={skip}&limit={limit}
+ */
+export const searchInventoryItems = (
+  q: string,
+  skip = 0,
+  limit = 10
+) =>
+  api.get<PaginatedInventoryItems>("/inventory/search", {
+    params: { q, skip, limit },
+  });
   
 /**
  * Cria um novo item de inventário.

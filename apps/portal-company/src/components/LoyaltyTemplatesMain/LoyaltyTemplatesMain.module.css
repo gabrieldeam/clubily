@@ -29,11 +29,18 @@
   text-align: center;
   padding: 1.5rem;
 }
+/* Empty state */
 .empty {
   text-align: center;
   padding: 2rem;
   background: #f7f7f7;
   border-radius: 0.5rem;
+}
+.empty h2 {
+  margin-bottom: 0.5rem;
+}
+.empty p {
+  margin-bottom: 1rem;
 }
 .createBtn {
   padding: 8px 16px;

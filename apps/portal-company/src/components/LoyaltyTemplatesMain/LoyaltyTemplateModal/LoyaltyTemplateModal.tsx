@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, FormEvent, useEffect } from 'react';
+import { useState, FormEvent, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import type { TemplateRead, TemplateCreate } from '@/types/loyalty';
 import FloatingLabelInput from '@/components/FloatingLabelInput/FloatingLabelInput';
@@ -26,7 +26,11 @@ export default function LoyaltyTemplateModal({ template, onSave, onCancel }: Pro
   const [emissionStart, setEmissionStart] = useState<string | undefined>();
   const [emissionEnd, setEmissionEnd] = useState<string | undefined>();
 
-  /* ───────── carregar valores ao editar ───────── */
+  // rascunho
+  const DRAFT_KEY = 'loyaltyTemplateModalDraft';
+  const isFirstRun = useRef(true);
+
+  // 1) restauração
   useEffect(() => {
     if (template) {
       setTitle(template.title);
@@ -37,47 +41,104 @@ export default function LoyaltyTemplateModal({ template, onSave, onCancel }: Pro
       setPerLimit(template.per_user_limit || 1);
       setEmissionLimit(template.emission_limit ?? '');
       setActive(template.active ?? true);
-
-      // formata "YYYY-MM-DDTHH:mm" para os inputs datetime-local
-      setEmissionStart(
-        template.emission_start ? template.emission_start.substring(0, 16) : undefined
-      );
-      setEmissionEnd(
-        template.emission_end ? template.emission_end.substring(0, 16) : undefined
-      );
-
+      setEmissionStart(template.emission_start?.substring(0,16));
+      setEmissionEnd(template.emission_end?.substring(0,16));
       setIconFile(undefined);
     } else {
-      setTitle('');
-      setPromo('');
-      setStampTotal(10);
-      setColorPrimary('#ffa600');
-      setColorBg('#ffffff');
-      setPerLimit(1);
-      setEmissionLimit('');
-      setActive(true);
-      setEmissionStart(undefined);
-      setEmissionEnd(undefined);
-      setIconFile(undefined);
+      const draft = localStorage.getItem(DRAFT_KEY);
+      if (draft) {
+        const {
+          title: dTitle,
+          promo: dPromo,
+          stampTotal: dStamp,
+          colorPrimary: dPrim,
+          colorBg: dBg,
+          perLimit: dPer,
+          emissionLimit: dEmitLim,
+          active: dAct,
+          emissionStart: dEmitStart,
+          emissionEnd: dEmitEnd,
+        } = JSON.parse(draft);
+        setTitle(dTitle);
+        setPromo(dPromo);
+        setStampTotal(dStamp);
+        setColorPrimary(dPrim);
+        setColorBg(dBg);
+        setPerLimit(dPer);
+        setEmissionLimit(dEmitLim);
+        setActive(dAct);
+        setEmissionStart(dEmitStart);
+        setEmissionEnd(dEmitEnd);
+        setIconFile(undefined);
+      } else {
+        setTitle('');
+        setPromo('');
+        setStampTotal(10);
+        setColorPrimary('#ffa600');
+        setColorBg('#ffffff');
+        setPerLimit(1);
+        setEmissionLimit('');
+        setActive(true);
+        setEmissionStart(undefined);
+        setEmissionEnd(undefined);
+        setIconFile(undefined);
+      }
     }
-  }, [template]);
+  }, [template, DRAFT_KEY]);
 
-  /* ───────── submit ───────── */
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    const payload: TemplateCreate = {
+  // 2) salvamento automático
+  useEffect(() => {
+    if (template) return;
+    if (isFirstRun.current) {
+      isFirstRun.current = false;
+      return;
+    }
+    localStorage.setItem(
+      DRAFT_KEY,
+      JSON.stringify({
+        title,
+        promo,
+        stampTotal,
+        colorPrimary,
+        colorBg,
+        perLimit,
+        emissionLimit,
+        active,
+        emissionStart,
+        emissionEnd,
+      })
+    );
+    }, [
       title,
-      promo_text: promo || null,
-      stamp_total: stampTotal,
-      color_primary: colorPrimary,
-      color_bg: colorBg,
-      per_user_limit: perLimit,
-      emission_start: emissionStart || null,
-      emission_end: emissionEnd || null,
-      emission_limit: emissionLimit === '' ? null : Number(emissionLimit),
+      promo,
+      stampTotal,
+      colorPrimary,
+      colorBg,
+      perLimit,
+      emissionLimit,
       active,
+      emissionStart,
+      emissionEnd,
+      template,
+    ]);
+
+    // 3) submit e limpeza de rascunho
+    const handleSubmit = (e: FormEvent) => {
+      e.preventDefault();
+      const payload: TemplateCreate = {
+        title,
+        promo_text: promo || null,
+        stamp_total: stampTotal,
+        color_primary: colorPrimary,
+        color_bg: colorBg,
+        per_user_limit: perLimit,
+        emission_start: emissionStart || null,
+        emission_end: emissionEnd || null,
+        emission_limit: emissionLimit === '' ? null : Number(emissionLimit),
+        active,
     };
     onSave(payload, iconFile, template?.id);
+    if (!template) localStorage.removeItem(DRAFT_KEY);
   };
 
   return (

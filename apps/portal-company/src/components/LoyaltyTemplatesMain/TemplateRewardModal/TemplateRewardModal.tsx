@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, FormEvent } from 'react';
+import { useEffect, useState, FormEvent, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import Button from '@/components/Button/Button';
@@ -32,6 +32,31 @@ export default function TemplateRewardModal({ tplId, onClose }: Props) {
 
   const [rewardId, setRewardId] = useState('');
   const [stampNo, setStampNo]   = useState<number>(1);
+  
+   // ─── draft control ─────────────────────────────────────────────
+  const DRAFT_KEY = `templateRewardModalDraft-${tplId}`;
+  const isFirstRun = useRef(true);
+
+  // 2) restaurar rascunho ao montar
+  useEffect(() => {
+    const draft = localStorage.getItem(DRAFT_KEY);
+    if (draft) {
+      try {
+        const { rewardId: dRid, stampNo: dStamp } = JSON.parse(draft);
+        if (dRid) setRewardId(dRid);
+        if (typeof dStamp === 'number') setStampNo(dStamp);
+      } catch {}
+    }
+  }, [tplId, DRAFT_KEY]);
+
+  // 3) salvar rascunho nas mudanças
+  useEffect(() => {
+    if (isFirstRun.current) {
+      isFirstRun.current = false;
+      return;
+    }
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({ rewardId, stampNo }));
+  }, [rewardId, stampNo, tplId, DRAFT_KEY]);
 
   /* ------------------------------------------------------------------ */
   /* carregamento inicial                                               */
@@ -41,22 +66,14 @@ export default function TemplateRewardModal({ tplId, onClose }: Props) {
       try {
         setLoading(true);
         setError(null);
-
         const [{ data: allRewards }, { data: tplLinks }] = await Promise.all([
           listRewards(),
           listTemplateRewards(tplId),
         ]);
-
         setRewards(allRewards.filter(r => (r.stock_qty ?? 0) > 0));
         setLinks(tplLinks.filter(l => (l.reward.stock_qty ?? 0) > 0));
       } catch (err: unknown) {
-        if (err instanceof Error) {
-          // pega a mensagem real
-          setError(err.message);
-        } else {
-          // caso não seja um Error normal
-          setError('Falha ao carregar recompensas');
-        }
+        setError(err instanceof Error ? err.message : 'Falha ao carregar recompensas');
       } finally {
         setLoading(false);
       }
@@ -122,15 +139,15 @@ export default function TemplateRewardModal({ tplId, onClose }: Props) {
   async function handleAdd(e: FormEvent) {
     e.preventDefault();
     if (!rewardId) return setError('Selecione a recompensa');
-
     try {
       setError(null);
       await attachRewardToTemplate(tplId, { reward_id: rewardId, stamp_no: stampNo });
-
       const { data } = await listTemplateRewards(tplId);
       setLinks(data.filter(l => (l.reward.stock_qty ?? 0) > 0));
+      // reset form **e limpa draft**
       setRewardId('');
       setStampNo(1);
+      localStorage.removeItem(DRAFT_KEY);
     } catch (err) {
       setError(extractMsg(err, 'Falha ao associar recompensa'));
     }

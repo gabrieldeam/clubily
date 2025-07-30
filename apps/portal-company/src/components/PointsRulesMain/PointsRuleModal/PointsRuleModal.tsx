@@ -1,7 +1,7 @@
 // src/components/PointsRulesMain/PointsRuleModal/PointsRuleModal.tsx
 'use client';
 
-import { FormEvent, useState, useEffect } from 'react';
+import { FormEvent, useState, useEffect, useRef  } from 'react';
 import { useRouter } from 'next/navigation';
 import { RuleType } from '@/types/points';
 import type { PointsRuleRead, PointsRuleCreate } from '@/types/points';
@@ -75,6 +75,24 @@ export default function PointsRuleModal({ rule, onSave, onCancel }: Props) {
   
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
   const [checkingSlug, setCheckingSlug] = useState(false);
+  
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+
+  /* ------------------------------- paginação ------------------------------- */
+  const hasPrevPage = itemSkip > 0;
+  const hasNextPage = itemSkip + itemLimit < itemTotal;
+
+  const goPrevPage = () => {
+    if (hasPrevPage) setItemSkip(prev => Math.max(prev - itemLimit, 0));
+  };
+
+  const goNextPage = () => {
+    if (hasNextPage) setItemSkip(prev => prev + itemLimit);
+  };
+
+   /* ─── draft em localStorage ───────────────────────── */
+  const DRAFT_KEY = `pointsRuleModalDraft-${rule?.id ?? 'new'}`;
+  const isFirstRun = useRef(true);
 
   useEffect(() => {
     listProductCategories(catSkip, catLimit).then(res => {
@@ -94,25 +112,74 @@ export default function PointsRuleModal({ rule, onSave, onCancel }: Props) {
     listBranches().then(res => setBranches(res.data));
   }, []);
 
+ // 1) ao abrir: restaura do draft (se criando) ou do `rule` (se editando)
   useEffect(() => {
+    isFirstRun.current = true;
     if (rule) {
+      // edição
       setName(rule.name);
       setDescription(rule.description ?? '');
       setRuleType(rule.rule_type);
       setConfig(rule.config ?? {});
-     setOriginalSlug((rule.config?.slug as string) || '');
+      setOriginalSlug((rule.config?.slug as string) || '');
       setActive(rule.active);
-      setVisible(rule.visible);
+      setVisible(rule.visible);      
+      setSelectedItems([]);
     } else {
-      setName('');
-      setDescription('');
-      setRuleType(RuleType.value_spent);
-      setConfig({});
-      setOriginalSlug('');
-      setActive(true);
-      setVisible(true);
+      // criação -> tenta restaurar
+      const d = localStorage.getItem(DRAFT_KEY);
+      if (d) {
+        try {
+          const {
+            name: n,
+            description: desc,
+            ruleType: rt,
+            config: cfg,
+            active: a,
+            visible: v,
+            originalSlug: os,
+          } = JSON.parse(d);
+          setName(n);
+          setDescription(desc);
+          setRuleType(rt);
+          setConfig(cfg);
+          setOriginalSlug(os);
+          setActive(a);
+          setVisible(v);
+        } catch {
+          // invalido, carrega valores padrão
+          setName('');
+          setDescription('');
+          setRuleType(RuleType.value_spent);
+          setConfig({});
+          setOriginalSlug('');
+          setActive(true);
+          setVisible(true);
+        }
+      }
     }
-  }, [rule]);
+  }, [rule, DRAFT_KEY]);
+
+  // 2) salva draft a cada mudança no formulário, só em criação
+  useEffect(() => {
+    if (rule) return;                     // somente no create
+    if (isFirstRun.current) {
+      isFirstRun.current = false;
+      return;
+    }
+    localStorage.setItem(
+      DRAFT_KEY,
+      JSON.stringify({
+        name,
+        description,
+        ruleType,
+        config,
+        active,
+        visible,
+        originalSlug,
+      })
+    );
+  }, [name, description, ruleType, config, active, visible, originalSlug, rule, DRAFT_KEY]);
 
 const handleSubmit = async (e: FormEvent) => {
   e.preventDefault();
@@ -135,7 +202,8 @@ const handleSubmit = async (e: FormEvent) => {
       if (!ok) {
         alert('Este slug já está em uso. Escolha outro.');
         return;
-      }
+      }      
+      setSelectedItems([]);
     }
   }
 
@@ -148,6 +216,8 @@ const handleSubmit = async (e: FormEvent) => {
     visible
   };
   onSave(payload, rule?.id);
+  
+    localStorage.removeItem(DRAFT_KEY);
 };
 
 
@@ -204,20 +274,66 @@ const handleSubmit = async (e: FormEvent) => {
         }
         return (
           <div className={styles.field}>
-            <label>Itens de Inventário</label>
-            <select multiple size={Math.min(items.length, 10)} className={styles.multiSelect} value={(config.item_ids ?? []) as string[]} onChange={() => {}}>
-              {items.map(it => (
-                <option key={it.id} value={it.id} onMouseDown={e => { e.preventDefault(); const curr = (config.item_ids ?? []) as string[]; const next = curr.includes(it.id) ? curr.filter(id => id !== it.id) : [...curr, it.id]; setConfig({ ...config, item_ids: next }); }}>
-                  {it.name}
-                </option>
-              ))}
-            </select>
-            <div className={styles.paginationControls}>
-              <button type="button" disabled={!itemSkip} onClick={() => setItemSkip(itemSkip - itemLimit)}>Anterior</button>
-              <span>Página {Math.floor(itemSkip / itemLimit) + 1} de {Math.ceil(itemTotal / itemLimit)}</span>
-              <button type="button" disabled={itemSkip + itemLimit >= itemTotal} onClick={() => setItemSkip(itemSkip + itemLimit)}>Próxima</button>
+            <label>Itens de Inventário</label>            
+            <div className={styles.checkboxList}>
+              {items.map(item => {
+                const checked = selectedItems.includes(item.id);
+                return (
+                  <label
+                    key={item.id}
+                    className={`${styles.itemLabel} ${
+                      checked ? styles.itemLabelChecked : ''
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() =>
+                        setSelectedItems(prev =>
+                          checked
+                            ? prev.filter(id => id !== item.id)
+                            : [...prev, item.id]
+                        )
+                      }
+                    />
+                    {item.name}
+                  </label>
+                );
+              })}
+
+              {/* paginação dos itens */}
+              {itemTotal > itemLimit && (
+                <div className={styles.pagination}>
+                  <button
+                    onClick={goPrevPage}
+                    disabled={!hasPrevPage}
+                  >
+                    Anterior
+                  </button>
+                  <span>
+                    {Math.floor(itemSkip / itemLimit) + 1} /{' '}
+                    {Math.ceil(itemTotal / itemLimit)}
+                  </span>
+                  <button
+                    onClick={goNextPage}
+                    disabled={!hasNextPage}
+                  >
+                    Próxima
+                  </button>
+                </div>
+              )}
+              
+
+            {selectedItems.length > 0 && (
+              <p className={styles.selectedHint}>
+                Selecionados:&nbsp;
+                {items
+                  .filter(i => selectedItems.includes(i.id))
+                  .map(i => i.name)
+                  .join(', ')}
+              </p>
+            )}
             </div>
-            <div className={styles.selectedText}>{(config.item_ids ?? []).map(id => items.find(i => i.id === id)?.name).filter(Boolean).join(', ') || 'Nenhum selecionado'}</div>
             <FloatingLabelInput label="Multiplicador" type="number" value={num(config.multiplier)} onChange={e => setConfig({ ...config, multiplier: Number(e.target.value) })} />
           </div>
         );

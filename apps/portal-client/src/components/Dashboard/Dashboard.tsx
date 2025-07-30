@@ -197,7 +197,7 @@ useEffect(() => {
                     <div className={styles.companyInfo}>
                       {comp.logo_url ? (
                         <Image
-                          src={`${baseUrl}${comp.logo_url}`}
+                          src={`${process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL}${comp.logo_url}`}
                           alt={comp.name}
                           width={60}
                           height={60}

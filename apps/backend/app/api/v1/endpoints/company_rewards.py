@@ -153,7 +153,24 @@ def admin_attach_reward(
             "Erro inesperado ao associar recompensa"
         )
 
-
+@router.get(
+    "/admin/templates/{tpl_id}/rewards",
+    response_model=List[LinkRead],
+    summary="Empresa: listar recompensas ligadas a template"
+)
+def admin_list_template_rewards(
+    tpl_id: UUID = Path(...),
+    db: Session = Depends(get_db),
+    company = Depends(get_current_company),
+):
+    tpl = (
+        db.query(LoyaltyCardTemplate)
+          .filter_by(id=tpl_id, company_id=company.id)
+          .first()
+    )
+    if not tpl:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Template não encontrado")
+    return tpl.rewards_map
 
 @router.post(
     "/user/instances/{inst_id}/rewards/{link_id}/code",

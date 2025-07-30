@@ -15,7 +15,7 @@ import { getCashbackPrograms } from '@/services/cashbackProgramService';
 import { assignCashback } from '@/services/cashbackService';
 import { getUserWallet, withdrawUserWallet } from '@/services/walletService';
 import { evaluatePurchase } from '@/services/purchaseService';
-import { listInventoryItems } from '@/services/inventoryItemService';
+import { listInventoryItems, searchInventoryItems } from '@/services/inventoryItemService';
 import { listBranches } from '@/services/branchService';
 import { adminStampCard } from '@/services/loyaltyService';  
 import type { BranchRead } from '@/types/branch';
@@ -56,11 +56,13 @@ export default function ClientModal({ onClose }: ClientModalProps) {
   /* ---------- inventário ---------- */
   const [items, setItems] = useState<InventoryItemRead[]>([]);
   const [itemsLoading, setItemsLoading] = useState(false);
+  const [totalPages, setTotalPages] = useState(1);
 
-  /* paginação inventário */
-  const [itemTotal, setItemTotal] = useState(0);
-  const [itemSkip, setItemSkip] = useState(0);
-  const itemLimit = 10;
+  // Para busca + paginação
+  const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(0);
+  const perPage = 10;
+  
 
   /* ---------- carteira ---------- */
   const [userWallet, setUserWallet] = useState<UserWalletRead | null>(null);
@@ -72,6 +74,7 @@ export default function ClientModal({ onClose }: ClientModalProps) {
   /* ---------- compra ---------- */
   const [purchaseAmount, setPurchaseAmount] = useState('');
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [itemCounts, setItemCounts] = useState<Record<string, number>>({});
   const [branchId, setBranchId] = useState('');
   const [eventValue, setEventValue] = useState('');
   const [associateCb, setAssociateCb] = useState(false);
@@ -86,6 +89,8 @@ export default function ClientModal({ onClose }: ClientModalProps) {
   /* ---------- filiais ---------- */
   const [branches, setBranches] = useState<BranchRead[]>([]);
   const [branchesLoading, setBranchesLoading] = useState(false);
+
+
 
   /* -------------------------------------------------------------------- */
   /*                              reset modal                             */
@@ -103,8 +108,8 @@ export default function ClientModal({ onClose }: ClientModalProps) {
 
     /* inventário */
     setItems([]);
-    setItemsLoading(false);
     setSelectedItems([]);
+    setItemCounts({});
 
     /* compra */
     setPurchaseAmount('');
@@ -122,6 +127,39 @@ export default function ClientModal({ onClose }: ClientModalProps) {
     setWithdrawError(null);
     setWithdrawLoading(false);
   };
+
+
+
+  // +1 no contador (e garante que o item fique marcado)
+  const incrementItem = (id: string) => {
+    setItemCounts(prev => {
+      const next = { ...prev, [id]: (prev[id] || 0) + 1 };
+      // se for o primeiro, adiciona em selectedItems
+      if (!selectedItems.includes(id)) {
+        setSelectedItems(s => [...s, id]);
+      }
+      return next;
+    });
+  };
+
+  // –1 no contador (e, se chegar a 0, desmarca e remove do selectedItems)
+  const decrementItem = (id: string) => {
+    setItemCounts(prev => {
+      const current = prev[id] || 0;
+      const nextCount = current - 1;
+      const next = { ...prev };
+
+      if (nextCount <= 0) {
+        delete next[id];
+        setSelectedItems(s => s.filter(x => x !== id));
+      } else {
+        next[id] = nextCount;
+      }
+      return next;
+    });
+  };
+
+
 
   /* -------------------------------------------------------------------- */
   /*                      1) pré-cadastro do cliente                       */
@@ -189,39 +227,50 @@ export default function ClientModal({ onClose }: ClientModalProps) {
   /*        2) carrega programas, inventário, carteira, filiais            */
   /* -------------------------------------------------------------------- */
   useEffect(() => {
-    if (!client) return;
+  if (!client) return;
 
-    /* programas */
-    setProgLoading(true);
-    getCashbackPrograms()
-      .then(r => setPrograms(r.data))
-      .catch(console.error)
-      .finally(() => setProgLoading(false));
+  /* programas */
+  setProgLoading(true);
+  getCashbackPrograms()
+    .then(r => setPrograms(r.data))
+    .catch(console.error)
+    .finally(() => setProgLoading(false));
 
-    /* inventário */
-    setItemsLoading(true);
-    listInventoryItems(itemSkip, itemLimit)
-      .then(({ data }) => {
-        setItems(data.items);
-        setItemTotal(data.total);
-      })
-      .catch(console.error)
-      .finally(() => setItemsLoading(false));
+  /* inventário */
+  setItemsLoading(true);
+  const promise = searchTerm
+    ? searchInventoryItems(searchTerm, page * perPage, perPage)
+    : listInventoryItems(page * perPage, perPage);
 
-    /* carteira */
-    setWalletLoading(true);
-    getUserWallet(client.id)
-      .then(r => setUserWallet(r.data))
-      .catch(console.error)
-      .finally(() => setWalletLoading(false));
+  promise
+    .then(({ data }) => {
+      setItems(data.items);
+      setTotalPages(Math.ceil(data.total / perPage));
+    })
+    .catch(err => {
+      console.error(err);
+      // opcional: setNotification({ type: 'error', message: 'Erro ao carregar itens.' })
+    })
+    .finally(() => {
+      setItemsLoading(false);
+    });
 
-    /* filiais */
-    setBranchesLoading(true);
-    listBranches()
-      .then(r => setBranches(r.data))
-      .catch(console.error)
-      .finally(() => setBranchesLoading(false));
-  }, [client, itemSkip]);
+  /* carteira */
+  setWalletLoading(true);
+  getUserWallet(client.id)
+    .then(r => setUserWallet(r.data))
+    .catch(console.error)
+    .finally(() => setWalletLoading(false));
+
+  /* filiais */
+  setBranchesLoading(true);
+  listBranches()
+    .then(r => setBranches(r.data))
+    .catch(console.error)
+    .finally(() => setBranchesLoading(false));
+}, [client, page, searchTerm]);
+
+
 
   /* 3) seleciona programa automaticamente se houver apenas um */
   useEffect(() => {
@@ -232,17 +281,10 @@ export default function ClientModal({ onClose }: ClientModalProps) {
 
   /* recalcula total da compra quando itens mudam */
   useEffect(() => {
-    const sum = selectedItems.reduce((total, itemId) => {
-      const item = items.find(i => i.id === itemId);
-      const price =
-        item?.price != null
-          ? typeof item.price === 'string'
-            ? parseFloat(item.price)
-            : item.price
-          : 0;
-      return total + price;
+    const sum = selectedItems.reduce((total, id) => {
+      const item = items.find(i => i.id === id);
+      return total + (item ? Number(item.price) : 0);
     }, 0);
-
     setPurchaseAmount(sum.toFixed(2));
   }, [selectedItems, items]);
 
@@ -363,18 +405,6 @@ export default function ClientModal({ onClose }: ClientModalProps) {
     }
   };
 
-  /* ------------------------------- paginação ------------------------------- */
-  const hasPrevPage = itemSkip > 0;
-  const hasNextPage = itemSkip + itemLimit < itemTotal;
-
-  const goPrevPage = () => {
-    if (hasPrevPage) setItemSkip(prev => Math.max(prev - itemLimit, 0));
-  };
-
-  const goNextPage = () => {
-    if (hasNextPage) setItemSkip(prev => prev + itemLimit);
-  };
-
   /* -------------------------------------------------------------------- */
   /*                               RENDER                                 */
   /* -------------------------------------------------------------------- */
@@ -465,48 +495,77 @@ export default function ClientModal({ onClose }: ClientModalProps) {
               Itens comprados (Opcional)
             </label>
             <div className={styles.checkboxList}>
+              <input
+                type="text"
+                placeholder="Buscar por nome ou SKU…"
+                value={searchTerm}
+                onChange={e => {
+                  setSearchTerm(e.target.value);
+                  setPage(0); // volta à página 0 ao novo filtro
+                }}
+                className={styles.searchInput}
+              />
+
               {items.map(item => {
+                const count = itemCounts[item.id] || 0;
                 const checked = selectedItems.includes(item.id);
+
                 return (
-                  <label
-                    key={item.id}
-                    className={`${styles.itemLabel} ${
-                      checked ? styles.itemLabelChecked : ''
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() =>
-                        setSelectedItems(prev =>
-                          checked
-                            ? prev.filter(id => id !== item.id)
-                            : [...prev, item.id]
-                        )
-                      }
-                    />
-                    {item.name}
-                  </label>
+                  <div key={item.id} className={styles.itemRow}>
+                    <label 
+                      className={`${styles.itemLabel} ${
+                        checked ? styles.itemLabelChecked : ''
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => {
+                          if (checked) {
+                            // uncheck → zerar contador
+                            setItemCounts(prev => {
+                              const next = { ...prev };
+                              delete next[item.id];
+                              return next;
+                            });
+                            setSelectedItems(s => s.filter(x => x !== item.id));
+                          } else {
+                            // check → inicia em 1
+                            setItemCounts(prev => ({ ...prev, [item.id]: 1 }));
+                            setSelectedItems(s => [...s, item.id]);
+                          }
+                        }}
+                      />
+                      {item.name}
+                    </label>
+
+                    {/* CONTROLES + / – */}
+                    <div className={styles.qtyControls}>
+                      <button
+                        type="button"
+                        onClick={() => decrementItem(item.id)}
+                        disabled={count === 0}
+                      >
+                        –
+                      </button>
+                      <span>{count}</span>
+                      <button type="button" onClick={() => incrementItem(item.id)}>
+                        +
+                      </button>
+                    </div>
+                  </div>
                 );
               })}
 
+
               {/* paginação dos itens */}
-              {itemTotal > itemLimit && (
+              {totalPages > 1 && (
                 <div className={styles.pagination}>
-                  <button
-                    onClick={goPrevPage}
-                    disabled={!hasPrevPage}
-                  >
+                  <button onClick={() => setPage(p => Math.max(p - 1, 0))} disabled={page === 0}>
                     Anterior
                   </button>
-                  <span>
-                    {Math.floor(itemSkip / itemLimit) + 1} /{' '}
-                    {Math.ceil(itemTotal / itemLimit)}
-                  </span>
-                  <button
-                    onClick={goNextPage}
-                    disabled={!hasNextPage}
-                  >
+                  <span>{page + 1} / {totalPages || 1}</span>
+                  <button onClick={() => setPage(p => Math.min(p + 1, totalPages - 1))} disabled={page + 1 >= totalPages}>
                     Próxima
                   </button>
                 </div>

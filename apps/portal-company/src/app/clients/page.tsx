@@ -246,7 +246,7 @@ export default function ClientsPage() {
               )}
 
               <button className={styles.addBtn} onClick={openAddModal}>
-                Adicionar Cliente
+                Associar programas
               </button>
               <button className={styles.addBtnReward} onClick={() => setRedeemOpen(true)}>Resgatar Recompensa</button>
               {!isMobile && (

@@ -6,6 +6,7 @@ from app.api.deps import get_db, get_current_company
 from app.schemas.inventory_item import InventoryItemCreate, InventoryItemRead, PaginatedInventoryItems
 from app.models.inventory_item import InventoryItem
 from app.models.product_category import ProductCategory
+from sqlalchemy import or_
 
 router = APIRouter(tags=["inventory"])
 
@@ -64,3 +65,37 @@ def delete_item(item_id: UUID, db: Session = Depends(get_db), current_company=De
     if not it or it.company_id != current_company.id:
         raise HTTPException(404)
     db.delete(it); db.commit()
+
+
+@router.get(
+    "/search",
+    response_model=PaginatedInventoryItems,
+    summary="Buscar itens de inventário por nome ou SKU (paginado)"
+)
+def search_items(
+    q: str = Query(..., min_length=1, description="Termo de busca (nome ou SKU)"),
+    skip: int = Query(0, ge=0, description="Número de registros a pular"),
+    limit: int = Query(10, gt=0, le=100, description="Máximo de registros retornados"),
+    db: Session = Depends(get_db),
+    current_company=Depends(get_current_company)
+):
+    # query base: filtra apenas itens da empresa
+    base_q = db.query(InventoryItem).filter_by(company_id=current_company.id)
+    # adiciona filtro de busca (ILIKE para case‑insensitive)
+    pattern = f"%{q}%"
+    base_q = base_q.filter(
+        or_(
+            InventoryItem.name.ilike(pattern),
+            InventoryItem.sku.ilike(pattern)
+        )
+    )
+
+    total = base_q.count()
+    items = base_q.offset(skip).limit(limit).all()
+
+    return {
+        "total": total,
+        "skip": skip,
+        "limit": limit,
+        "items": items
+    }

@@ -69,3 +69,18 @@
   text-align: right;
   margin-top: 4px;
 }
+
+
+/* Botão de toggle de senha */
+.toggleButton {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}

@@ -192,10 +192,14 @@ export default function LoyaltyTemplatesMain() {
         <p className={styles.loading}>Carregando...</p>
       ) : templates.length === 0 ? (
         <div className={styles.empty}>
-          <h3>Nenhum cartão criado</h3>
-          <button className={styles.createBtn} onClick={openCreateTpl}>
-            Criar Cartão
-          </button>
+            <h2>Nenhum cartão criada ainda</h2>
+            <p>
+              Crie seu primeiro cartão fidelidade para começar a fidelizar seus
+              clientes!
+            </p>
+            <button className={styles.createBtn} onClick={openCreateTpl}>
+              Criar Cartão
+            </button>
         </div>
       ) : (
         <div className={styles.cardGrid}>

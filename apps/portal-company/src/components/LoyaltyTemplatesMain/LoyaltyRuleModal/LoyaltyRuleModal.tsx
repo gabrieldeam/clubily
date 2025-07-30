@@ -1,7 +1,7 @@
 // src/components/LoyaltyRuleModal/LoyaltyRuleModal.tsx
 'use client';
 
-import React, { useEffect, useState, FormEvent, useCallback } from 'react';
+import React, { useEffect, useState, FormEvent, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import FloatingLabelInput from '@/components/FloatingLabelInput/FloatingLabelInput';
 import Button from '@/components/Button/Button';
@@ -141,15 +141,59 @@ export default function LoyaltyRuleModal({ tplId, onClose }: Props) {
   const hasPrevCats = catSkip > 0;
   const hasNextCats = catSkip + catLimit < catTotal;
 
-  /* ---------------- carrega regras ---------------- */
+  // ─── draft setup ────────────────────────────────────
+  const DRAFT_KEY_PREFIX = `loyaltyRuleModalDraft-${tplId}-`;
+  const isFirstRun = useRef(true);
+
+  // 1) restaura rascunho ou carrega do rule
+  useEffect(() => {
+    isFirstRun.current = true;
+    const draftKey = `${DRAFT_KEY_PREFIX}${editingRuleId ?? 'new'}`;
+    const draft = localStorage.getItem(draftKey);
+
+    if (draft) {
+      try {
+        setFormState(JSON.parse(draft));
+      } catch {}
+    } else if (editingRuleId) {
+      const rule = rules.find(r => r.id === editingRuleId);
+      if (rule) {
+        setFormState({
+          rule_type: rule.rule_type,
+          config: rule.config,
+          order: rule.order,
+          active: rule.active,
+        });
+      }
+    } else {
+      setFormState({
+        rule_type: 'purchase_amount',
+        config: {},
+        order: 0,
+        active: true,
+      });
+    }
+  }, [editingRuleId, rules, tplId , DRAFT_KEY_PREFIX]);
+
+  // 2) salva automaticamente após mudanças (pulando montagem)
+  useEffect(() => {
+    const draftKey = `${DRAFT_KEY_PREFIX}${editingRuleId ?? 'new'}`;
+    if (isFirstRun.current) {
+      isFirstRun.current = false;
+      return;
+    }
+    localStorage.setItem(draftKey, JSON.stringify(formState));
+  }, [formState, editingRuleId, DRAFT_KEY_PREFIX, tplId]);
+
+
+  // ─── fetch inicial das regras ───────────────────────
   const fetchRules = useCallback(async () => {
     setLoading(true);
     try {
       const res = await adminListRules(tplId);
       setRules(res.data);
     } catch (err: unknown) {
-      if (err instanceof Error) setError(err.message);
-      else setError('Erro ao carregar regras');
+      setError(err instanceof Error ? err.message : 'Erro ao carregar regras');
     } finally {
       setLoading(false);
     }
@@ -183,7 +227,7 @@ export default function LoyaltyRuleModal({ tplId, onClose }: Props) {
       .finally(() => setCatsLoading(false));
   }, [catSkip]);
 
-  /* ---------------- renderiza campos ---------------- */
+
   /* ---------------- renderiza campos ---------------- */
 function renderConfigFields() {
   switch (formState.rule_type) {
@@ -431,36 +475,35 @@ function renderConfigFields() {
 }
 
 
-  /* ---------------- submissão ---------------- */
+  // ─── salvamento (add/update) ───────────────────────
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+
     try {
       if (editingRuleId) {
         await adminUpdateRule(tplId, editingRuleId, formState);
       } else {
         await adminAddRule(tplId, formState);
       }
+
+      // 3) limpa draft do formulário atual
+      const draftKey = `${DRAFT_KEY_PREFIX}${editingRuleId ?? 'new'}`;
+      localStorage.removeItem(draftKey);
+
+      // reset estado
       setEditingRuleId(null);
       setFormState({ rule_type: 'purchase_amount', config: {}, order: 0, active: true });
       await fetchRules();
     } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError('Falha ao salvar regra');
-      }
+      setError(err instanceof Error ? err.message : 'Falha ao salvar regra');
     }
   }
 
-  async function handleEdit(rule: RuleRead) {
+  // ─── editar e deletar ───────────────────────────────
+  function handleEdit(rule: RuleRead) {
     setEditingRuleId(rule.id);
-    setFormState({
-      rule_type: rule.rule_type,
-      config: rule.config,
-      order: rule.order,
-      active: rule.active
-    });
+    // o efeito de restauração já vai puxar os dados
   }
 
   async function handleDelete(ruleId: string) {
@@ -469,13 +512,18 @@ function renderConfigFields() {
       await adminDeleteRule(tplId, ruleId);
       await fetchRules();
     } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError('Falha ao excluir');
-      }
+      setError(err instanceof Error ? err.message : 'Falha ao excluir');
     }
   }
+
+  // ─── limpar formulário manualmente ──────────────────
+  const handleClear = () => {
+    const draftKey = `${DRAFT_KEY_PREFIX}${editingRuleId ?? 'new'}`;
+    localStorage.removeItem(draftKey);
+    isFirstRun.current = true;
+    setEditingRuleId(null);
+    setFormState({ rule_type: 'purchase_amount', config: {}, order: 0, active: true });
+  };
 
   /* ---------------- render ---------------- */
   return (
@@ -561,11 +609,8 @@ function renderConfigFields() {
           <Button
             type="button"
             bgColor="#f3f4f6"
-            style={{ color: '#374151' }}
-            onClick={() => {
-              setEditingRuleId(null);
-              setFormState({ rule_type: 'purchase_amount', config: {}, order: 0, active: true });
-            }}
+            style={{ color: '#374151' }}            
+            onClick={handleClear}
           >
             Limpar
           </Button>
