@@ -16,7 +16,7 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'api.clubi.ly',
         port: '',                    // sem porta explícita
-        pathname: '/static/categories/**',
+        pathname: '/static/**',
       },
     ],
   },

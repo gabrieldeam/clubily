@@ -140,11 +140,12 @@ function renderConfigExplanation(rule: PointsRuleRead): ReactNode {
       );
     }
     case RuleType.category: {
-      const cfg = rule.config as { multiplier: number; categories: string[] };
+      const cfg = rule.config as { multiplier: number; categories?: string[] };
+      const list = Array.isArray(cfg.categories) ? cfg.categories.join(', ') : '—';
       return (
         <p>
           Multiplica por <strong>{cfg.multiplier}</strong> os pontos em compras das categorias:{' '}
-          <em>{cfg.categories.join(', ')}</em>.
+          <em>{list}</em>.
         </p>
       );
     }
@@ -241,7 +242,7 @@ function renderConfigExplanation(rule: PointsRuleRead): ReactNode {
       const cfg = rule.config as { item_ids: string[]; multiplier: number };
       return (
         <p>
-          Itens com IDs <em>{cfg.item_ids.join(', ')}</em> têm multiplicador x{' '}
+          Itens selecionados têm multiplicador x{' '}
           <strong>{cfg.multiplier}</strong>.
         </p>
       );

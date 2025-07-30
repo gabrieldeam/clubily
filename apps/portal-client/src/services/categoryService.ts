@@ -12,7 +12,7 @@ import type {
  * GET /categories
  */
 export const listCategories = () =>
-  api.get<CategoryRead[]>('/categories');
+  api.get<CategoryRead[]>('/categories/');
 
 /**
  * Lista categorias que têm pelo menos uma empresa,
@@ -38,7 +38,7 @@ export const createCategory = (payload: CategoryCreate) => {
   const fd = new FormData();
   fd.append('name', payload.name);
   fd.append('image', payload.image);
-  return api.post<CategoryRead>('/categories', fd, {
+  return api.post<CategoryRead>('/categories/', fd, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
 };
