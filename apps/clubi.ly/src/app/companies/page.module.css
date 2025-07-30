@@ -101,6 +101,7 @@
   text-decoration: none;
   transition: all 0.3s ease;
   display: inline-block;
+  text-align: center;
 }
 
 .primaryBtn {

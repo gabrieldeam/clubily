@@ -1,0 +1,121 @@
+.section {
+  position: relative;
+  overflow: hidden;
+  min-height: 100vh;
+  padding: 3rem;  
+  background: linear-gradient(135deg, #FF4C00 0%, #FF9D00 100%);
+  text-align: center;
+  border-radius: 20px;
+}
+
+.header {
+  position: relative;
+  z-index: 2;
+  margin: 0 auto 2rem;
+}
+
+.title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+  color: #ffffff;
+}
+
+.subtitle {
+  font-size: 1.2rem;
+  color: #ffffff;
+}
+
+.productContainer {
+  position: relative;
+  width: 100%;
+  height: 60vh;
+}
+
+.productCard {
+  position: absolute;
+  width: 260px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  z-index: 1;
+  border: 1px solid #ddd;
+  padding: 10px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.productImage {
+  position: relative;
+  height: 180px;
+}
+
+.productInfo {
+  padding: 1rem;
+  text-align: center;
+}
+
+.productInfo h3 {
+  font-size: 1rem;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+}
+
+.points {
+  font-weight: 700;
+  color: #000000;
+  margin-bottom: 1rem;
+  font-size: 20px;
+}
+
+.rescueButton {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  white-space: nowrap;
+  font-size: 12px;
+  background: #FF4C00;
+  color: white;
+  width: 100%;
+}
+
+.rescueButton:disabled {
+  background: #f9f9f9;
+  cursor: not-allowed;
+  color: rgb(165, 165, 165);
+}
+
+
+.features {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin-top: 4rem;
+  z-index: 2;
+  position: relative;
+}
+
+.feature {
+  background: white;
+  border-radius: 16px;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  max-width: 300px;
+  text-align: left;
+}
+
+.featureIcon {
+  min-width: 40px;
+  height: 40px;
+  background: #ffeee7;
+  border-radius: 12px;
+  padding: 0.6rem;
+  color: #FF4C00;
+}

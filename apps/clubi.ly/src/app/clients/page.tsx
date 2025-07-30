@@ -1,20 +1,82 @@
 // clientLanding/page.tsx
 "use client";
 import Link from "next/link";
-import { MapPin, DollarSign, Star, CreditCard, Gift, Zap, Users, Share2, TrendingUp, ArrowRight, CheckCircle } from "lucide-react";
+import { MapPin, ShoppingBag, UserPlus,Award, DollarSign, Star, CreditCard, Gift, Zap, Users, Share2, TrendingUp, ArrowRight, CheckCircle } from "lucide-react";
 import Image from "next/image";
 import styles from "./page.module.css";
+import RewardsSection from '@/components/RewardsSection/RewardsSection';
+import { motion } from 'framer-motion';
 
 
-// Simulação de produtos para a loja de recompensas
-const rewardProducts = [
-  { id: 1, name: "Caneca Exclusiva", description: "Caneca de cerâmica premium", points: 300, image: "/reward1.jpg" },
-  { id: 2, name: "Fone Bluetooth", description: "Áudio de alta qualidade", points: 1200, image: "/reward2.jpg" },
-  { id: 3, name: "Camiseta Estilosa", description: "Algodão orgânico", points: 800, image: "/reward3.jpg" },
-  { id: 4, name: "Cafeteira Premium", description: "Café na hora que quiser", points: 2500, image: "/reward4.jpg" },
-];
 
 export default function ClientLanding() {
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.2
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.6 } }
+  };
+
+  const featureVariants = {
+    hover: { 
+      y: -10,
+      boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+      transition: { duration: 0.3 }
+    }
+  };
+
+  const features = [
+  { 
+    icon: MapPin, 
+    title: "Geolocalização inteligente", 
+    text: "Descubra ofertas exclusivas perto de você em tempo real",
+    badge: "NOVO"
+  },
+  { 
+    icon: DollarSign, 
+    title: "Cashback instantâneo", 
+    text: "Receba parte do valor gasto de volta imediatamente após cada compra" 
+  },
+  { 
+    icon: Star, 
+    title: "Pontos vitalícios", 
+    text: "Seus pontos nunca expiram e rendem bônus trimestrais" 
+  },
+  { 
+    icon: CreditCard, 
+    title: "Carteira digital", 
+    text: "Todos seus cartões de fidelidade em um único lugar com NFC integrado" 
+  },
+  { 
+    icon: Gift, 
+    title: "Loja premium", 
+    text: "Mais de 1.000 prêmios de parceiros selecionados" 
+  },
+  { 
+    icon: Zap, 
+    title: "Resgate ultrarrápido", 
+    text: "Troque seus pontos por benefícios em menos de 15 segundos" 
+  },
+  { 
+    icon: ShoppingBag, 
+    title: "Ofertas personalizadas", 
+    text: "Promoções exclusivas baseadas no seu histórico de compras" 
+  },
+  { 
+    icon: UserPlus, 
+    title: "Programa de indicação", 
+    text: "Ganhe bônus por cada amigo que se juntar ao Clubily" 
+  }
+];
+
   return (
     <main className={styles.container}>
       {/* Hero */}
@@ -34,95 +96,151 @@ export default function ClientLanding() {
             </Link>
           </div>
         </div>
-        <figure className={styles.heroImage}>
-          <Image src="/client-hero.png" alt="Cliente satisfeito" fill priority sizes="(max-width: 768px) 80vw, 40vw" />
-        </figure>
+         <div className={styles.heroImage}>
+          <div className={styles.rightPanel}>
+          <Image
+            src="/lyCapy.png"
+            alt="Moeda GB"
+            width={450}   
+            height={450}
+            priority
+          />
+        </div>
+        </div>
       </section>
 
       {/* Como funciona */}
-      <section id="como-funciona" className={styles.howItWorks}>
-        <header>
-          <h2 className={styles.sectionTitle}>Simples, rápido e recompensador</h2>
-          <p className={styles.sectionSubtitle}>Em apenas 3 passos você começa a ganhar benefícios</p>
-        </header>
-        <ol className={styles.stepsContainer}>
-          <li className={styles.stepCard}>
-            <span className={styles.stepNumber}>1</span>
-            <h3>Cadastre-se</h3>
-            <p>Crie sua conta gratuita em menos de 2 minutos</p>
-          </li>
-          <li className={styles.stepDivider} aria-hidden="true" />
-          <li className={styles.stepCard}>
-            <span className={styles.stepNumber}>2</span>
+       <section id="como-funciona" className={styles.section}>
+      <div 
+        className={styles.header}
+      >
+        <h2 className={styles.title}>Sua jornada de recompensas começa aqui</h2>
+        <p className={styles.subtitle}>Descubra como transformar suas compras diárias em benefícios extraordinários</p>
+      </div>
+
+      {/* Passos melhorados */}
+      <ol 
+        className={styles.steps}
+      >
+        <li className={styles.step}>
+          <div className={styles.stepHeader}>
+            <div className={styles.displayFlex}>
+              <div className={styles.stepNumber}>1</div>
+              <UserPlus size={48} className={styles.stepIcon} />
+            </div>
+          </div>
+          <div className={styles.stepContent}>
+            <h3>Cadastro rápido e gratuito</h3>
+            <p>Crie sua conta em menos de 2 minutos e comece imediatamente</p>
+            <ul className={styles.stepBenefits}>
+              <li>Sem custos ocultos</li>
+              <li>Sem necessidade de cartão físico</li>
+              <li>Integração com redes sociais</li>
+            </ul>
+          </div>
+        </li>
+
+        <li className={styles.step}>
+          <div className={styles.stepHeader}>
+            <div className={styles.displayFlex}>
+              <div className={styles.stepNumber}>2</div>
+              <ShoppingBag size={48} className={styles.stepIcon} />
+            </div>
+          </div>
+          <div className={styles.stepContent}>
             <h3>Compre e acumule</h3>
-            <p>Ganhe pontos, cashback ou carimbos em cada compra</p>
-          </li>
-          <li className={styles.stepDivider} aria-hidden="true" />
-          <li className={styles.stepCard}>
-            <span className={styles.stepNumber}>3</span>
-            <h3>Resgate prêmios</h3>
-            <p>Troque seus pontos por produtos ou benefícios</p>
-          </li>
-        </ol>
-      </section>
+            <p>Ganhe recompensas a cada compra em nossos parceiros</p>
+            <ul className={styles.stepBenefits}>
+              <li>Pontos flexíveis</li>
+              <li>Cashback automático</li>
+              <li>Programas de fidelidade integrados</li>
+            </ul>
+          </div>
+        </li>
 
-      {/* Funcionalidades */}
-      <section className={styles.featuresSection}>
-        <header>
-          <h2 className={styles.sectionTitle}>O que você ganha com Clubily</h2>
-          <p className={styles.sectionSubtitle}>Um ecossistema completo para recompensar sua fidelidade</p>
-        </header>
-        <div className={styles.featuresGrid}>
-          {[
-            { icon: MapPin, title: "Lojas perto de você", text: "Busque estabelecimentos por localização e descubra programas de fidelidade ativos." },
-            { icon: DollarSign, title: "Cashback automático", text: "Acompanhe quanto acumulou em cada compra e resgate quando quiser." },
-            { icon: Star, title: "Pontos que não expiram", text: "Acumule pontos flexíveis e troque por diferentes categorias de produtos." },
-            { icon: CreditCard, title: "Cartões digitais", text: "Mantenha todos os seus cartões organizados em um único lugar." },
-            { icon: Gift, title: "Loja de recompensas", text: "Escolha entre centenas de produtos de parceiros confiáveis." },
-            { icon: Zap, title: "Resgate imediato", text: "Benefícios ativados na hora, direto no estabelecimento." },
-          ].map(({ icon: Icon, title, text }, i) => (
-            <article key={i} className={styles.featureCard}>
-              <span className={styles.featureIconContainer}><Icon size={28} className={styles.featureIcon} /></span>
-              <h3>{title}</h3>
-              <p>{text}</p>
-            </article>
-          ))}
+        <li className={styles.step}>
+          <div className={styles.stepHeader}>
+            <div className={styles.displayFlex}>
+              <div className={styles.stepNumber}>3</div>
+              <Award size={48} className={styles.stepIcon} />
+            </div>            
+          </div>
+          <div className={styles.stepContent}>
+            <h3>Resgate seus prêmios</h3>
+            <p>Troque seus pontos quando e como quiser</p>
+            <ul className={styles.stepBenefits}>
+              <li>Produtos exclusivos</li>
+              <li>Descontos progressivos</li>
+              <li>Experiências premium</li>
+            </ul>
+          </div>
+        </li>
+      </ol>
+      
+    </section>   
+    
+
+
+
+
+
+    <RewardsSection />
+
+
+
+
+
+
+
+
+
+
+
+
+      <section className={styles.section}>
+
+      {/* Benefícios integrados */}
+      <motion.div 
+        className={styles.features}
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.8, delay: 0.2 }}
+      >
+        <div className={styles.featuresHeader}>
+          <h3>Vantagens Clubily</h3>
+          <p>Um ecossistema completo pensado para maximizar seus benefícios</p>
         </div>
-      </section>
 
-      {/* Loja de Recompensas */}
-      <section className={styles.rewardsSection}>
-        <header className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Loja de Recompensas</h2>
-          <p className={styles.sectionSubtitle}>Troque seus pontos por produtos incríveis</p>
-        </header>
-        <div className={styles.productGrid}>
-          {rewardProducts.map((product) => (
-            <article key={product.id} className={styles.productCard}>
-              <figure className={styles.imageWrapper}>
-                <Image src={product.image} alt={product.name} fill sizes="(max-width: 600px) 100vw, 280px" />
-              </figure>
-              <div className={styles.productInfo}>
-                <h3>{product.name}</h3>
-                <p>{product.description}</p>
-                <footer className={styles.productFooter}>
-                  <span className={styles.pointsCost}>{product.points} pts</span>
-                  <button className={styles.redeemBtn} aria-label={`Resgatar ${product.name}`}>
-                    Resgatar
-                    <ArrowRight size={16} />
-                  </button>
-                </footer>
+        <div className={styles.grid}>
+          {features.map((feature, index) => (
+            <motion.div
+              key={index}
+              className={styles.card}
+              variants={featureVariants}
+              whileHover="hover"
+            >
+              <div className={styles.iconContainer}>
+                <feature.icon size={28} className={styles.icon} />
               </div>
-            </article>
+              <h4>{feature.title}</h4>
+              <p>{feature.text}</p>
+              {feature.badge && (
+                <span className={styles.badge}>{feature.badge}</span>
+              )}
+            </motion.div>
           ))}
         </div>
-        <div className={styles.rewardsFooter}>
-          <Link href="/rewards" className={styles.viewAllBtn}>
-            Ver todos os prêmios
-            <ArrowRight size={18} />
-          </Link>
-        </div>
-      </section>
+      </motion.div>
+    </section>
+
+
+
+
+
+
+
+
 
       {/* Programa de Indicação */}
       <section className={styles.referralSection}>
@@ -165,10 +283,14 @@ export default function ClientLanding() {
             </div>
           </div>
           <figure className={styles.referralImage}>
-            <Image src="/referral-dashboard.png" alt="Painel de indicações" fill sizes="(max-width: 768px) 80vw, 40vw" />
+            <Image src="/mapUser.svg" alt="Painel de indicações" fill sizes="(max-width: 768px) 80vw, 40vw" />
           </figure>
         </div>
       </section>
+
+
+
+
 
       {/* Vantagens */}
       <section className={styles.benefitsSection}>
@@ -194,9 +316,6 @@ export default function ClientLanding() {
           <h2>Comece a transformar suas compras em recompensas hoje mesmo!</h2>
           <p>Junte-se a mais de 50.000 clientes satisfeitos</p>
           <Link href="/signup" className={styles.ctaBtn}>Criar Conta Gratuita</Link>
-          <div className={styles.ctaFooter}>
-            <Image src="/security-badges.png" alt="Certificados de segurança" width={300} height={40} />
-          </div>
         </div>
       </section>
     </main>
