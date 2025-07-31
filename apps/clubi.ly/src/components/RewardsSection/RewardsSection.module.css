@@ -3,7 +3,6 @@
   overflow: hidden;
   min-height: 100vh;
   padding: 3rem;  
-  background: linear-gradient(135deg, #FF4C00 0%, #FF9D00 100%);
   text-align: center;
   border-radius: 20px;
 }
@@ -34,7 +33,7 @@
 
 .productCard {
   position: absolute;
-  width: 260px;
+  width: 200px;
   background: white;
   border-radius: 16px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
@@ -94,7 +93,7 @@
   display: flex;
   justify-content: center;
   gap: 2rem;
-  margin-top: 4rem;
+  margin-top: 5rem;
   z-index: 2;
   position: relative;
 }
@@ -118,4 +117,39 @@
   border-radius: 12px;
   padding: 0.6rem;
   color: #FF4C00;
+}
+
+
+/* Responsividade */
+@media (max-width: 1024px) {
+
+.section {
+  padding: 80px 20px 0px 20px;  
+}
+
+.features {
+  gap: 10px;
+}
+
+  .feature {
+    flex-direction: column;
+  padding: 1rem;
+  }
+
+
+
+
+}
+
+@media (max-width: 768px) {
+  
+  .title {
+    font-size: 2.5rem;
+    line-height: 1;
+}
+
+.subtitle {  
+    font-size: 1.1rem;
+}
+
 }

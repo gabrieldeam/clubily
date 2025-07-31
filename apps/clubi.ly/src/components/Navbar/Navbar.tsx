@@ -10,7 +10,6 @@ const links = [
   { href: '/companies', label: 'Para Empresas' },
   { href: '/clients', label: 'Para Clientes' },
   { href: '/about', label: 'Sobre nós' },
-  { href: '/faq', label: 'Perguntas e respostas' },
 ];
 
 export default function Navbar() {
@@ -112,7 +111,6 @@ useEffect(() => {
                 <a
                   href="https://app.clubi.ly"
                   className={styles.dropdownItem}
-                  target="_blank"
                   rel="noopener noreferrer"
                 >
                   Como Cliente
@@ -122,7 +120,6 @@ useEffect(() => {
                 <a
                   href="https://portal.clubi.ly"
                   className={styles.dropdownItem}
-                  target="_blank"
                   rel="noopener noreferrer"
                 >
                   Como Empresa

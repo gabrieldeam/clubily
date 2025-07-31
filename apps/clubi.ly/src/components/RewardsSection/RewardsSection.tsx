@@ -60,14 +60,14 @@ const RewardsSection = () => {
                 repeatType: 'loop',
                 ease: 'linear',
                 duration: 20 + index * 5,  // velocidades variadas
-                delay: index * 2,
+                delay: index * 1,
               },
               y: {
                 repeat: Infinity,
                 repeatType: 'reverse',
                 ease: 'easeInOut',
                 duration: 4,
-                delay: index * 0.5,
+                delay: index * 0,
               },
             }}
           >

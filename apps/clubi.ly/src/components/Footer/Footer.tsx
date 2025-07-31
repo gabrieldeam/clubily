@@ -26,9 +26,9 @@ export default function Footer() {
           <h5>Empresa</h5>
           <ul>
             <li><Link href="/solutions">Soluções</Link></li>
-            <li><Link href="/pricing">Planos</Link></li>
+            <li><Link href="/pricing">Para Empresas</Link></li>
+            <li><Link href="/faq">Para Clientes</Link></li>
             <li><Link href="/about">Sobre nós</Link></li>
-            <li><Link href="/faq">FAQ</Link></li>
           </ul>
         </div>
 

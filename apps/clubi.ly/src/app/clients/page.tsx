@@ -80,8 +80,10 @@ export default function ClientLanding() {
   return (
     <main className={styles.container}>
       {/* Hero */}
-      <section className={styles.hero}>
-        <div className={styles.heroContent}>
+      <section className={styles.content}>
+        
+        <div className={styles.hero}>
+          <div className={styles.heroContent}>
           <h1 className={styles.heroTitle}>
             Transforme suas compras em <span className={styles.highlight}>recompensas reais</span>
           </h1>
@@ -107,11 +109,11 @@ export default function ClientLanding() {
           />
         </div>
         </div>
-      </section>
-
-      {/* Como funciona */}
-       <section id="como-funciona" className={styles.section}>
-      <div 
+      </div>
+      
+      <div className={styles.section}>
+        <div 
+        id="como-funciona"
         className={styles.header}
       >
         <h2 className={styles.title}>Sua jornada de recompensas começa aqui</h2>
@@ -176,6 +178,7 @@ export default function ClientLanding() {
           </div>
         </li>
       </ol>
+      </div>
       
     </section>   
     
@@ -197,7 +200,7 @@ export default function ClientLanding() {
 
 
 
-      <section className={styles.section}>
+      <section className={styles.sectionTwo}>
 
       {/* Benefícios integrados */}
       <motion.div 
@@ -255,7 +258,7 @@ export default function ClientLanding() {
                 { icon: DollarSign, text: "Pagamentos direto na sua conta" },
                 { icon: Users, text: "Sem limite de indicações" },
               ].map(({ icon: Icon, text }, i) => (
-                <div key={i} className={styles.benefitCard}>
+                <div key={i} className={styles.benefitCardreferral}>
                   <Icon size={24} />
                   <p>{text}</p>
                 </div>
@@ -283,7 +286,7 @@ export default function ClientLanding() {
             </div>
           </div>
           <figure className={styles.referralImage}>
-            <Image src="/mapUser.svg" alt="Painel de indicações" fill sizes="(max-width: 768px) 80vw, 40vw" />
+            <Image src="/affiliate-code.png" alt="Painel de indicações" fill sizes="(max-width: 768px) 80vw, 40vw" />
           </figure>
         </div>
       </section>
