@@ -18,7 +18,8 @@ import {
   SquareChartGantt,
   ShoppingCart,
   GalleryThumbnails,
-  Flag
+  Flag,
+  Rss
 } from 'lucide-react';
 
 const navItems = [
@@ -36,6 +37,7 @@ const navItems = [
   { label: 'Loja de Recompensas', href: '/admin/rewards', icon: ShoppingCart },
   { label: 'Slides', href: '/admin/slides', icon: GalleryThumbnails },
   { label: 'Marcos de Pontuação', href: '/admin/milestones', icon: Flag },
+  { label: 'Blog', href: '/admin/blog', icon: Rss },
 ];
 
 export default function AdminWelcomePage() {
