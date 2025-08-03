@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from app.schemas.post import PostCreate, PostRead, PostUpdate
 from app.services.post_service import (
-    create_post, get_post, update_post, delete_post, search_posts, generate_unique_slug,
+    create_post, get_post, get_post_by_slug, update_post, delete_post, search_posts, generate_unique_slug,
 )
 from app.db.deps import get_db
 from fastapi import UploadFile, File, Form
@@ -118,3 +118,16 @@ def list_all(
 ):
     return search_posts(db, author_id, category_id, q, page, page_size)
 
+@router.get("/slug/{slug}", response_model=PostRead, status_code=status.HTTP_200_OK)
+def read_by_slug(slug: str, db: Session = Depends(get_db)):
+    """
+    Busca um post pelo seu slug amigável.
+    Exemplo: GET /posts/slug/como-usar-fastapi
+    """
+    post = get_post_by_slug(db, slug)
+    if not post:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Post with slug '{slug}' not found"
+        )
+    return post

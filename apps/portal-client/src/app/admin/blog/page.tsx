@@ -396,6 +396,9 @@ const loadPosts = useCallback(async () => {
     content: ""   // colocaremos a URL base64/preview depois
   });
 
+  const applyFormat = (command: string, value?: string) => {
+    document.execCommand(command, false, value);
+  };
 
   /* ===================== RENDER ===================== */
   return (
@@ -768,16 +771,43 @@ const loadPosts = useCallback(async () => {
 
                   {/* corpo do bloco */}
                   {blk.type === "text" && (
-                    <textarea
-                      rows={5}
-                      value={blk.content as string}
-                      onChange={(e) => {
-                        const newBlocks = [...postForm.blocks];
-                        newBlocks[idx].content = e.target.value;
-                        updatePostField("blocks", newBlocks);
-                      }}
-                      style={{ width: "100%" }}
-                    />
+                    <div className={styles.richTextEditor}>
+                      <div className={styles.toolbar}>
+                        <button
+                          type="button"
+                          onClick={() => applyFormat("bold")}
+                          aria-label="Negrito"
+                        >
+                          <b>B</b>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => applyFormat("italic")}
+                          aria-label="Itálico"
+                        >
+                          <i>I</i>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => applyFormat("fontSize", "4")}
+                          aria-label="Aumentar fonte"
+                        >
+                          A+
+                        </button>
+                      </div>
+                      <div
+                        className={styles.editor}
+                        contentEditable
+                        suppressContentEditableWarning
+                        dangerouslySetInnerHTML={{ __html: blk.content as string }}
+                        onInput={(e) => {
+                          const html = (e.target as HTMLDivElement).innerHTML;
+                          const newBlocks = [...postForm.blocks];
+                          newBlocks[idx].content = html;
+                          updatePostField("blocks", newBlocks);
+                        }}
+                      />
+                    </div>
                   )}
 
                   {blk.type === "image" && (

@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from app.models.category import Category
 from app.schemas.category import CategoryCreate
 
@@ -36,4 +36,8 @@ def delete_category(db: Session, category_id: str) -> Category | None:
     return category
 
 def list_categories(db: Session) -> list[Category]:
-    return db.query(Category).all()
+    return (
+        db.query(Category)
+          .options(selectinload(Category.children))
+          .all()
+    )

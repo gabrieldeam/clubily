@@ -10,6 +10,7 @@ const links = [
   { href: '/companies', label: 'Para Empresas' },
   { href: '/clients', label: 'Para Clientes' },
   { href: '/about', label: 'Sobre nós' },
+  { href: '/blog', label: 'Blog' },
 ];
 
 export default function Navbar() {

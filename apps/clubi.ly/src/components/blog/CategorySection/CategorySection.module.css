@@ -1,0 +1,81 @@
+.categorySection {
+  background: white;
+  padding: 25px;
+  border-radius: 10px;
+  border: 1px solid #e8e8e8;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.categoryTitle {
+  font-size: 1.5rem;
+  margin-bottom: 20px;
+  color: #1a1a1a;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.categoryList,
+.subCategoryList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* Item raiz e sub-itens */
+.categoryItem {
+  margin-bottom: 12px;
+}
+
+.categoryLink {
+  text-decoration: none;
+  color: #333;
+  font-weight: 500;
+  display: inline-block;
+  padding: 10px 15px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  background: #f8f9fa;
+  border: none;
+  width: 100%;
+  text-align: left;
+}
+
+.categoryLink:hover {
+  background: #ffe8be;
+  color: #FFA600;
+}
+
+/* Estilo do item selecionado */
+.selected {
+  background: #ffe8be;
+  color: #FFA600;
+}
+
+/* Indicador de subcategorias */
+.hasChildren {
+  margin-left: 8px;
+  font-size: 0.8rem;
+  color: #777;
+}
+
+/* Nível 1 de subcategoria */
+.subCategoryList {
+  margin-top: 8px;
+  margin-left: 20px;
+}
+
+/* Itens de subcategoria */
+.subCategoryList .categoryItem {
+  margin-bottom: 8px;
+}
+
+.subCategoryList .categoryLink {
+  padding: 6px 12px;
+  font-weight: 400;
+  background: #fafafa;
+}
+
+.subCategoryList .categoryLink:hover {
+  background: #f1f1f1;
+  color: #FFA600;
+}

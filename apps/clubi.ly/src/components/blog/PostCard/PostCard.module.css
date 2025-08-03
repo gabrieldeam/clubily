@@ -1,0 +1,87 @@
+/* PostCard.module.css */
+
+.postCard {
+  border: 1px solid #e8e8e8;
+  border-radius: 10px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  background: white;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.postCard:hover {
+  transform: translateY(-7px);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  border-color: #FFA600;
+}
+
+/* Nova abordagem: aspecto responsivo */
+.postImage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/9; /* mantém proporção */
+  overflow: hidden;
+}
+
+/* Conteúdo e tipografia */
+.postContent {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.postTitle {
+  font-size: 1.25rem;
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
+.postMeta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: #666;
+  margin-bottom: 15px;
+}
+
+.postExcerpt {
+  flex-grow: 1;
+  margin-bottom: 15px;
+  color: #444;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.postCategories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 15px;
+}
+
+.categoryTag {
+  background: #FFA600;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  color: #FFA600;
+  font-weight: 500;
+}
+
+/* Ajustes para mobile */
+@media (max-width: 768px) {
+  .postContent {
+    padding: 15px;
+  }
+  .postTitle {
+    font-size: 1.1rem;
+  }
+  .postExcerpt {
+    font-size: 0.85rem;
+  }
+}

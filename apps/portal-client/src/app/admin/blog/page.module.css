@@ -467,3 +467,56 @@
   background: #f3f4f6;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+/* editor inline */
+.richTextEditor {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 0.5rem 0;
+}
+
+/* barra de botões */
+.toolbar {
+  display: flex;
+  gap: 0.5rem;
+  background: #f9f9f9;
+  padding: 0.5rem;
+  border-bottom: 1px solid #ddd;
+}
+
+/* botões transparentes, só ícones/texto */
+.toolbar button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.toolbar button:hover {
+  background: #eee;
+}
+
+/* área editável */
+.editor {
+  min-height: 100px;
+  padding: 0.5rem;
+  outline: none;
+  font-size: 1rem;
+  line-height: 1.5;
+}
