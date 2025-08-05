@@ -27,3 +27,9 @@ class PaginatedInventoryItems(BaseModel):
     items: List[InventoryItemRead]
 
     model_config = ConfigDict()
+
+class InventoryItemBasic(BaseModel):
+    id: UUID
+    name: str
+    sku: str
+    model_config = ConfigDict(from_attributes=True)

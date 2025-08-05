@@ -75,6 +75,7 @@ export default function ClientModal({ onClose }: ClientModalProps) {
   const [purchaseAmount, setPurchaseAmount] = useState('');
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [itemCounts, setItemCounts] = useState<Record<string, number>>({});
+  const [selectedIndex, setSelectedIndex] = useState<Record<string, number>>({});
   const [branchId, setBranchId] = useState('');
   const [eventValue, setEventValue] = useState('');
   const [associateCb, setAssociateCb] = useState(false);
@@ -110,6 +111,7 @@ export default function ClientModal({ onClose }: ClientModalProps) {
     setItems([]);
     setSelectedItems([]);
     setItemCounts({});
+    setSelectedIndex({});
 
     /* compra */
     setPurchaseAmount('');
@@ -131,33 +133,48 @@ export default function ClientModal({ onClose }: ClientModalProps) {
 
 
   // +1 no contador (e garante que o item fique marcado)
-  const incrementItem = (id: string) => {
-    setItemCounts(prev => {
-      const next = { ...prev, [id]: (prev[id] || 0) + 1 };
-      // se for o primeiro, adiciona em selectedItems
-      if (!selectedItems.includes(id)) {
-        setSelectedItems(s => [...s, id]);
-      }
-      return next;
-    });
-  };
+const incrementItem = (id: string) => {
+  setItemCounts(prev => {
+    const next = { ...prev, [id]: (prev[id] || 0) + 1 };
+
+    // adiciona o id apenas se ainda não existir
+    setSelectedItems(s => (s.includes(id) ? s : [...s, id]));
+
+    // salva o preço se ainda não existir no índice
+    const price = items.find(i => i.id === id)?.price;
+    setSelectedIndex(prevIdx =>
+      prevIdx[id] === undefined ? { ...prevIdx, [id]: Number(price ?? 0) } : prevIdx
+    );
+
+    return next;
+  });
+};
+
+
 
   // –1 no contador (e, se chegar a 0, desmarca e remove do selectedItems)
-  const decrementItem = (id: string) => {
-    setItemCounts(prev => {
-      const current = prev[id] || 0;
-      const nextCount = current - 1;
-      const next = { ...prev };
+const decrementItem = (id: string) => {
+  setItemCounts(prev => {
+    const current = prev[id] || 0;
+    const nextCount = current - 1;
+    const next = { ...prev };
 
-      if (nextCount <= 0) {
-        delete next[id];
-        setSelectedItems(s => s.filter(x => x !== id));
-      } else {
-        next[id] = nextCount;
-      }
-      return next;
-    });
-  };
+    if (nextCount <= 0) {
+      delete next[id];
+      setSelectedItems(s => s.filter(x => x !== id));
+      // TAMBÉM remove do índice de preços
+      setSelectedIndex(prevIndex => {
+        const nextIndex = { ...prevIndex };
+        delete nextIndex[id];
+        return nextIndex;
+      });
+    } else {
+      next[id] = nextCount;
+    }
+    return next;
+  });
+};
+
 
 
 
@@ -279,14 +296,17 @@ export default function ClientModal({ onClose }: ClientModalProps) {
     }
   }, [programs]);
 
-  /* recalcula total da compra quando itens mudam */
+  /* recalcula total da compra (quantidade × preço), mesmo com paginação */
   useEffect(() => {
-    const sum = selectedItems.reduce((total, id) => {
-      const item = items.find(i => i.id === id);
-      return total + (item ? Number(item.price) : 0);
+    const sum = Object.entries(itemCounts).reduce((total, [id, count]) => {
+      const priceInPage = items.find(i => i.id === id)?.price;
+      const price = Number(priceInPage ?? selectedIndex[id] ?? 0);
+      return total + price * (count ?? 0);
     }, 0);
+
     setPurchaseAmount(sum.toFixed(2));
-  }, [selectedItems, items]);
+  }, [itemCounts, items, selectedIndex]);
+
 
   /* -------------------------------------------------------------------- */
   /*                      4) registrar compra do cliente                  */
@@ -305,6 +325,7 @@ export default function ClientModal({ onClose }: ClientModalProps) {
       return;
     }
 
+    const uniqueSelectedItems = Array.from(new Set(selectedItems));
 
     setPurchaseLoading(true);
 
@@ -313,10 +334,11 @@ export default function ClientModal({ onClose }: ClientModalProps) {
       await evaluatePurchase({
         user_id: client.id,
         amount,
-        purchased_items: selectedItems.length ? selectedItems : undefined,
+        purchased_items: uniqueSelectedItems.length ? uniqueSelectedItems : undefined,
         branch_id: branchId || undefined,
         event: eventValue || undefined,
       });
+
 
       /* 4b) cashback opcional */
       if (associateCb) {
@@ -336,7 +358,7 @@ export default function ClientModal({ onClose }: ClientModalProps) {
         await adminStampCard({
           code: trimmedCode,
           amount,
-          purchased_items: selectedItems.length ? selectedItems : undefined,
+          purchased_items: uniqueSelectedItems.length ? uniqueSelectedItems : undefined,
           visit_count: 1,
         });
       }
@@ -357,8 +379,10 @@ export default function ClientModal({ onClose }: ClientModalProps) {
 
       /* limpa campos */
       setPurchaseAmount('');
-      setStampCode('');     
+      setStampCode('');
       setSelectedItems([]);
+      setItemCounts({});          // << ADICIONE
+      setSelectedIndex({});       // << ADICIONE
       setBranchId('');
       setEventValue('');
       setAssociateCb(false);
@@ -483,7 +507,7 @@ export default function ClientModal({ onClose }: ClientModalProps) {
           label="Valor da compra (R$)"
           type="number"
           value={purchaseAmount}
-          onChange={e => setPurchaseAmount(e.target.value)}
+          readOnly
         />
 
         {/* inventário */}
@@ -508,7 +532,7 @@ export default function ClientModal({ onClose }: ClientModalProps) {
 
               {items.map(item => {
                 const count = itemCounts[item.id] || 0;
-                const checked = selectedItems.includes(item.id);
+                const checked = (itemCounts[item.id] ?? 0) > 0;
 
                 return (
                   <div key={item.id} className={styles.itemRow}>
@@ -522,19 +546,29 @@ export default function ClientModal({ onClose }: ClientModalProps) {
                         checked={checked}
                         onChange={() => {
                           if (checked) {
-                            // uncheck → zerar contador
+                            // uncheck → zera contador, remove seleção e limpa índice de preços
                             setItemCounts(prev => {
                               const next = { ...prev };
                               delete next[item.id];
                               return next;
                             });
                             setSelectedItems(s => s.filter(x => x !== item.id));
+                            setSelectedIndex(prevIndex => {
+                              const nextIndex = { ...prevIndex };
+                              delete nextIndex[item.id];
+                              return nextIndex;
+                            });
                           } else {
-                            // check → inicia em 1
+                            // check → inicia em 1, adiciona à seleção e salva o preço atual no índice
                             setItemCounts(prev => ({ ...prev, [item.id]: 1 }));
-                            setSelectedItems(s => [...s, item.id]);
+                            setSelectedItems(s => (s.includes(item.id) ? s : [...s, item.id]));
+                            setSelectedIndex(prev => (
+                              prev[item.id] === undefined ? { ...prev, [item.id]: Number(item.price) } : prev
+                            ));
+
                           }
                         }}
+
                       />
                       {item.name}
                     </label>
@@ -575,12 +609,18 @@ export default function ClientModal({ onClose }: ClientModalProps) {
             {selectedItems.length > 0 && (
               <p className={styles.selectedHint}>
                 Selecionados:&nbsp;
-                {items
-                  .filter(i => selectedItems.includes(i.id))
-                  .map(i => i.name)
+                {Array.from(new Set(selectedItems))
+                  .map(id => {
+                    const it = items.find(i => i.id === id);
+                    const qty = itemCounts[id] ?? 0;
+                    return it ? `${it.name} × ${qty}` : `${id} × ${qty}`;
+                  })
+                  .filter(Boolean)
                   .join(', ')}
               </p>
             )}
+
+
           </div>
         ) : (
           <div className={styles.noInventory}>

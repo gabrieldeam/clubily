@@ -2,12 +2,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from uuid import UUID
+from typing import List
 
 from app.api.deps import get_db, get_current_company
 from app.schemas.product_category import (
     ProductCategoryCreate,
     ProductCategoryRead,
-    PaginatedProductCategories,
+    PaginatedProductCategories,ProductCategoryBasic
 )
 from app.models.product_category import ProductCategory
 
@@ -35,6 +36,30 @@ def list_categories(
         "limit": limit,
         "items": items
     }
+
+@router.get(
+    "/by-ids",
+    response_model=List[ProductCategoryBasic],
+    summary="Buscar categorias por uma lista de IDs (retorna só id e name)"
+)
+def get_categories_by_ids(
+    ids: List[UUID] = Query(
+        ...,
+        description="Repita o parâmetro para cada ID. Ex.: ?ids=a&ids=b&ids=c"
+    ),
+    db: Session = Depends(get_db),
+):
+    """
+    Retorna somente `id` e `name` das categorias informadas.
+    Não dispara 404 se alguma não existir; apenas ignora as inexistentes.
+    Mantém a ordem dos IDs recebidos.
+    """
+    if not ids:
+        return []
+
+    rows = db.query(ProductCategory).filter(ProductCategory.id.in_(ids)).all()
+    by_id = {c.id: c for c in rows}
+    return [by_id[i] for i in ids if i in by_id]
 
 @router.post("/", response_model=ProductCategoryRead, status_code=status.HTTP_201_CREATED)
 def create_category(payload: ProductCategoryCreate, db: Session = Depends(get_db), current_company=Depends(get_current_company)):

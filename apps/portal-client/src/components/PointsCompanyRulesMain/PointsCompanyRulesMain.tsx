@@ -8,6 +8,7 @@ import type { PointsRuleRead } from '@/types/pointsRule';
 import { RuleType } from '@/types/pointsRule';
 import { getRuleTypeLabel } from '@/utils/ruleType';
 import RuleEligibilityModal from '@/components/RuleEligibilityModal/RuleEligibilityModal';
+import RuleParticipantsModal from '@/components/RuleParticipantsModal/RuleParticipantsModal';
 import styles from './PointsCompanyRulesMain.module.css';
 
 interface Props {
@@ -24,6 +25,11 @@ export default function PointsCompanyRulesMain({ companyId }: Props) {
   const [rules, setRules] = useState<PointsRuleRead[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // estados para o modal de participantes
+  const [openParticipants, setOpenParticipants] = useState(false);
+  const [selectedParticipantsRule, setSelectedParticipantsRule] = useState<PointsRuleRead | null>(null);
+
 
   // estados para o modal de elegibilidade
   const [openModal, setOpenModal] = useState(false);
@@ -47,6 +53,16 @@ export default function PointsCompanyRulesMain({ companyId }: Props) {
     setOpenModal(false);
   };
 
+  const handleOpenParticipants = (rule: PointsRuleRead) => {
+    setSelectedParticipantsRule(rule);
+    setOpenParticipants(true);
+  };
+  const handleCloseParticipants = () => {
+    setSelectedParticipantsRule(null);
+    setOpenParticipants(false);
+  };
+
+
   return (
     <>
       <div className={styles.whiteBox}>
@@ -67,19 +83,30 @@ export default function PointsCompanyRulesMain({ companyId }: Props) {
                 {renderConfigExplanation(rule)}
               </div>
 
-              {/* Só renderiza o botão se o tipo da regra estiver na lista */}
-              {ELIGIBLE_RULE_TYPES.includes(
-                rule.rule_type as typeof ELIGIBLE_RULE_TYPES[number]
-              ) && (
-                <div className={styles.footer}>
+              <div className={styles.footer}>
+
+                {/* Botão existente de elegibilidade (quando aplicável) */}
+                {ELIGIBLE_RULE_TYPES.includes(
+                  rule.rule_type as typeof ELIGIBLE_RULE_TYPES[number]
+                ) && (
                   <button
                     className={styles.checkBtn}
                     onClick={() => handleOpenModal(rule)}
                   >
                     Verificar elegibilidade
                   </button>
-                </div>
-              )}
+                )}
+
+                {/* Novo botão "Ver participantes" para os tipos suportados */}
+                {(rule.rule_type === RuleType.inventory || rule.rule_type === RuleType.category) && (
+                  <button
+                    className={styles.checkBtn}
+                    onClick={() => handleOpenParticipants(rule)}
+                  >
+                    Ver participantes
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -93,6 +120,15 @@ export default function PointsCompanyRulesMain({ companyId }: Props) {
           checkRuleStatus={checkRuleStatus}
         />
       )}
+
+      {selectedParticipantsRule && (
+        <RuleParticipantsModal
+          open={openParticipants}
+          onClose={handleCloseParticipants}
+          rule={selectedParticipantsRule}
+        />
+      )}
+
     </>
   );
 }
@@ -141,11 +177,10 @@ function renderConfigExplanation(rule: PointsRuleRead): ReactNode {
     }
     case RuleType.category: {
       const cfg = rule.config as { multiplier: number; categories?: string[] };
-      const list = Array.isArray(cfg.categories) ? cfg.categories.join(', ') : '—';
       return (
         <p>
-          Multiplica por <strong>{cfg.multiplier}</strong> os pontos em compras das categorias:{' '}
-          <em>{list}</em>.
+          Categorias selecionados de produtos têm multiplicador x{' '}
+          <strong>{cfg.multiplier}</strong>.
         </p>
       );
     }

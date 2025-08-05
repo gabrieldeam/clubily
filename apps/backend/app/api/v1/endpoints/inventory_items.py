@@ -2,8 +2,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from uuid import UUID
+from typing import List
 from app.api.deps import get_db, get_current_company
-from app.schemas.inventory_item import InventoryItemCreate, InventoryItemRead, PaginatedInventoryItems
+from app.schemas.inventory_item import InventoryItemCreate, InventoryItemRead, PaginatedInventoryItems, InventoryItemBasic
 from app.models.inventory_item import InventoryItem
 from app.models.product_category import ProductCategory
 from sqlalchemy import or_
@@ -33,6 +34,30 @@ def list_items(
         "limit": limit,
         "items": items
     }
+
+@router.get(
+    "/by-ids",
+    response_model=List[InventoryItemBasic],
+    summary="Buscar itens de inventário por uma lista de IDs (retorna só id, name, sku)"
+)
+def get_inventory_by_ids(
+    ids: List[UUID] = Query(
+        ...,
+        description="Repita o parâmetro para cada ID. Ex.: ?ids=a&ids=b&ids=c"
+    ),
+    db: Session = Depends(get_db),
+):
+    """
+    Retorna somente `id`, `name` e `sku` dos itens informados.
+    Não lança 404 para IDs inexistentes; apenas ignora-os.
+    A ordem da resposta segue a ordem dos IDs recebidos.
+    """
+    if not ids:
+        return []
+
+    rows = db.query(InventoryItem).filter(InventoryItem.id.in_(ids)).all()
+    by_id = {it.id: it for it in rows}
+    return [by_id[i] for i in ids if i in by_id]
 
 @router.post("/", response_model=InventoryItemRead, status_code=status.HTTP_201_CREATED)
 def create_item(payload: InventoryItemCreate, db: Session = Depends(get_db), current_company=Depends(get_current_company)):

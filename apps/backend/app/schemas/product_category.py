@@ -23,3 +23,8 @@ class PaginatedProductCategories(BaseModel):
     items: List[ProductCategoryRead]
 
     model_config = ConfigDict()
+
+class ProductCategoryBasic(BaseModel):
+    id: UUID
+    name: str
+    model_config = ConfigDict(from_attributes=True)
