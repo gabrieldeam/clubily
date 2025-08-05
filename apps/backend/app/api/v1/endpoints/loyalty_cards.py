@@ -543,7 +543,7 @@ def user_generate_code(
     if not inst or inst.user_id != user.id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Cartão não encontrado")
     code = generate_code(db, inst_id)
-    return {"code": code.code, "expires_at": code.expires_at}
+    return {"code": code.code, "expires_at": code.expires_at, "used": code.used,}
 
 @router.get(
     "/cards",

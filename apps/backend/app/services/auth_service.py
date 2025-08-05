@@ -56,7 +56,7 @@ def authenticate(db: Session, identifier: str, password: str) -> tuple[str, User
         return None, None
 
     # 2) verifica senha
-    if not verify_password(password, user.hashed_password):
+    if not verify_password(user.hashed_password, password):
         return None, None
 
     # 3) tudo ok: cria JWT

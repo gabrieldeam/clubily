@@ -8,6 +8,8 @@ from app.routes.author_route   import router as author_router
 from app.routes.category_route import router as category_router
 from app.routes.banner_route   import router as banner_router
 from app.routes.post_route     import router as post_router
+from app.routes.help_category_route import router as help_category_router
+from app.routes.help_post_route     import router as help_post_router
 from fastapi.staticfiles import StaticFiles
 import os
 
@@ -34,6 +36,8 @@ app.include_router(author_router)
 app.include_router(category_router)
 app.include_router(banner_router)
 app.include_router(post_router)
+app.include_router(help_category_router)
+app.include_router(help_post_router)
 
 @app.get("/")
 def health_check():

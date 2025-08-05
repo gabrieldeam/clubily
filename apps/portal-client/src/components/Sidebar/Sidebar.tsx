@@ -31,7 +31,7 @@ const navItems = [
   { label: 'Categorias', href: '/admin/categories', icon: Tag },
   { label: 'Usuários', href: '/admin/users', icon: User },
   { label: 'Créditos', href: '/admin/payments', icon: CreditCard },
-  { label: 'Suportes', href: '/admin/suportes', icon: LifeBuoy },
+  { label: 'Suporte', href: '/admin/support', icon: LifeBuoy },
   { label: 'Cashback', href: '/admin/cashback-programs', icon: CreditCard },
   { label: 'Pontos', href: '/admin/points', icon: Award },
   { label: 'Planos de Pontos', href: '/admin/point-plans', icon: SquareChartGantt },

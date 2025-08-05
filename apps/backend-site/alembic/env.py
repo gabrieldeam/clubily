@@ -15,7 +15,7 @@ if config.config_file_name is not None:
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from app.db.base import Base
-from app.models import author, banner, category, post, block
+from app.models import author, banner, category, post, block, help_category, help_post, help_block
 
 target_metadata = Base.metadata
 

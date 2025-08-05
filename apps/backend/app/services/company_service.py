@@ -57,6 +57,6 @@ def authenticate(db: Session, identifier: str, password: str) -> Optional[Compan
     Retorna a instância de Company se válido, ou None.
     """
     company = get_by_identifier(db, identifier)
-    if not company or not verify_password(password, company.hashed_password):
+    if not company or not verify_password(company.hashed_password, password):
         return None
     return company

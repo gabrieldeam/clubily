@@ -1,0 +1,77 @@
+/* app/legal/privacy/PrivacyPolicy.module.css */
+
+.container {
+  margin: 0 auto;
+  padding: 20px;  
+  line-height: 1.6;
+  color: #333;
+  background-color: white;
+  margin-top: 10px;
+  border-radius: 20px 20px 0 0;
+}
+
+.container h1,
+.container h2,
+.container h3 {
+  color: #111;
+  margin-bottom: 1rem;
+}
+
+.container h1 {
+  font-size: 2rem;
+}
+
+.container h2 {
+  font-size: 1.75rem;
+}
+
+.container h3 {
+  font-size: 1.5rem;
+}
+
+.container p {
+  margin-bottom: 1rem;
+}
+
+.container table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+}
+
+.container table th,
+.container table td {
+  border: 1px solid #ddd;
+  padding: 0.75rem;
+  text-align: left;
+}
+
+.container hr {
+  border: none;
+  border-top: 1px solid #ddd;
+  margin: 2rem 0;
+}
+
+.container ul,
+.container ol {
+  margin-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.container ul li,
+.container ol li {
+  margin-bottom: 0.5rem;
+}
+
+.container a {
+  color: #0070f3;
+  text-decoration: underline;
+}
+
+.container blockquote {
+  border-left: 4px solid #ddd;
+  padding-left: 1rem;
+  margin: 1.5rem 0;
+  color: #555;
+  font-style: italic;
+}

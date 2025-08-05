@@ -9,12 +9,20 @@ export async function fetchPosts(params?: {
   category_id?: string;
   q?: string;
 }): Promise<PostPage> {
-  const query = new URLSearchParams(params as any).toString();
-  const res = await fetch(`${API_URL}/posts?${query}`);
-  if (!res.ok) throw new Error("Erro ao buscar posts");
-  return res.json();  // aqui o backend deve estar retornando { items, page, page_size, total }
+  // Constrói query string sem usar 'any'
+  const queryObject: Record<string, string> = {}
+  if (params) {
+    if (params.page !== undefined) queryObject.page = String(params.page)
+    if (params.page_size !== undefined) queryObject.page_size = String(params.page_size)
+    if (params.author_id) queryObject.author_id = params.author_id
+    if (params.category_id) queryObject.category_id = params.category_id
+    if (params.q) queryObject.q = params.q
+  }
+  const query = new URLSearchParams(queryObject).toString()
+  const res = await fetch(`${API_URL}/posts${query ? `?${query}` : ''}`)
+  if (!res.ok) throw new Error("Erro ao buscar posts")
+  return res.json()  // backend deve retornar PostPage: { items, page, page_size, total }
 }
-
 
 export async function fetchPost(id: string): Promise<Post> {
   const res = await fetch(`${API_URL}/posts/${id}`)
@@ -27,16 +35,16 @@ export function createPost(payload: FormData): Promise<Post>;
 export async function createPost(
   payload: PostCreate | FormData
 ): Promise<Post> {
-  const isForm = payload instanceof FormData;
+  const isForm = payload instanceof FormData
   const res = await fetch(`${API_URL}/posts`, {
     method: "POST",
     headers: isForm
       ? {}
       : { "Content-Type": "application/json" },
     body: isForm ? payload : JSON.stringify(payload),
-  });
-  if (!res.ok) throw new Error("Falha ao criar post");
-  return res.json();
+  })
+  if (!res.ok) throw new Error("Falha ao criar post")
+  return res.json()
 }
 
 export function updatePost(id: string, payload: PostUpdate): Promise<Post>;
@@ -45,16 +53,16 @@ export async function updatePost(
   id: string,
   payload: PostUpdate | FormData
 ): Promise<Post> {
-  const isForm = payload instanceof FormData;
+  const isForm = payload instanceof FormData
   const res = await fetch(`${API_URL}/posts/${id}`, {
     method: "PUT",
     headers: isForm
       ? {}
       : { "Content-Type": "application/json" },
     body: isForm ? payload : JSON.stringify(payload),
-  });
-  if (!res.ok) throw new Error("Falha ao atualizar post");
-  return res.json();
+  })
+  if (!res.ok) throw new Error("Falha ao atualizar post")
+  return res.json()
 }
 
 export async function deletePost(id: string): Promise<Post> {

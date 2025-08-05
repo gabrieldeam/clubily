@@ -3,7 +3,6 @@
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
-import Link from 'next/link';
 import { Gift, Zap } from 'lucide-react';
 import styles from './RewardsSection.module.css';
 
@@ -15,22 +14,23 @@ interface Reward {
   image: string;
 }
 
-const RewardsSection = () => {
-  const rewardProducts: Reward[] = [
-    { id: 1, name: "Caneca Exclusiva", description: "Caneca de cerâmica premium", points: 300, image: "/reward.jpg" },
-    { id: 2, name: "Fone Bluetooth", description: "Áudio de alta qualidade", points: 1200, image: "/reward.jpg" },
-    { id: 3, name: "Camiseta Estilosa", description: "Algodão orgânico", points: 800, image: "/reward.jpg" },
-    { id: 4, name: "Cafeteira Premium", description: "Café na hora que quiser", points: 2500, image: "/reward.jpg" },
-    { id: 5, name: "Smartwatch", description: "Monitoramento de saúde", points: 3500, image: "/reward.jpg" },
-    { id: 6, name: "Caixa de Chocolate", description: "Seleção premium", points: 500, image: "/reward.jpg" },
-  ];
+// Array estável fora do componente
+const rewardProducts: Reward[] = [
+  { id: 1, name: "Caneca Exclusiva", description: "Caneca de cerâmica premium", points: 300, image: "/reward.jpg" },
+  { id: 2, name: "Fone Bluetooth", description: "Áudio de alta qualidade", points: 1200, image: "/reward.jpg" },
+  { id: 3, name: "Camiseta Estilosa", description: "Algodão orgânico", points: 800, image: "/reward.jpg" },
+  { id: 4, name: "Cafeteira Premium", description: "Café na hora que quiser", points: 2500, image: "/reward.jpg" },
+  { id: 5, name: "Smartwatch", description: "Monitoramento de saúde", points: 3500, image: "/reward.jpg" },
+  { id: 6, name: "Caixa de Chocolate", description: "Seleção premium", points: 500, image: "/reward.jpg" },
+];
 
-  // posições iniciais distribuídas em Y
+const RewardsSection = () => {
+  // Agora rewardProducts é constante estável, e não precisamos incluí-lo no array de deps
   const positions = useMemo(
     () =>
       rewardProducts.map((_, i) => ({
         top: `${10 + (i % 3) * 25}%`,
-        left: `${-30}%`, // começam fora da tela à esquerda
+        left: `-30%`,
       })),
     []
   );
@@ -51,15 +51,15 @@ const RewardsSection = () => {
             className={styles.productCard}
             style={positions[index]}
             animate={{
-              x: ['-30vw', '130vw'],    // desliza da esquerda para fora à direita
-              y: [0, -15, 0],           // flutua para cima e volta
+              x: ['-30vw', '130vw'],
+              y: [0, -15, 0],
             }}
             transition={{
               x: {
                 repeat: Infinity,
                 repeatType: 'loop',
                 ease: 'linear',
-                duration: 20 + index * 5,  // velocidades variadas
+                duration: 20 + index * 5,
                 delay: index * 1,
               },
               y: {
@@ -67,7 +67,7 @@ const RewardsSection = () => {
                 repeatType: 'reverse',
                 ease: 'easeInOut',
                 duration: 4,
-                delay: index * 0,
+                delay: 0,
               },
             }}
           >

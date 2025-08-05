@@ -4,12 +4,13 @@ import React, { useState, useEffect } from 'react';
 import Slider from '@/components/Slider/Slider';
 import Image from 'next/image';
 import { fetchBanners } from '@/services/bannerService';
-import { Banner } from '@/types/banner';
 import { fetchPosts } from '@/services/postService';
 import PostCard from '@/components/blog/PostCard/PostCard';
 import { fetchCategories } from '@/services/categoryBlogService';
 import CategorySection from '@/components/blog/CategorySection/CategorySection';
+import { Banner } from '@/types/banner';
 import { Category } from '@/types/categoryBlog';
+import { Post } from '@/types/post';
 import { Search } from 'lucide-react';
 import styles from './page.module.css';
 
@@ -19,10 +20,9 @@ export default function BlogPage() {
   const [loadingSlides, setLoadingSlides] = useState(true);
 
   /* Posts */
-  const [initialPosts, setInitialPosts] = useState<any[]>([]);
+  const [initialPosts, setInitialPosts] = useState<Post[]>([]);
+  const [displayedPosts, setDisplayedPosts] = useState<Post[]>([]);
   const [loadingInitial, setLoadingInitial] = useState(true);
-
-  const [displayedPosts, setDisplayedPosts] = useState<any[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(true);
 
   /* Categorias */
@@ -50,15 +50,23 @@ export default function BlogPage() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Defina logo acima do componente:
+  type FetchPostsParams = {
+    page_size: number;
+    q?: string;
+    category_id?: string;
+  };
+
+
   /* Fetch inicial */
   useEffect(() => {
     fetchBanners()
-      .then(data => setSlides(data))
+      .then((data: Banner[]) => setSlides(data))
       .finally(() => setLoadingSlides(false));
 
     fetchPosts({ page_size: 10 })
-      .then(data => {
-        const items = Array.isArray(data) ? data : (data as any).items || [];
+      .then((data: Post[] | { items: Post[] }) => {
+        const items = Array.isArray(data) ? data : data.items;
         setInitialPosts(items);
         setDisplayedPosts(items);
       })
@@ -68,7 +76,7 @@ export default function BlogPage() {
       });
 
     fetchCategories()
-      .then(data => setCategories(data))
+      .then((data: Category[]) => setCategories(data))
       .finally(() => setLoadingCategories(false));
   }, []);
 
@@ -94,8 +102,8 @@ export default function BlogPage() {
     setLoadingPosts(true);
 
     fetchPosts({ page_size: 100, q })
-      .then(data => {
-        const items = Array.isArray(data) ? data : (data as any).items || [];
+      .then((data: Post[] | { items: Post[] }) => {
+        const items = Array.isArray(data) ? data : data.items;
         setDisplayedPosts(items);
         setCurrentPage(1);
       })
@@ -112,12 +120,12 @@ export default function BlogPage() {
     setLoadingPosts(true);
 
     // Monta params dinamicamente
-    const params: Record<string, any> = { page_size: 100 };
+    const params: FetchPostsParams = { page_size: 100 };
     if (categoryId) params.category_id = categoryId;
 
     fetchPosts(params)
-      .then(data => {
-        const items = Array.isArray(data) ? data : (data as any).items || [];
+      .then((data: Post[] | { items: Post[] }) => {
+        const items = Array.isArray(data) ? data : data.items;
         setDisplayedPosts(items);
       })
       .catch(console.error)

@@ -1,5 +1,6 @@
 'use client';
-import styles from './page.module.css';   // <— importe o módulo
+import styles from './page.module.css';
+import Image from 'next/image';
 
 import { Facebook, Twitter, Linkedin, Copy } from 'lucide-react';
 
@@ -47,7 +48,13 @@ export default function ShareButtons() {
         <Linkedin />
       </button>
       <button onClick={() => share('whatsapp')} aria-label="WhatsApp">
-        <img src="/whatsapp.svg" alt="WhatsApp" width={20} height={20} />
+        <Image
+          src="/whatsapp.svg"
+          alt="WhatsApp"
+          width={20}
+          height={20}
+          priority
+        />
       </button>
       <button onClick={copyLink} aria-label="Copiar link">
         <Copy />

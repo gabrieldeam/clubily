@@ -17,12 +17,17 @@ function buildCategoryTree(categories: Category[]): CategoryWithChildren[] {
   const map = new Map<string, CategoryWithChildren>();
   const roots: CategoryWithChildren[] = [];
 
+  // monta o map
   categories.forEach(cat => map.set(cat.id, { ...cat, children: [] }));
 
   map.forEach(node => {
     if (node.parent_id) {
       const parent = map.get(node.parent_id);
-      parent ? parent.children.push(node) : roots.push(node);
+      if (parent) {
+        parent.children.push(node);
+      } else {
+        roots.push(node);
+      }
     } else {
       roots.push(node);
     }
@@ -30,6 +35,7 @@ function buildCategoryTree(categories: Category[]): CategoryWithChildren[] {
 
   return roots;
 }
+
 
 /** Renderiza nó (recursivo) */
 function CategoryNode({

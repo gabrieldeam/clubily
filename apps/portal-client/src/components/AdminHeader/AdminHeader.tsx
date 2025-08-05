@@ -2,7 +2,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-// import { LogOut } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import styles from './AdminHeader.module.css';
 
 export default function AdminHeader() {
@@ -23,8 +23,8 @@ export default function AdminHeader() {
         onClick={handleLogout}
         aria-label="Sair do admin"
       >
-        {/* <LogOut size={20} /> */}
-        <span>Sair</span>
+        <LogOut size={20} />
+        <span>Sair do admin</span>
       </button>
     </header>
   );

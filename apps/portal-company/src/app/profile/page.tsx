@@ -4,7 +4,6 @@
 import dynamic from 'next/dynamic';
 import { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import Header from '@/components/Header/Header';
@@ -215,26 +214,24 @@ export default function ProfilePage() {
           </div>
 
           {/* 3º card: links */}
-          <div className={styles.gridItem}>
-            <Link href="/">
-              <div className={styles.itemLink}>
-                <p>Sobre nós</p>
-                <Image src="/seta.svg" alt="Logo" width={22} height={22} />
-              </div>
-            </Link>
-            <Link href="/">
-              <div className={styles.itemLink}>
-                <p>Política de privacidade</p>
-                <Image src="/seta.svg" alt="Logo" width={22} height={22} />
-              </div>
-            </Link>
-            <Link href="/">
-              <div className={styles.itemLink}>
-                <p>Termo de uso</p>
-                <Image src="/seta.svg" alt="Logo" width={22} height={22} />
-              </div>
-            </Link>
-          </div>
+        <div className={styles.gridItem}>
+          {[
+            { label: 'Sobre nós', href: 'https://clubi.ly/about' },
+            { label: 'Política de privacidade', href: 'https://clubi.ly/legal/privacy' },
+            { label: 'Termo de uso', href: 'https://clubi.ly/legal/terms' }
+          ].map(({ label, href }) => (
+            <a
+              key={label}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.itemLink}
+            >
+              <p>{label}</p>
+              <Image src="/seta.svg" alt="" width={22} height={22} />
+            </a>
+          ))}
+        </div>
 
           {/* 4º card: ajuda + sair/deletar */}
           <div className={styles.subGrid}>
@@ -242,9 +239,14 @@ export default function ProfilePage() {
               <div className={styles.item}>
                 <p>Ajuda</p>
                 <div className={styles.gridDivHelp}>
-                  <button type="button" className={styles.buttomHelp}>
-                    Chat
-                  </button>
+                  <a
+                    href="https://clubi.ly/help"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.buttomHelp}
+                  >
+                    Central de Ajuda
+                  </a>
                   <a
                     href="mailto:support@clubi.ly"
                     className={styles.buttomHelp}

@@ -11,6 +11,7 @@ const links = [
   { href: '/clients', label: 'Para Clientes' },
   { href: '/about', label: 'Sobre nós' },
   { href: '/blog', label: 'Blog' },
+  { href: '/help', label: 'Ajuda' },
 ];
 
 export default function Navbar() {

@@ -94,6 +94,72 @@ export default function PointsRuleModal({ rule, onSave, onCancel }: Props) {
   const DRAFT_KEY = `pointsRuleModalDraft-${rule?.id ?? 'new'}`;
   const isFirstRun = useRef(true);
 
+// ✅ 1) declare um tipo de retorno explícito
+type ValidateResult =
+  | { ok: true; cfg: RuleConfig }
+  | { ok: false; msg: string };
+
+// ✅ 2) anote a função para devolver exatamente o tipo acima
+const validateAndNormalize = (type: RuleType, cfgIn: RuleConfig): ValidateResult => {
+  const cfg: RuleConfig = { ...cfgIn };
+  const has = (v: unknown): boolean => {
+    if (v === undefined || v === null || v === '') return false;
+    if (typeof v === 'number') return !Number.isNaN(v);
+    return true;
+  };
+  switch (type) {
+    case RuleType.value_spent:
+      if (!has(cfg.step) || !has(cfg.points))
+        return { ok: false, msg: 'Preencha "R$ por passo" e "Pontos por passo".' };
+      break;
+    case RuleType.first_purchase:
+      if (!has(cfg.bonus_points))
+        return { ok: false, msg: 'Informe o bônus de pontos.' };
+      break;
+    case RuleType.frequency:
+      if (!has(cfg.window_days) || !has(cfg.threshold) || !has(cfg.bonus_points))
+        return { ok: false, msg: 'Preencha janela, meta e bônus.' };
+      break;
+    case RuleType.recurrence:
+      if (!has(cfg.period_days) || !has(cfg.threshold_per_period) || !has(cfg.consecutive_periods) || !has(cfg.bonus_points))
+        return { ok: false, msg: 'Preencha todos os campos de recorrência.' };
+      break;
+    case RuleType.category:
+      if (!Array.isArray(cfg.categories) || cfg.categories.length === 0)
+        return { ok: false, msg: 'Selecione ao menos uma categoria.' };
+      if (!has(cfg.multiplier)) return { ok: false, msg: 'Informe o multiplicador.' };
+      break;
+    case RuleType.inventory:
+      if (!Array.isArray(cfg.item_ids) || cfg.item_ids.length === 0)
+        return { ok: false, msg: 'Selecione ao menos um item.' };
+      if (!has(cfg.multiplier)) return { ok: false, msg: 'Informe o multiplicador.' };
+      break;
+    case RuleType.geolocation:
+      if (!has(cfg.branch_id)) return { ok: false, msg: 'Selecione a filial.' };
+      if (!has(cfg.points)) return { ok: false, msg: 'Informe os pontos.' };
+      break;
+    case RuleType.special_date: {
+      const fixed = typeof cfg.date === 'string' && cfg.date.length > 0;
+      const range = typeof cfg.start === 'string' && typeof cfg.end === 'string' && cfg.start && cfg.end;
+      if (!fixed && !range)
+        return { ok: false, msg: 'Use data fixa (MM-DD) ou intervalo (YYYY-MM-DD a YYYY-MM-DD).' };
+      if (!has(cfg.multiplier) || Number(cfg.multiplier) <= 0)
+        return { ok: false, msg: 'Defina um multiplicador > 0.' };
+      if (fixed) {
+        delete cfg.start;
+        delete cfg.end;
+      }
+      if (range) {
+        delete cfg.date;
+      }
+      break;
+    }
+  }
+
+  return { ok: true, cfg };
+};
+
+
   useEffect(() => {
     listProductCategories(catSkip, catLimit).then(res => {
       setCategories(res.data.items);
@@ -125,6 +191,12 @@ export default function PointsRuleModal({ rule, onSave, onCancel }: Props) {
       setActive(rule.active);
       setVisible(rule.visible);      
       setSelectedItems([]);
+      if (rule.rule_type === RuleType.inventory) {
+        const ids = (rule.config?.item_ids as string[]) || [];
+        setSelectedItems(ids);
+      } else {
+        setSelectedItems([]);
+      }
     } else {
       // criação -> tenta restaurar
       const d = localStorage.getItem(DRAFT_KEY);
@@ -207,17 +279,38 @@ const handleSubmit = async (e: FormEvent) => {
     }
   }
 
+  let cfg = { ...config };
+  if (ruleType === RuleType.inventory) cfg.item_ids = selectedItems;
+
+  const v = validateAndNormalize(ruleType, cfg);
+  if (!v.ok) { alert(v.msg); return; }
+  cfg = v.cfg;
+
+  // ✅ validação básica para SPECIAL_DATE
+  if (ruleType === RuleType.special_date) {
+    const hasFixed = typeof cfg.date === 'string' && cfg.date.length > 0;
+    const hasRange = typeof cfg.start === 'string' && typeof cfg.end === 'string' && cfg.start && cfg.end;
+    if (!hasFixed && !hasRange) {
+      alert('Data especial: preencha uma data fixa (MM-DD) ou um intervalo (start e end em YYYY-MM-DD).');
+      return;
+    }
+    if (!cfg.multiplier || Number(cfg.multiplier) <= 0) {
+      alert('Defina um multiplicador maior que 0.');
+      return;
+    }
+  }
+
   const payload: PointsRuleCreate = {
     name,
     description,
     rule_type: ruleType,
-    config,
+    config: cfg,        // 👈 usar cfg
     active,
     visible
   };
   onSave(payload, rule?.id);
-  
-    localStorage.removeItem(DRAFT_KEY);
+
+  localStorage.removeItem(DRAFT_KEY);
 };
 
 
@@ -430,6 +523,130 @@ const handleSubmit = async (e: FormEvent) => {
             />
           </>
         );
+      case RuleType.first_purchase:
+  return (
+    <>
+      <FloatingLabelInput
+        label="Bônus de pontos (primeira compra)"
+        type="number"
+        value={num(config.bonus_points)}
+        onChange={e => setConfig({ ...config, bonus_points: Number(e.target.value) })}
+      />
+      <FloatingLabelInput
+        label="Cooldown (dias) — opcional"
+        type="number"
+        value={num(config.cooldown_days)}
+        onChange={e => setConfig({ ...config, cooldown_days: Number(e.target.value) })}
+      />
+    </>
+  );
+
+case RuleType.frequency:
+  return (
+    <>
+      <FloatingLabelInput
+        label="Janela (dias)"
+        type="number"
+        value={num(config.window_days)}
+        onChange={e => setConfig({ ...config, window_days: Number(e.target.value) })}
+      />
+      <FloatingLabelInput
+        label="Meta de compras na janela"
+        type="number"
+        value={num(config.threshold)}
+        onChange={e => setConfig({ ...config, threshold: Number(e.target.value) })}
+      />
+      <FloatingLabelInput
+        label="Bônus de pontos ao atingir a meta"
+        type="number"
+        value={num(config.bonus_points)}
+        onChange={e => setConfig({ ...config, bonus_points: Number(e.target.value) })}
+      />
+      <FloatingLabelInput
+        label="Cooldown (dias) — opcional"
+        type="number"
+        value={num(config.cooldown_days)}
+        onChange={e => setConfig({ ...config, cooldown_days: Number(e.target.value) })}
+      />
+    </>
+  );
+
+case RuleType.recurrence:
+  return (
+    <>
+      <FloatingLabelInput
+        label="Tamanho do período (dias)"
+        type="number"
+        value={num(config.period_days)}
+        onChange={e => setConfig({ ...config, period_days: Number(e.target.value) })}
+      />
+      <FloatingLabelInput
+        label="Compras mínimas por período"
+        type="number"
+        value={num(config.threshold_per_period)}
+        onChange={e => setConfig({ ...config, threshold_per_period: Number(e.target.value) })}
+      />
+      <FloatingLabelInput
+        label="Períodos consecutivos necessários"
+        type="number"
+        value={num(config.consecutive_periods)}
+        onChange={e => setConfig({ ...config, consecutive_periods: Number(e.target.value) })}
+      />
+      <FloatingLabelInput
+        label="Bônus de pontos ao completar a sequência"
+        type="number"
+        value={num(config.bonus_points)}
+        onChange={e => setConfig({ ...config, bonus_points: Number(e.target.value) })}
+      />
+      <FloatingLabelInput
+        label="Cooldown (dias) — opcional"
+        type="number"
+        value={num(config.cooldown_days)}
+        onChange={e => setConfig({ ...config, cooldown_days: Number(e.target.value) })}
+      />
+    </>
+  );
+
+case RuleType.special_date:
+  return (
+    <div className={styles.field}>
+      <p className={styles.helperText}>
+        Use <strong>uma</strong> das opções: <em>data fixa</em> (MM-DD) ou <em>intervalo</em> (YYYY-MM-DD a YYYY-MM-DD).
+      </p>
+      <FloatingLabelInput
+        label="Data fixa (MM-DD) — ex.: 09-15"
+        type="text"
+        value={str(config.date)}
+        onChange={e => setConfig({ ...config, date: e.target.value })}
+      />
+      <div className={styles.inline}>
+        <FloatingLabelInput
+          label="Início do intervalo (YYYY-MM-DD)"
+          type="date"
+          value={str(config.start)}
+          onChange={e => setConfig({ ...config, start: e.target.value })}
+        />
+        <FloatingLabelInput
+          label="Fim do intervalo (YYYY-MM-DD)"
+          type="date"
+          value={str(config.end)}
+          onChange={e => setConfig({ ...config, end: e.target.value })}
+        />
+      </div>
+      <FloatingLabelInput
+        label="Multiplicador (ex.: 2 = dobra)"
+        type="number"
+        value={num(config.multiplier)}
+        onChange={e => setConfig({ ...config, multiplier: Number(e.target.value) })}
+      />
+      <FloatingLabelInput
+        label="Cooldown (dias) — opcional"
+        type="number"
+        value={num(config.cooldown_days)}
+        onChange={e => setConfig({ ...config, cooldown_days: Number(e.target.value) })}
+      />
+    </div>
+  );
 
 
       default:

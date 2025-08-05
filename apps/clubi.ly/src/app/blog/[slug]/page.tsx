@@ -4,11 +4,13 @@ import styles from './page.module.css'
 import ShareButtons from './ShareButtons'
 
 export default async function PostPage({
-  params
+  params,
 }: {
-  params: { slug: string }
+  params: Promise<{ slug: string }>
 }) {
-  const post = await fetchPost(params.slug)
+  // agora params é uma Promise
+  const { slug } = await params
+  const post = await fetchPost(slug)
 
   return (
     <div className={styles.container}>

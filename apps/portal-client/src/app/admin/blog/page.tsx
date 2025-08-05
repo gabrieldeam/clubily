@@ -41,7 +41,8 @@ import type {
   BlockType,
   PostPage
 } from "@/types/post";
-import { PlusCircle, AlignLeft, Image } from "lucide-react";
+import { PlusCircle, AlignLeft, Image as ImageIcon } from "lucide-react";
+import Image from "next/image";
 import styles from "./page.module.css";
 
 /* ──────────────────────────── Helpers & Types ─────────────────────────── */
@@ -68,13 +69,12 @@ export default function AdminBlogPage() {
   const [authorName, setAuthorName] = useState("");
   const [authorBio, setAuthorBio] = useState("");
   const [authorAvatar, setAuthorAvatar] = useState<File | null>(null);
-  const [postThumbnailFile, setPostThumbnailFile] = useState<File | null>(null);
 
   const loadAuthors = useCallback(async () => {
     try {
       const data = await fetchAuthors();
       setAuthors(data);
-    } catch (e: unknown) {
+    } catch {
       setNotification({ type: "error", message: "Erro ao buscar autores" });
     }
   }, []);
@@ -117,7 +117,7 @@ export default function AdminBlogPage() {
       }
       await loadAuthors();
       setAuthorModalOpen(false);
-    } catch (err) {
+    } catch {
       setNotification({ type: "error", message: "Erro ao salvar autor" });
     }
   };
@@ -351,9 +351,6 @@ const loadPosts = useCallback(async () => {
     fd.append("author_id", postForm.author_id);
     fd.append("category_ids", JSON.stringify(postForm.category_ids));
     fd.append("blocks", JSON.stringify(postForm.blocks));
-    if (postThumbnailFile) {
-      fd.append("thumbnail", postThumbnailFile);
-    }
 
     try {
       if (postMode === "create") {
@@ -467,10 +464,11 @@ const loadPosts = useCallback(async () => {
             {/* Preview do avatar somente em edição */}
             {authorMode === "edit" && currentAuthor?.avatar_url && (
                 <div className={styles.avatarPreviewContainer}>
-                <img
-                    src={`${process.env.NEXT_PUBLIC_API_URL}${currentAuthor.avatar_url}`}
-                    alt={`Avatar de ${currentAuthor.name}`}
-                    className={styles.avatarPreview}
+                <Image
+                  src={`${process.env.NEXT_PUBLIC_API_URL}${currentAuthor.avatar_url}`}
+                  alt={`Avatar de ${currentAuthor.name}`}
+                  width={100} height={100}  // ou dimensões adequadas
+                  className={styles.avatarPreview}
                 />
                 </div>
             )}
@@ -615,13 +613,15 @@ const loadPosts = useCallback(async () => {
               onChange={(e) => setBannerLink(e.target.value)}
             />
 
-            {/* Preview do banner somente em edição */}
             {bannerMode === "edit" && currentBanner?.image_url && (
               <div className={styles.bannerPreviewContainer}>
-                <img
+                <Image
                   src={`${process.env.NEXT_PUBLIC_API_URL}${currentBanner.image_url}`}
                   alt={`Banner: ${currentBanner.title}`}
+                  width={600}               // ajuste pra dimensão real do banner
+                  height={200}              // ajuste pra dimensão real do banner
                   className={styles.bannerPreview}
+                  priority                  // opcional: evita placeholder & carrega logo
                 />
               </div>
             )}
@@ -813,11 +813,14 @@ const loadPosts = useCallback(async () => {
                   {blk.type === "image" && (
                     <>
                       {typeof blk.content === "string" && blk.content && (
-                        <img
-                          src={blk.content as string}
-                          alt="Preview"
-                          style={{ maxWidth: "200px", marginBottom: 8 }}
-                        />
+                        <div style={{ maxWidth: 200, marginBottom: 8, position: "relative", width: "100%", height: 200 }}>
+                          <Image
+                            src={blk.content as string}
+                            alt="Preview"
+                            fill
+                            style={{ objectFit: "contain" }}
+                          />
+                        </div>
                       )}
                       <input
                         type="file"
@@ -861,7 +864,7 @@ const loadPosts = useCallback(async () => {
                     updatePostField("blocks", [...postForm.blocks, emptyImageBlock()])
                   }
                 >
-                  <Image size={16} /> imagem
+                  <ImageIcon size={16} /> imagem
                 </button>
               </div>
 

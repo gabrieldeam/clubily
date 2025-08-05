@@ -177,10 +177,21 @@ export default function ProfilePage() {
 
         {/* ---------- LINKS ---------- */}
         <div className={styles.gridItem}>
-          {['Sobre nós', 'Política de privacidade', 'Termo de uso'].map(t => (
-            <Link key={t} href="/" className={styles.itemLink}>
-              <p>{t}</p><Image src="/seta.svg" alt="" width={22} height={22} />
-            </Link>
+          {[
+            { label: 'Sobre nós', href: 'https://clubi.ly/about' },
+            { label: 'Política de privacidade', href: 'https://clubi.ly/legal/privacy' },
+            { label: 'Termo de uso', href: 'https://clubi.ly/legal/terms' }
+          ].map(({ label, href }) => (
+            <a
+              key={label}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.itemLink}
+            >
+              <p>{label}</p>
+              <Image src="/seta.svg" alt="" width={22} height={22} />
+            </a>
           ))}
         </div>
 
@@ -190,9 +201,16 @@ export default function ProfilePage() {
             <div className={styles.item}>
               <p>Ajuda</p>
               <div className={styles.gridDivHelp}>
-                <button type="button" className={styles.buttomHelp}>Chat</button>
                 <a
-                  href="mailto:support@clubi.ly"
+                  href="https://clubi.ly/help"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.buttomHelp}
+                >
+                  Central de Ajuda
+                </a>
+                <a
+                  href="mailto:help@clubi.ly"
                   className={styles.buttomHelp}
                   style={{ textDecoration: 'none' }}
                 >
