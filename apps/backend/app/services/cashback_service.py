@@ -99,7 +99,7 @@ def expire_overdue_cashbacks(db: Session) -> int:
 
     return processed
 
-def assign_cashback(db: Session, user_id: str, program_id: str, amount_spent: float) -> Cashback:
+def assign_cashback(db: Session, user_id: str, program_id: str, amount_spent: float,  *, autocommit: bool = True) -> Cashback:
     expire_overdue_cashbacks(db)
 
     program = db.get(CashbackProgram, program_id)
@@ -159,8 +159,12 @@ def assign_cashback(db: Session, user_id: str, program_id: str, amount_spent: fl
         is_active      = True,
     )
     db.add(cb)
-    db.commit()
-    db.refresh(cb)
+    if autocommit:
+        db.commit()
+        db.refresh(cb)
+    else:
+        db.flush()        # << necessário para tornar o objeto persistent
+        db.refresh(cb) 
     deposit_to_user_wallet(
         db,
         user_id,

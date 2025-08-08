@@ -1,5 +1,6 @@
 /* src/components/Header/Header.module.css */
 
+/* Header.module.css */
 .header {
   display: flex;
   align-items: center;
@@ -7,10 +8,13 @@
   padding: 20px 50px;
   background-color: #FFA600;
   border-radius: 0 0 20px 20px;
-  position: fixed;
-  width: 100%;
+
+  position: sticky; /* <- troque fixed por sticky */
+  top: 0;           /* necessário pro sticky funcionar */
   z-index: 10000;
+  width: 100%;
 }
+
 
 .logo {
   flex: 0 0 auto;

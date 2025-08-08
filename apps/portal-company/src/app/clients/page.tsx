@@ -380,7 +380,7 @@ export default function ClientsPage() {
         </main>
 
         {/* Modal de detalhes / edição */}
-        <Modal open={openModal} onClose={() => setOpenModal(false)}>
+        <Modal open={openModal} onClose={() => setOpenModal(false)} width={600}>
           {selectedClient ? (
             <div className={styles.modalContent}>
               <h2 className={styles.title}>Dados do Cliente</h2>

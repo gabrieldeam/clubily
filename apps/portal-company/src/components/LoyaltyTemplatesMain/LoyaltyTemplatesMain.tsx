@@ -170,12 +170,23 @@ export default function LoyaltyTemplatesMain() {
     setRewardModalOpen(true);
   }
 
+  const [isMobile, setIsMobile] = useState(false);
+  const showHeaderNotification = !isMobile; 
+  const showMobileNotification = isMobile;
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 768);
+    onResize();
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
   return (
     <main className={styles.main}>
       <div className={styles.topBar}>
         <h2>Cartões de Fidelidade</h2>
 
-        {error && (
+        {error && showHeaderNotification && (
           <Notification
             type="error"
             message={error}
@@ -187,6 +198,14 @@ export default function LoyaltyTemplatesMain() {
           + Novo Cartão
         </button>
       </div>
+
+        {error && showMobileNotification && (
+          <Notification
+            type="error"
+            message={error}
+            onClose={() => setError(null)}
+          />
+        )}
 
       {loading ? (
         <p className={styles.loading}>Carregando...</p>

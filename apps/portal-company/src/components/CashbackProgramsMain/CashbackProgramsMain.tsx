@@ -112,6 +112,9 @@ export default function CashbackProgramsMain() {
     }
   };
 
+  const showHeaderNotification = !isMobile;  
+const showMobileNotification = isMobile; 
+
   /* ---------- render ---------- */
   return (
     <main className={styles.main}>
@@ -133,7 +136,7 @@ export default function CashbackProgramsMain() {
           )}
         </div>
 
-        {error && (
+        {error && showHeaderNotification && (
           <Notification
             type="error"
             message={error}
@@ -155,6 +158,14 @@ export default function CashbackProgramsMain() {
           )}
         </div>
       </div>
+
+      {error && showMobileNotification && (
+          <Notification
+            type="error"
+            message={error}
+            onClose={() => setError(null)}
+          />
+      )}
 
       {loading ? (
         <p className={styles.loading}>Carregando programas...</p>

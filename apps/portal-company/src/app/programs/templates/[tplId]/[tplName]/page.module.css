@@ -1,4 +1,4 @@
-.container { margin-top: 92px; margin-bottom: 120px; }
+.container { margin-top: 10px; margin-bottom: 120px; }
 .main { margin: 10px auto; padding: 1.5rem; background:#fff; border-radius:1rem; box-shadow:0 4px 16px rgba(0,0,0,.06); }
 .loading,.error { text-align:center; padding:2rem; color:#555; }
 

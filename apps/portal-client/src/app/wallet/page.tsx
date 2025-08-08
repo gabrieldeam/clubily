@@ -255,7 +255,7 @@ export default function WalletPage() {
                   {loadingCards ? 'Carregando...' : 'Carregar mais'}
                 </button>
               )}
-
+              
               {/* Explorar templates continua via modal */}
               <div className={styles.exploreCard}>
                 <div className={styles.exploreContent}>
@@ -280,26 +280,34 @@ export default function WalletPage() {
                   </button>
                 </div>
               </div>
+              
             </>
           ) : (
             <>
-              {templates.map((tpl) => (
-                <CompanyCard
-                  key={tpl.id}
-                  template={tpl}
-                />
-              ))}
-              {tplHasMore && (
-                <button
-                  className={styles.loadMoreTpl}
-                  disabled={loadingTpl}
-                  onClick={handleLoadMoreTpl}
-                >
-                  {loadingTpl
-                    ? 'Carregando...'
-                    : 'Carregar mais'}
-                </button>
-              )}
+              {/* Explorar templates continua via modal */}
+              <div className={styles.exploreCard}>
+                <div className={styles.exploreContent}>
+                  <div className={styles.exploreIcon}>
+                    {/* ícone */}
+                  </div>
+                  <div className={styles.exploreText}>
+                    <h2 className={styles.exploreTitle}>
+                      Descubra Recompensas
+                    </h2>
+                    <p className={styles.exploreDesc}>
+                      Explore cartões exclusivos e aumente suas
+                      chances de ganhar prêmios incríveis!
+                    </p>
+                  </div>
+                  <button
+                    className={styles.exploreBtn}
+                    onClick={handleOpenModal}
+                  >
+                    Explorar Agora
+                    {/* ícone */}
+                  </button>
+                </div>
+              </div>
             </>
           )}
         </div>

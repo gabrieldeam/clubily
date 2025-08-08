@@ -133,6 +133,11 @@ const handleCopyLink = (rule: PointsRuleRead) => {
   const visibleCount = rules.filter(r => r.visible).length;
 
   /* -------------------------------- JSX -------------------------------- */
+
+  const showHeaderNotification = !isMobile; 
+  const showMobileNotification = isMobile; 
+
+
   return (
     <>
       <main className={styles.main}>
@@ -155,7 +160,7 @@ const handleCopyLink = (rule: PointsRuleRead) => {
             )}
           </div>
 
-          {error && (
+          {error && showHeaderNotification && (
             <Notification
               type="error"
               message={error}
@@ -163,7 +168,7 @@ const handleCopyLink = (rule: PointsRuleRead) => {
             />
           )}
 
-          {successMessage && (
+          {successMessage && showHeaderNotification && (
             <Notification
               type="success"
               message={successMessage}
@@ -186,6 +191,22 @@ const handleCopyLink = (rule: PointsRuleRead) => {
           </div>
         </div>
 
+          {error && showMobileNotification  && (
+            <Notification
+              type="error"
+              message={error}
+              onClose={() => setError(null)}
+            />
+          )}
+
+          {successMessage && showMobileNotification  && (
+            <Notification
+              type="success"
+              message={successMessage}
+              onClose={() => setSuccessMessage(null)}
+            />
+          )}
+          
         {/* -------- body -------- */}
         {loading ? (
           <p className={styles.loading}>Carregando regras...</p>
@@ -334,7 +355,7 @@ const handleCopyLink = (rule: PointsRuleRead) => {
         </Modal>
 
         {/* -------- CRUD modal -------- */}
-        <Modal open={modalOpen} onClose={() => setModalOpen(false)}>
+        <Modal open={modalOpen} onClose={() => setModalOpen(false)} width={600}>
           <PointsRuleModal
             rule={selectedRule}
             onSave={handleSave}

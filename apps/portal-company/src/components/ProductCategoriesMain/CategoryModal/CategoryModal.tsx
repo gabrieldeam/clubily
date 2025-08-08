@@ -1,12 +1,12 @@
 'use client';
 
-import { FormEvent, useState, useEffect, useRef } from 'react';
+import { FormEvent, useState, useEffect } from 'react';
 import styles from './CategoryModal.module.css';
 import FloatingLabelInput from '@/components/FloatingLabelInput/FloatingLabelInput';
 import Button from '@/components/Button/Button';
 import Notification from '@/components/Notification/Notification';
 import type { ProductCategoryRead, ProductCategoryCreate } from '@/types/productCategory';
-import { slugify, validateSlug } from '@/utils/slug';
+import { slugify } from '@/utils/slug';
 
 interface Props {
   category: ProductCategoryRead | null;
@@ -18,63 +18,60 @@ const DRAFT_KEY = 'categoryModalDraft';
 
 export default function CategoryModal({ category, onSave, onCancel }: Props) {
   const [name, setName] = useState('');
-  const [slug, setSlug] = useState('');
   const [notification, setNotification] =
     useState<{ type: 'error'; message: string } | null>(null);
-  const slugTouched = useRef(false);
 
-  // 1. Inicialização / Restauração do draft
+  // 1) Inicialização / Restauração do draft
   useEffect(() => {
     if (category) {
       setName(category.name);
-      setSlug(category.slug);
-      slugTouched.current = true;
     } else {
       const draft = localStorage.getItem(DRAFT_KEY);
       if (draft) {
-        const { name: n, slug: s } = JSON.parse(draft);
-        setName(n);
-        setSlug(s);
-        slugTouched.current = true;
+        try {
+          const { name: n } = JSON.parse(draft);
+          setName(n ?? '');
+        } catch {
+          setName('');
+        }
       } else {
         setName('');
-        setSlug('');
-        slugTouched.current = false;
       }
       setNotification(null);
     }
   }, [category]);
 
-  // 2. Salvamento automático do draft
+  // 2) Salvamento automático do draft (só o nome)
   useEffect(() => {
     if (!category) {
-      localStorage.setItem(
-        DRAFT_KEY,
-        JSON.stringify({ name: name.trim(), slug })
-      );
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ name: name.trim() }));
     }
-  }, [name, slug, category]);
+  }, [name, category]);
 
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const v = e.target.value;
-    setName(v);
-    if (!slugTouched.current) setSlug(slugify(v));
-  };
-
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) {
+
+    const cleanName = name.trim();
+    if (!cleanName) {
       setNotification({ type: 'error', message: 'O nome é obrigatório.' });
       return;
     }
-    if (!slug.trim() || !validateSlug(slug)) {
+
+    // 3) Gera o slug em background a partir do nome
+    const baseSlug = slugify(cleanName);
+
+    if (!baseSlug) {
       setNotification({
         type: 'error',
-        message: 'Slug inválido. Use apenas letras minúsculas, números e hífens.',
+        message: 'Não conseguimos gerar um slug a partir do nome. Tente um nome diferente.',
       });
       return;
     }
-    onSave({ name: name.trim(), slug }, category?.id);
+
+
+    const finalSlug = baseSlug;
+
+    onSave({ name: cleanName, slug: finalSlug }, category?.id);
     if (!category) localStorage.removeItem(DRAFT_KEY);
   };
 
@@ -101,7 +98,7 @@ export default function CategoryModal({ category, onSave, onCancel }: Props) {
         id="cat-name"
         label="Nome da categoria"
         value={name}
-        onChange={handleNameChange}
+        onChange={(e) => setName(e.target.value)}
       />
 
       <div className={styles.actions}>
@@ -111,3 +108,4 @@ export default function CategoryModal({ category, onSave, onCancel }: Props) {
     </form>
   );
 }
+

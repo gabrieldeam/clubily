@@ -1,0 +1,238 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 880px;
+  background: #fff;
+  padding: 20px;
+  border-radius: 20px;
+}
+.title {
+  text-align: center;
+}
+.switches {
+  display: flex;
+  gap: 1rem;
+}
+.actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+.charCount {
+  text-align: right;
+  font-size: 0.85rem;
+  color: #666;
+  margin-top: -10px;
+}
+
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+@media (max-width: 720px) {
+  .grid2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Toggle radio style */
+.optionGroup {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.option {
+  flex: 1;
+  min-width: 180px;
+  padding: 0.5rem 1rem;
+  background: #ffe0d3;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+.option:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(223, 124, 58, 0.5);
+}
+.optionSelected {
+  border-color: #FF4C00;
+  background-color: #ffe0d3;
+}
+
+/* Mapa */
+.mapBlock {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* ====== Seções de seleção (Categorias/Itens) ====== */
+.selectSection {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.selectHeader {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.selectHeader h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+.countChip {
+  font-size: 0.8rem;
+  background: #111827;
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.selectTools {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.inlineToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: #374151;
+}
+.searchInput {
+  padding: 8px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  min-width: 220px;
+}
+.miniBtn {
+  padding: 8px 12px;
+  background: #f3f4f6;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.miniBtn:hover {
+  background: #e5e7eb;
+}
+
+/* Grid de opções em “cartões” (checkbox) */
+.checkboxGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+.cardOption {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, transform 0.12s ease;
+}
+.cardOption:hover {
+  background: #fafafa;
+}
+.cardOptionChecked {
+  border-color: #ffa600;
+  background: #fff7ea;
+  transform: translateY(-1px);
+}
+.cardTitle {
+  font-weight: 500;
+}
+
+/* Skeleton placeholders */
+.skeleton {
+  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 37%, #f3f4f6 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+@keyframes shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+.cardStub {
+  height: 44px;
+  border-radius: 10px;
+}
+
+/* Rodapé da seção: paginação + chips dos selecionados */
+.selectFooter {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.paginationControls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+.paginationControls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.pageSize {
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
+
+.chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #eef2ff;
+  color: #1e3a8a;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+}
+.chip button {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #1e3a8a;
+  font-weight: bold;
+}
+
+/* Estados vazios e helpers */
+.emptyBlock {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  background: #f8fafc;
+  border: 1px dashed #e5e7eb;
+  border-radius: 12px;
+  padding: 12px;
+}
+.helperText {
+  font-size: 0.9rem;
+  color: #6b7280;
+}

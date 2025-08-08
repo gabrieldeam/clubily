@@ -19,5 +19,4 @@ class InventoryItem(Base):
     company     = relationship("Company", back_populates="inventory_items")
     categories  = relationship("ProductCategory", secondary="inventory_item_categories", back_populates="items")
 
-    # sem relação para purchase_logs, já que você está usando JSONB em PurchaseLog
-    # purchase_logs = relationship(...)
+

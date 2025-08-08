@@ -1,14 +1,18 @@
+/* Header.module.css */
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 20px 50px;
   background-color: #FFA600;
-  border-radius: 0 0 20px 20px;  
-  position: fixed;
+  border-radius: 0 0 20px 20px;
+
+  position: sticky; /* <- troque fixed por sticky */
+  top: 0;           /* necessário pro sticky funcionar */
   z-index: 9999999999;
   width: 100%;
 }
+
 
 .logo {
   flex: 0 0 auto;

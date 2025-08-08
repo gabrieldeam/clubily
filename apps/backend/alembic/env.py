@@ -58,8 +58,10 @@ from app.models.milestone import Milestone
 from app.models.user_milestone import UserMilestone
 from app.models.loyalty_card import RuleType, LoyaltyCardTemplate, LoyaltyCardRule, LoyaltyCardInstance, LoyaltyCardStamp, LoyaltyCardStampCode 
 from app.models.reward import CompanyReward, TemplateRewardLink, RewardRedemptionCode
+from app.models.coupon import DiscountType, Coupon
+from app.models.coupon_redemption import CouponRedemption
 
-# ...importe aqui outros models quando criar novos
+
 
 # 4) Metadata alvo para autogenerate
 target_metadata = Base.metadata

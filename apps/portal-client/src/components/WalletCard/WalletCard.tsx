@@ -309,9 +309,9 @@ export default function WalletCard({ card }: Props) {
       <div className={styles.cardFooter}>
        <div>
          <span>Emitido em: {new Date(card.issued_at).toLocaleDateString('pt-BR')}</span>
-          {tpl.emission_end && (
+          {/* {tpl.emission_end && (
             <span> | Expira em: {new Date(tpl.emission_end).toLocaleDateString('pt-BR')}</span>
-          )}
+          )} */}
        </div>
               
         <div>

@@ -189,12 +189,12 @@ export default function SimpleCard({ card }: Props) {
             )}
           </div>
 
-          <div className={styles.expiry}>
+          {/* <div className={styles.expiry}>
             Expira{' '}
             {tpl.emission_end
               ? new Date(tpl.emission_end).toLocaleDateString('pt-BR')
               : '—'}
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

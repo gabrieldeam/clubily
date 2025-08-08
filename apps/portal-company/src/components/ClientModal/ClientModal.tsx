@@ -1,28 +1,25 @@
 // src/components/ClientModal/ClientModal.tsx
 'use client';
 
-/* ------------------------------- imports ------------------------------- */
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { isAxiosError } from 'axios';
 import { useAuth } from '@/context/AuthContext';
 import { useWallet } from '@/context/WalletContext';
-import {
-  preRegister,
-  checkPreRegistered,
-} from '@/services/userService';
+import { preRegister, checkPreRegistered } from '@/services/userService';
 import { getCashbackPrograms } from '@/services/cashbackProgramService';
-import { assignCashback } from '@/services/cashbackService';
 import { getUserWallet, withdrawUserWallet } from '@/services/walletService';
-import { evaluatePurchase } from '@/services/purchaseService';
 import { listInventoryItems, searchInventoryItems } from '@/services/inventoryItemService';
 import { listBranches } from '@/services/branchService';
-import { adminStampCard } from '@/services/loyaltyService';  
+import { checkout } from '@/services/checkoutService';
+import { previewCoupon } from '@/services/couponService';
+
 import type { BranchRead } from '@/types/branch';
 import type { LeadCreate, UserRead } from '@/types/user';
 import type { CashbackProgramRead } from '@/types/cashbackProgram';
 import type { UserWalletRead } from '@/types/wallet';
 import type { InventoryItemRead } from '@/types/inventoryItem';
+
 import FloatingLabelInput from '@/components/FloatingLabelInput/FloatingLabelInput';
 import Notification from '@/components/Notification/Notification';
 import Button from '@/components/Button/Button';
@@ -32,7 +29,6 @@ interface ClientModalProps {
   onClose: () => void;
 }
 
-/* ============================== component ============================== */
 export default function ClientModal({ onClose }: ClientModalProps) {
   const router = useRouter();
   const { user: company } = useAuth();
@@ -58,11 +54,10 @@ export default function ClientModal({ onClose }: ClientModalProps) {
   const [itemsLoading, setItemsLoading] = useState(false);
   const [totalPages, setTotalPages] = useState(1);
 
-  // Para busca + paginação
+  // Busca + paginação
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(0);
   const perPage = 10;
-  
 
   /* ---------- carteira ---------- */
   const [userWallet, setUserWallet] = useState<UserWalletRead | null>(null);
@@ -80,7 +75,18 @@ export default function ClientModal({ onClose }: ClientModalProps) {
   const [eventValue, setEventValue] = useState('');
   const [associateCb, setAssociateCb] = useState(false);
   const [selectedProg, setSelectedProg] = useState<string>('');
-  const [stampCode, setStampCode] = useState('');          
+  const [stampCode, setStampCode] = useState('');
+
+  // Cupom
+  const [couponCode, setCouponCode] = useState('');
+  const [couponPreview, setCouponPreview] = useState<{
+    valid: boolean;
+    discount: number;
+    final_amount?: number | null;
+    reason?: string | null;
+  } | null>(null);
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
+
   const [purchaseNotification, setPurchaseNotification] = useState<
     | { type: 'success' | 'error'; message: string }
     | null
@@ -91,11 +97,7 @@ export default function ClientModal({ onClose }: ClientModalProps) {
   const [branches, setBranches] = useState<BranchRead[]>([]);
   const [branchesLoading, setBranchesLoading] = useState(false);
 
-
-
-  /* -------------------------------------------------------------------- */
-  /*                              reset modal                             */
-  /* -------------------------------------------------------------------- */
+  /* ----------------------------- reset modal ---------------------------- */
   const handleReset = () => {
     setPhone('');
     setCpf('');
@@ -115,12 +117,17 @@ export default function ClientModal({ onClose }: ClientModalProps) {
 
     /* compra */
     setPurchaseAmount('');
-    setStampCode('');    
+    setStampCode('');
     setBranchId('');
     setEventValue('');
     setAssociateCb(false);
     setPurchaseNotification(null);
     setPurchaseLoading(false);
+
+    /* cupom */
+    setCouponCode('');
+    setCouponPreview(null);
+    setValidatingCoupon(false);
 
     /* carteira */
     setUserWallet(null);
@@ -130,66 +137,48 @@ export default function ClientModal({ onClose }: ClientModalProps) {
     setWithdrawLoading(false);
   };
 
+  // +1 no contador e marca item
+  const incrementItem = (id: string) => {
+    setItemCounts(prev => {
+      const next = { ...prev, [id]: (prev[id] || 0) + 1 };
+      setSelectedItems(s => (s.includes(id) ? s : [...s, id]));
+      const price = items.find(i => i.id === id)?.price;
+      setSelectedIndex(prevIdx =>
+        prevIdx[id] === undefined ? { ...prevIdx, [id]: Number(price ?? 0) } : prevIdx
+      );
+      return next;
+    });
+  };
 
+  // –1 no contador e desmarca quando zera
+  const decrementItem = (id: string) => {
+    setItemCounts(prev => {
+      const current = prev[id] || 0;
+      const nextCount = current - 1;
+      const next = { ...prev };
 
-  // +1 no contador (e garante que o item fique marcado)
-const incrementItem = (id: string) => {
-  setItemCounts(prev => {
-    const next = { ...prev, [id]: (prev[id] || 0) + 1 };
+      if (nextCount <= 0) {
+        delete next[id];
+        setSelectedItems(s => s.filter(x => x !== id));
+        setSelectedIndex(prevIndex => {
+          const nextIndex = { ...prevIndex };
+          delete nextIndex[id];
+          return nextIndex;
+        });
+      } else {
+        next[id] = nextCount;
+      }
+      return next;
+    });
+  };
 
-    // adiciona o id apenas se ainda não existir
-    setSelectedItems(s => (s.includes(id) ? s : [...s, id]));
-
-    // salva o preço se ainda não existir no índice
-    const price = items.find(i => i.id === id)?.price;
-    setSelectedIndex(prevIdx =>
-      prevIdx[id] === undefined ? { ...prevIdx, [id]: Number(price ?? 0) } : prevIdx
-    );
-
-    return next;
-  });
-};
-
-
-
-  // –1 no contador (e, se chegar a 0, desmarca e remove do selectedItems)
-const decrementItem = (id: string) => {
-  setItemCounts(prev => {
-    const current = prev[id] || 0;
-    const nextCount = current - 1;
-    const next = { ...prev };
-
-    if (nextCount <= 0) {
-      delete next[id];
-      setSelectedItems(s => s.filter(x => x !== id));
-      // TAMBÉM remove do índice de preços
-      setSelectedIndex(prevIndex => {
-        const nextIndex = { ...prevIndex };
-        delete nextIndex[id];
-        return nextIndex;
-      });
-    } else {
-      next[id] = nextCount;
-    }
-    return next;
-  });
-};
-
-
-
-
-  /* -------------------------------------------------------------------- */
-  /*                      1) pré-cadastro do cliente                       */
-  /* -------------------------------------------------------------------- */
+  /* -------------------- 1) pré-cadastro do cliente --------------------- */
   const handlePre = async (e: FormEvent) => {
     e.preventDefault();
     setNotification(null);
 
     if (!companyId) {
-      setNotification({
-        type: 'error',
-        message: 'Empresa não autenticada.',
-      });
+      setNotification({ type: 'error', message: 'Empresa não autenticada.' });
       return;
     }
 
@@ -197,10 +186,7 @@ const decrementItem = (id: string) => {
     const rawCpf = cpf.replace(/\D/g, '');
 
     if (!rawPhone && !rawCpf) {
-      setNotification({
-        type: 'error',
-        message: 'Informe Telefone ou CPF.',
-      });
+      setNotification({ type: 'error', message: 'Informe Telefone ou CPF.' });
       return;
     }
 
@@ -214,156 +200,144 @@ const decrementItem = (id: string) => {
     try {
       const res = await checkPreRegistered(params);
       setClient(res.data);
-      setNotification({
-        type: 'info',
-        message: 'Cliente pré-registrado encontrado.',
-      });
+      setNotification({ type: 'info', message: 'Cliente pré-registrado encontrado.' });
     } catch (err) {
       if (isAxiosError(err) && err.response?.status === 404) {
         const res = await preRegister(params);
         setClient(res.data);
-        setNotification({
-          type: 'success',
-          message: 'Cliente pré-registrado com sucesso!',
-        });
+        setNotification({ type: 'success', message: 'Cliente pré-registrado com sucesso!' });
       } else {
-        const detail = isAxiosError(err)
-          ? err.response?.data?.detail
-          : undefined;
-        setNotification({
-          type: 'error',
-          message: detail || 'Erro no pré-cadastro.',
-        });
+        const detail = isAxiosError(err) ? err.response?.data?.detail : undefined;
+        setNotification({ type: 'error', message: detail || 'Erro no pré-cadastro.' });
       }
     } finally {
       setLoading(false);
     }
   };
 
-  /* -------------------------------------------------------------------- */
-  /*        2) carrega programas, inventário, carteira, filiais            */
-  /* -------------------------------------------------------------------- */
+  /* --- 2) carrega programas, inventário, carteira, filiais quando tem cliente --- */
   useEffect(() => {
-  if (!client) return;
+    if (!client) return;
 
-  /* programas */
-  setProgLoading(true);
-  getCashbackPrograms()
-    .then(r => setPrograms(r.data))
-    .catch(console.error)
-    .finally(() => setProgLoading(false));
+    /* programas */
+    setProgLoading(true);
+    getCashbackPrograms()
+      .then(r => setPrograms(r.data))
+      .catch(console.error)
+      .finally(() => setProgLoading(false));
 
-  /* inventário */
-  setItemsLoading(true);
-  const promise = searchTerm
-    ? searchInventoryItems(searchTerm, page * perPage, perPage)
-    : listInventoryItems(page * perPage, perPage);
+    /* inventário */
+    setItemsLoading(true);
+    const promise = searchTerm
+      ? searchInventoryItems(searchTerm, page * perPage, perPage)
+      : listInventoryItems(page * perPage, perPage);
 
-  promise
-    .then(({ data }) => {
-      setItems(data.items);
-      setTotalPages(Math.ceil(data.total / perPage));
-    })
-    .catch(err => {
-      console.error(err);
-      // opcional: setNotification({ type: 'error', message: 'Erro ao carregar itens.' })
-    })
-    .finally(() => {
-      setItemsLoading(false);
-    });
+    promise
+      .then(({ data }) => {
+        setItems(data.items);
+        setTotalPages(Math.ceil(data.total / perPage));
+      })
+      .catch(console.error)
+      .finally(() => setItemsLoading(false));
 
-  /* carteira */
-  setWalletLoading(true);
-  getUserWallet(client.id)
-    .then(r => setUserWallet(r.data))
-    .catch(console.error)
-    .finally(() => setWalletLoading(false));
+    /* carteira */
+    setWalletLoading(true);
+    getUserWallet(client.id)
+      .then(r => setUserWallet(r.data))
+      .catch(console.error)
+      .finally(() => setWalletLoading(false));
 
-  /* filiais */
-  setBranchesLoading(true);
-  listBranches()
-    .then(r => setBranches(r.data))
-    .catch(console.error)
-    .finally(() => setBranchesLoading(false));
-}, [client, page, searchTerm]);
+    /* filiais */
+    setBranchesLoading(true);
+    listBranches()
+      .then(r => setBranches(r.data))
+      .catch(console.error)
+      .finally(() => setBranchesLoading(false));
+  }, [client, page, searchTerm]);
 
-
-
-  /* 3) seleciona programa automaticamente se houver apenas um */
+  // Seleciona programa automaticamente se houver apenas um
   useEffect(() => {
-    if (programs.length === 1) {
-      setSelectedProg(programs[0].id);
-    }
+    if (programs.length === 1) setSelectedProg(programs[0].id);
   }, [programs]);
 
-  /* recalcula total da compra (quantidade × preço), mesmo com paginação */
+  // Recalcula total (quantidade × preço)
   useEffect(() => {
     const sum = Object.entries(itemCounts).reduce((total, [id, count]) => {
       const priceInPage = items.find(i => i.id === id)?.price;
       const price = Number(priceInPage ?? selectedIndex[id] ?? 0);
       return total + price * (count ?? 0);
     }, 0);
-
     setPurchaseAmount(sum.toFixed(2));
   }, [itemCounts, items, selectedIndex]);
 
+  /* ---------------------- Pré-visualizar cupom ------------------------ */
+  const handlePreviewCoupon = async () => {
+    setCouponPreview(null);
+    if (!client?.id) return;
 
-  /* -------------------------------------------------------------------- */
-  /*                      4) registrar compra do cliente                  */
-  /* -------------------------------------------------------------------- */
+    const code = couponCode.trim();
+    if (!code) return;
+
+    const amount = parseFloat(purchaseAmount.replace(',', '.')) || 0;
+    const uniqueSelectedItems = Array.from(new Set(selectedItems));
+
+    setValidatingCoupon(true);
+    try {
+      const { data } = await previewCoupon({
+        code,
+        user_id: client.id,
+        amount,
+        item_ids: uniqueSelectedItems.length ? uniqueSelectedItems : undefined,
+        // se quiser, passe lat/lng do PDV/branch
+      });
+      setCouponPreview({
+        valid: data.valid,
+        discount: data.discount || 0,
+        final_amount: data.final_amount,
+        reason: data.reason,
+      });
+    } catch {
+      setCouponPreview({ valid: false, discount: 0, reason: 'Erro ao validar cupom.' });
+    } finally {
+      setValidatingCoupon(false);
+    }
+  };
+
+  /* -------------------- 4) registrar compra (checkout) -------------------- */
   const handleRegisterPurchase = async () => {
     setPurchaseNotification(null);
-
     if (!client?.id) return;
 
     const amount = parseFloat(purchaseAmount.replace(',', '.'));
     if (isNaN(amount) || amount < 0) {
-      setPurchaseNotification({
-        type: 'error',
-        message: 'Informe um valor de compra válido (não negativo).',
-      });
+      setPurchaseNotification({ type: 'error', message: 'Informe um valor de compra válido (não negativo).' });
+      return;
+    }
+
+    // Se marcar cashback e houver vários programas, exigir seleção
+    if (associateCb && programs.length > 1 && !selectedProg) {
+      setPurchaseNotification({ type: 'error', message: 'Selecione o programa de cashback.' });
       return;
     }
 
     const uniqueSelectedItems = Array.from(new Set(selectedItems));
-
     setPurchaseLoading(true);
 
     try {
-      /* 4a) avalia regras internas */
-      await evaluatePurchase({
+      const { data } = await checkout({
         user_id: client.id,
         amount,
-        purchased_items: uniqueSelectedItems.length ? uniqueSelectedItems : undefined,
+        item_ids: uniqueSelectedItems.length ? uniqueSelectedItems : undefined,
         branch_id: branchId || undefined,
         event: eventValue || undefined,
+        coupon_code: couponCode.trim() || undefined,
+        // se quiser, envie source_lat/source_lng/source_location_name
+        associate_cashback: associateCb,
+        program_id: associateCb ? (programs.length === 1 ? programs[0].id : selectedProg || undefined) : undefined,
+        stamp_code: stampCode.trim() || undefined,
       });
 
-
-      /* 4b) cashback opcional */
-      if (associateCb) {
-        const programId = programs.length === 1 ? programs[0].id : selectedProg;
-        if (!programId) {
-          throw new Error('Programa de cashback não selecionado.');
-        }
-        await assignCashback(client.id, {
-          program_id: programId,
-          amount_spent: amount,
-        });
-      }
-
-      /* 4c) carimbo opcional */
-      const trimmedCode = stampCode.trim();
-      if (trimmedCode) {
-        await adminStampCard({
-          code: trimmedCode,
-          amount,
-          purchased_items: uniqueSelectedItems.length ? uniqueSelectedItems : undefined,
-          visit_count: 1,
-        });
-      }
-
-      /* atualiza carteira */
+      // Atualiza carteira
       setWalletLoading(true);
       getUserWallet(client.id)
         .then(r => setUserWallet(r.data))
@@ -374,34 +348,29 @@ const decrementItem = (id: string) => {
 
       setPurchaseNotification({
         type: 'success',
-        message: 'Compra registrada com sucesso!',
+        message: `Compra registrada! Desconto R$ ${data.discount.toFixed(2)} — Total final R$ ${data.final_amount.toFixed(2)}.`,
       });
 
-      /* limpa campos */
+      // Limpa campos
       setPurchaseAmount('');
       setStampCode('');
       setSelectedItems([]);
-      setItemCounts({});          // << ADICIONE
-      setSelectedIndex({});       // << ADICIONE
+      setItemCounts({});
+      setSelectedIndex({});
       setBranchId('');
       setEventValue('');
       setAssociateCb(false);
+      setCouponCode('');
+      setCouponPreview(null);
     } catch (err) {
-      const detail = isAxiosError(err)
-        ? err.response?.data?.detail
-        : (err as Error).message;
-      setPurchaseNotification({
-        type: 'error',
-        message: detail || 'Erro ao registrar compra.',
-      });
+      const detail = isAxiosError(err) ? err.response?.data?.detail : (err as Error).message;
+      setPurchaseNotification({ type: 'error', message: detail || 'Erro ao registrar compra.' });
     } finally {
       setPurchaseLoading(false);
     }
   };
 
-  /* -------------------------------------------------------------------- */
-  /*                     5) debita carteira do cliente                     */
-  /* -------------------------------------------------------------------- */
+  /* ----------------------- 5) debitar carteira ------------------------ */
   const handleWithdraw = async () => {
     if (!client) return;
 
@@ -420,20 +389,16 @@ const decrementItem = (id: string) => {
       setWithdrawAmount('');
       refreshCompanyWallet();
     } catch (err) {
-      const detail = isAxiosError(err)
-        ? err.response?.data?.detail
-        : undefined;
+      const detail = isAxiosError(err) ? err.response?.data?.detail : undefined;
       setWithdrawError(detail || 'Erro ao debitar carteira.');
     } finally {
       setWithdrawLoading(false);
     }
   };
 
-  /* -------------------------------------------------------------------- */
-  /*                               RENDER                                 */
-  /* -------------------------------------------------------------------- */
+  /* -------------------------------- UI -------------------------------- */
 
-  /* ---------- formulário de pré-cadastro ---------- */
+  // formulário de pré-cadastro
   if (!client) {
     return (
       <form className={styles.form} onSubmit={handlePre}>
@@ -479,22 +444,16 @@ const decrementItem = (id: string) => {
     );
   }
 
-  /* ---------- visão do cliente ---------- */
+  // visão do cliente
   return (
     <div className={styles.form}>
       <h2 className={styles.title}>Visão do Cliente</h2>
 
       {/* informações básicas */}
       <div className={styles.userInfo}>
-        <p>
-          <strong>Nome:</strong> {client.name || '—'}
-        </p>
-        <p>
-          <strong>Telefone:</strong> {client.phone || '—'}
-        </p>
-        <p>
-          <strong>CPF:</strong> {client.cpf || '—'}
-        </p>
+        <p><strong>Nome:</strong> {client.name || '—'}</p>
+        <p><strong>Telefone:</strong> {client.phone || '—'}</p>
+        <p><strong>CPF:</strong> {client.cpf || '—'}</p>
       </div>
 
       {/* registro de compra */}
@@ -510,14 +469,39 @@ const decrementItem = (id: string) => {
           readOnly
         />
 
+        {/* CUPOM */}
+        <div className={styles.couponRow}>
+          <FloatingLabelInput
+            id="coupon-code"
+            name="couponCode"
+            label="Cupom (opcional)"
+            type="text"
+            value={couponCode}
+            onChange={e => setCouponCode(e.target.value)}
+          />
+          <Button onClick={handlePreviewCoupon} disabled={validatingCoupon || !couponCode.trim()}>
+            {validatingCoupon ? 'Validando…' : 'Validar Cupom'}
+          </Button>
+        </div>
+        {couponPreview && (
+          <div className={styles.couponPreview}>
+            {couponPreview.valid ? (
+              <>
+                <p>Desconto: <strong>R$ {couponPreview.discount.toFixed(2)}</strong></p>
+                <p>Total com cupom: <strong>R$ {(couponPreview.final_amount ?? Math.max(0, parseFloat(purchaseAmount || '0') - (couponPreview.discount || 0))).toFixed(2)}</strong></p>
+              </>
+            ) : (
+              <p style={{ color: 'red' }}>{couponPreview.reason || 'Cupom inválido.'}</p>
+            )}
+          </div>
+        )}
+
         {/* inventário */}
         {itemsLoading ? (
           <p>Carregando itens…</p>
         ) : items.length > 0 ? (
           <div>
-            <label className={styles.label}>
-              Itens comprados (Opcional)
-            </label>
+            <label className={styles.label}>Itens comprados (Opcional)</label>
             <div className={styles.checkboxList}>
               <input
                 type="text"
@@ -525,7 +509,7 @@ const decrementItem = (id: string) => {
                 value={searchTerm}
                 onChange={e => {
                   setSearchTerm(e.target.value);
-                  setPage(0); // volta à página 0 ao novo filtro
+                  setPage(0);
                 }}
                 className={styles.searchInput}
               />
@@ -536,17 +520,12 @@ const decrementItem = (id: string) => {
 
                 return (
                   <div key={item.id} className={styles.itemRow}>
-                    <label 
-                      className={`${styles.itemLabel} ${
-                        checked ? styles.itemLabelChecked : ''
-                      }`}
-                    >
+                    <label className={`${styles.itemLabel} ${checked ? styles.itemLabelChecked : ''}`}>
                       <input
                         type="checkbox"
                         checked={checked}
                         onChange={() => {
                           if (checked) {
-                            // uncheck → zera contador, remove seleção e limpa índice de preços
                             setItemCounts(prev => {
                               const next = { ...prev };
                               delete next[item.id];
@@ -559,49 +538,30 @@ const decrementItem = (id: string) => {
                               return nextIndex;
                             });
                           } else {
-                            // check → inicia em 1, adiciona à seleção e salva o preço atual no índice
                             setItemCounts(prev => ({ ...prev, [item.id]: 1 }));
                             setSelectedItems(s => (s.includes(item.id) ? s : [...s, item.id]));
-                            setSelectedIndex(prev => (
-                              prev[item.id] === undefined ? { ...prev, [item.id]: Number(item.price) } : prev
-                            ));
-
+                            setSelectedIndex(prev => (prev[item.id] === undefined ? { ...prev, [item.id]: Number(item.price) } : prev));
                           }
                         }}
-
                       />
                       {item.name}
                     </label>
 
-                    {/* CONTROLES + / – */}
                     <div className={styles.qtyControls}>
-                      <button
-                        type="button"
-                        onClick={() => decrementItem(item.id)}
-                        disabled={count === 0}
-                      >
-                        –
-                      </button>
+                      <button type="button" onClick={() => decrementItem(item.id)} disabled={count === 0}>–</button>
                       <span>{count}</span>
-                      <button type="button" onClick={() => incrementItem(item.id)}>
-                        +
-                      </button>
+                      <button type="button" onClick={() => incrementItem(item.id)}>+</button>
                     </div>
                   </div>
                 );
               })}
 
-
-              {/* paginação dos itens */}
+              {/* paginação */}
               {totalPages > 1 && (
                 <div className={styles.pagination}>
-                  <button onClick={() => setPage(p => Math.max(p - 1, 0))} disabled={page === 0}>
-                    Anterior
-                  </button>
+                  <button onClick={() => setPage(p => Math.max(p - 1, 0))} disabled={page === 0}>Anterior</button>
                   <span>{page + 1} / {totalPages || 1}</span>
-                  <button onClick={() => setPage(p => Math.min(p + 1, totalPages - 1))} disabled={page + 1 >= totalPages}>
-                    Próxima
-                  </button>
+                  <button onClick={() => setPage(p => Math.min(p + 1, totalPages - 1))} disabled={page + 1 >= totalPages}>Próxima</button>
                 </div>
               )}
             </div>
@@ -619,17 +579,11 @@ const decrementItem = (id: string) => {
                   .join(', ')}
               </p>
             )}
-
-
           </div>
         ) : (
           <div className={styles.noInventory}>
             <p>Nenhum item de inventário encontrado.</p>
-            <Button
-              onClick={() => router.push('/register?section=inventory')}
-            >
-              Cadastrar Inventário
-            </Button>
+            <Button onClick={() => router.push('/register?section=inventory')}>Cadastrar Inventário</Button>
           </div>
         )}
 
@@ -637,16 +591,10 @@ const decrementItem = (id: string) => {
         {branchesLoading ? (
           <p>Carregando filiais…</p>
         ) : branches.length > 0 ? (
-          <select
-            className={styles.select}
-            value={branchId}
-            onChange={e => setBranchId(e.target.value)}
-          >
+          <select className={styles.select} value={branchId} onChange={e => setBranchId(e.target.value)}>
             <option value="">Selecione a filial (Opcional)</option>
             {branches.map(b => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
+              <option key={b.id} value={b.id}>{b.name}</option>
             ))}
           </select>
         ) : null}
@@ -692,14 +640,10 @@ const decrementItem = (id: string) => {
           onChange={e => setStampCode(e.target.value)}
         />
 
-        {/* loading de programas */}
         {progLoading && <p>Carregando programas…</p>}
 
         <div>
-          <Button
-            onClick={handleRegisterPurchase}
-            disabled={purchaseLoading}
-          >
+          <Button onClick={handleRegisterPurchase} disabled={purchaseLoading}>
             {purchaseLoading ? 'Processando…' : 'Registrar Compra'}
           </Button>
         </div>
@@ -737,10 +681,7 @@ const decrementItem = (id: string) => {
               />
 
               <div className={styles.actions}>
-                <Button
-                  onClick={handleWithdraw}
-                  disabled={withdrawLoading}
-                >
+                <Button onClick={handleWithdraw} disabled={withdrawLoading}>
                   {withdrawLoading ? 'Processando…' : 'Debitar'}
                 </Button>
               </div>

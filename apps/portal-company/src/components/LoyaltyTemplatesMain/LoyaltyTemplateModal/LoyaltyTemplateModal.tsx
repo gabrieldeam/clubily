@@ -245,14 +245,22 @@ export default function LoyaltyTemplateModal({ template, onSave, onCancel }: Pro
           accept="image/*"
           onChange={e => setIconFile(e.target.files?.[0])}
         />
-        {template?.stamp_icon_url && (
-          <Image
-            src={`${process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL}${template.stamp_icon_url}`}
-            alt="Ícone de carimbo atual"
-            fill
-            className={styles.preview}
-          />
+        {(iconFile || template?.stamp_icon_url) && (
+          <div className={styles.previewWrap}>
+            <Image
+              src={
+                iconFile
+                  ? URL.createObjectURL(iconFile)
+                  : `${process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL}${template!.stamp_icon_url}`
+              }
+              alt="Ícone de carimbo atual"
+              fill
+              sizes="60px"
+              className={styles.previewImg}
+        />
+          </div>
         )}
+
       </div>
 
       <label className={styles.switch}>

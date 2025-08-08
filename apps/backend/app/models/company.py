@@ -119,3 +119,10 @@ class Company(Base):
         nullable=True,
         index=True,
     )
+
+    coupons = relationship(
+        "Coupon",
+        back_populates="company",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )

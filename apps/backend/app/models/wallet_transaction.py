@@ -6,7 +6,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
-from sqlalchemy.orm import relationship, foreign
+from sqlalchemy.orm import relationship
 from app.db.base import Base
 
 class WalletTransaction(Base):

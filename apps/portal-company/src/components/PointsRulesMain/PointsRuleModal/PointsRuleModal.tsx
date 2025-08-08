@@ -1,7 +1,6 @@
-// src/components/PointsRulesMain/PointsRuleModal/PointsRuleModal.tsx
 'use client';
 
-import { FormEvent, useState, useEffect, useRef  } from 'react';
+import { FormEvent, useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { RuleType } from '@/types/points';
 import type { PointsRuleRead, PointsRuleCreate } from '@/types/points';
@@ -17,7 +16,6 @@ import { listInventoryItems } from '@/services/inventoryItemService';
 import styles from './PointsRuleModal.module.css';
 import { checkSlugAvailable } from '@/services/digitalBehaviorService';
 import { slugify, validateSlug } from '@/utils/slug';
-
 
 /** Campos possíveis dentro de `config` — e assinatura de índice para flexibilidade */
 interface RuleConfig extends Record<string, unknown> {
@@ -38,10 +36,10 @@ interface RuleConfig extends Record<string, unknown> {
   events?: Record<string, unknown>;
   date?: string;
   start?: string;
-  end?: string;  
+  end?: string;
   slug?: string;
-  valid_from?: string;   
-  valid_to?: string; 
+  valid_from?: string;
+  valid_to?: string;
   max_attributions?: number;
 }
 
@@ -63,122 +61,143 @@ export default function PointsRuleModal({ rule, onSave, onCancel }: Props) {
   const [originalSlug, setOriginalSlug] = useState<string>('');
 
   const [branches, setBranches] = useState<BranchRead[]>([]);
-  const [categories, setCategories] = useState<ProductCategoryRead[]>([]);
-  const [items, setItems] = useState<InventoryItemRead[]>([]);
 
-  const catLimit = 10;
+  // --- Categorias (paginadas + busca + seleção)
+  const [categories, setCategories] = useState<ProductCategoryRead[]>([]);
   const [catSkip, setCatSkip] = useState(0);
+  const [catLimit, setCatLimit] = useState(10);
   const [catTotal, setCatTotal] = useState(0);
-  const itemLimit = 10;
+  const [catLoading, setCatLoading] = useState(false);
+  const [catQuery, setCatQuery] = useState('');
+  const [catShowSelectedOnly, setCatShowSelectedOnly] = useState(false);
+  const [catIndex, setCatIndex] = useState<Record<string, string>>({});
+
+  // --- Itens (paginados + busca + seleção)
+  const [items, setItems] = useState<InventoryItemRead[]>([]);
   const [itemSkip, setItemSkip] = useState(0);
+  const [itemLimit, setItemLimit] = useState(10);
   const [itemTotal, setItemTotal] = useState(0);
-  
-  const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
-  const [checkingSlug, setCheckingSlug] = useState(false);
-  
+  const [itemLoading, setItemLoading] = useState(false);
+  const [itemQuery, setItemQuery] = useState('');
+  const [itemShowSelectedOnly, setItemShowSelectedOnly] = useState(false);
+  const [itemIndex, setItemIndex] = useState<Record<string, string>>({});
+
+  // seleção de itens (regra de inventário guarda em state separado)
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
 
+  const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
+  const [checkingSlug, setCheckingSlug] = useState(false);
+
   /* ------------------------------- paginação ------------------------------- */
-  const hasPrevPage = itemSkip > 0;
-  const hasNextPage = itemSkip + itemLimit < itemTotal;
+  const hasPrevItemPage = itemSkip > 0;
+  const hasNextItemPage = itemSkip + itemLimit < itemTotal;
+  const hasPrevCatPage = catSkip > 0;
+  const hasNextCatPage = catSkip + catLimit < catTotal;
 
-  const goPrevPage = () => {
-    if (hasPrevPage) setItemSkip(prev => Math.max(prev - itemLimit, 0));
-  };
-
-  const goNextPage = () => {
-    if (hasNextPage) setItemSkip(prev => prev + itemLimit);
-  };
-
-   /* ─── draft em localStorage ───────────────────────── */
+  /* ─── draft em localStorage ───────────────────────── */
   const DRAFT_KEY = `pointsRuleModalDraft-${rule?.id ?? 'new'}`;
   const isFirstRun = useRef(true);
 
-// ✅ 1) declare um tipo de retorno explícito
-type ValidateResult =
-  | { ok: true; cfg: RuleConfig }
-  | { ok: false; msg: string };
+  // utils
+  const normalize = (s: string) =>
+    s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const toShortId = (id: string) => id.slice(0, 8) + '…';
 
-// ✅ 2) anote a função para devolver exatamente o tipo acima
-const validateAndNormalize = (type: RuleType, cfgIn: RuleConfig): ValidateResult => {
-  const cfg: RuleConfig = { ...cfgIn };
-  const has = (v: unknown): boolean => {
-    if (v === undefined || v === null || v === '') return false;
-    if (typeof v === 'number') return !Number.isNaN(v);
-    return true;
-  };
-  switch (type) {
-    case RuleType.value_spent:
-      if (!has(cfg.step) || !has(cfg.points))
-        return { ok: false, msg: 'Preencha "R$ por passo" e "Pontos por passo".' };
-      break;
-    case RuleType.first_purchase:
-      if (!has(cfg.bonus_points))
-        return { ok: false, msg: 'Informe o bônus de pontos.' };
-      break;
-    case RuleType.frequency:
-      if (!has(cfg.window_days) || !has(cfg.threshold) || !has(cfg.bonus_points))
-        return { ok: false, msg: 'Preencha janela, meta e bônus.' };
-      break;
-    case RuleType.recurrence:
-      if (!has(cfg.period_days) || !has(cfg.threshold_per_period) || !has(cfg.consecutive_periods) || !has(cfg.bonus_points))
-        return { ok: false, msg: 'Preencha todos os campos de recorrência.' };
-      break;
-    case RuleType.category:
-      if (!Array.isArray(cfg.categories) || cfg.categories.length === 0)
-        return { ok: false, msg: 'Selecione ao menos uma categoria.' };
-      if (!has(cfg.multiplier)) return { ok: false, msg: 'Informe o multiplicador.' };
-      break;
-    case RuleType.inventory:
-      if (!Array.isArray(cfg.item_ids) || cfg.item_ids.length === 0)
-        return { ok: false, msg: 'Selecione ao menos um item.' };
-      if (!has(cfg.multiplier)) return { ok: false, msg: 'Informe o multiplicador.' };
-      break;
-    case RuleType.geolocation:
-      if (!has(cfg.branch_id)) return { ok: false, msg: 'Selecione a filial.' };
-      if (!has(cfg.points)) return { ok: false, msg: 'Informe os pontos.' };
-      break;
-    case RuleType.special_date: {
-      const fixed = typeof cfg.date === 'string' && cfg.date.length > 0;
-      const range = typeof cfg.start === 'string' && typeof cfg.end === 'string' && cfg.start && cfg.end;
-      if (!fixed && !range)
-        return { ok: false, msg: 'Use data fixa (MM-DD) ou intervalo (YYYY-MM-DD a YYYY-MM-DD).' };
-      if (!has(cfg.multiplier) || Number(cfg.multiplier) <= 0)
-        return { ok: false, msg: 'Defina um multiplicador > 0.' };
-      if (fixed) {
-        delete cfg.start;
-        delete cfg.end;
+  // ✅ 1) declare um tipo de retorno explícito
+  type ValidateResult =
+    | { ok: true; cfg: RuleConfig }
+    | { ok: false; msg: string };
+
+  // ✅ 2) anote a função para devolver exatamente o tipo acima
+  const validateAndNormalize = (type: RuleType, cfgIn: RuleConfig): ValidateResult => {
+    const cfg: RuleConfig = { ...cfgIn };
+    const has = (v: unknown): boolean => {
+      if (v === undefined || v === null || v === '') return false;
+      if (typeof v === 'number') return !Number.isNaN(v);
+      return true;
+    };
+    switch (type) {
+      case RuleType.value_spent:
+        if (!has(cfg.step) || !has(cfg.points))
+          return { ok: false, msg: 'Preencha "R$ por passo" e "Pontos por passo".' };
+        break;
+      case RuleType.first_purchase:
+        if (!has(cfg.bonus_points))
+          return { ok: false, msg: 'Informe o bônus de pontos.' };
+        break;
+      case RuleType.frequency:
+        if (!has(cfg.window_days) || !has(cfg.threshold) || !has(cfg.bonus_points))
+          return { ok: false, msg: 'Preencha janela, meta e bônus.' };
+        break;
+      case RuleType.recurrence:
+        if (!has(cfg.period_days) || !has(cfg.threshold_per_period) || !has(cfg.consecutive_periods) || !has(cfg.bonus_points))
+          return { ok: false, msg: 'Preencha todos os campos de recorrência.' };
+        break;
+      case RuleType.category:
+        if (!Array.isArray(cfg.categories) || cfg.categories.length === 0)
+          return { ok: false, msg: 'Selecione ao menos uma categoria.' };
+        if (!has(cfg.multiplier)) return { ok: false, msg: 'Informe o multiplicador.' };
+        break;
+      case RuleType.inventory:
+        if (!Array.isArray(cfg.item_ids) || cfg.item_ids.length === 0)
+          return { ok: false, msg: 'Selecione ao menos um item.' };
+        if (!has(cfg.multiplier)) return { ok: false, msg: 'Informe o multiplicador.' };
+        break;
+      case RuleType.geolocation:
+        if (!has(cfg.branch_id)) return { ok: false, msg: 'Selecione a filial.' };
+        if (!has(cfg.points)) return { ok: false, msg: 'Informe os pontos.' };
+        break;
+      case RuleType.special_date: {
+        const fixed = typeof cfg.date === 'string' && cfg.date.length > 0;
+        const range = typeof cfg.start === 'string' && typeof cfg.end === 'string' && cfg.start && cfg.end;
+        if (!fixed && !range)
+          return { ok: false, msg: 'Use data fixa (MM-DD) ou intervalo (YYYY-MM-DD a YYYY-MM-DD).' };
+        if (!has(cfg.multiplier) || Number(cfg.multiplier) <= 0)
+          return { ok: false, msg: 'Defina um multiplicador > 0.' };
+        if (fixed) {
+          delete cfg.start;
+          delete cfg.end;
+        }
+        if (range) {
+          delete cfg.date;
+        }
+        break;
       }
-      if (range) {
-        delete cfg.date;
-      }
-      break;
     }
-  }
 
-  return { ok: true, cfg };
-};
+    return { ok: true, cfg };
+  };
 
-
+  // fetch
   useEffect(() => {
     listProductCategories(catSkip, catLimit).then(res => {
       setCategories(res.data.items);
       setCatTotal(res.data.total);
+      setCatIndex(prev => {
+        const next = { ...prev };
+        res.data.items.forEach((c: ProductCategoryRead) => (next[c.id] = c.name));
+        return next;
+      });
     });
-  }, [catSkip]);
+  }, [catSkip, catLimit]);
 
   useEffect(() => {
     listInventoryItems(itemSkip, itemLimit).then(res => {
       setItems(res.data.items);
       setItemTotal(res.data.total);
+      setItemIndex(prev => {
+        const next = { ...prev };
+        res.data.items.forEach((i: InventoryItemRead) => (next[i.id] = i.name));
+        return next;
+      });
     });
-  }, [itemSkip]);
+  }, [itemSkip, itemLimit]);
 
   useEffect(() => {
     listBranches().then(res => setBranches(res.data));
   }, []);
 
- // 1) ao abrir: restaura do draft (se criando) ou do `rule` (se editando)
+  // 1) ao abrir: restaura do draft (se criando) ou do `rule` (se editando)
   useEffect(() => {
     isFirstRun.current = true;
     if (rule) {
@@ -189,7 +208,7 @@ const validateAndNormalize = (type: RuleType, cfgIn: RuleConfig): ValidateResult
       setConfig(rule.config ?? {});
       setOriginalSlug((rule.config?.slug as string) || '');
       setActive(rule.active);
-      setVisible(rule.visible);      
+      setVisible(rule.visible);
       setSelectedItems([]);
       if (rule.rule_type === RuleType.inventory) {
         const ids = (rule.config?.item_ids as string[]) || [];
@@ -234,7 +253,7 @@ const validateAndNormalize = (type: RuleType, cfgIn: RuleConfig): ValidateResult
 
   // 2) salva draft a cada mudança no formulário, só em criação
   useEffect(() => {
-    if (rule) return;                     // somente no create
+    if (rule) return; // somente no create
     if (isFirstRun.current) {
       isFirstRun.current = false;
       return;
@@ -253,69 +272,117 @@ const validateAndNormalize = (type: RuleType, cfgIn: RuleConfig): ValidateResult
     );
   }, [name, description, ruleType, config, active, visible, originalSlug, rule, DRAFT_KEY]);
 
-const handleSubmit = async (e: FormEvent) => {
-  e.preventDefault();
-  if (!name.trim()) return;
+  // filtros client-side na página atual
+  const selectedCategories = (config.categories ?? []) as string[];
 
-  if (ruleType === RuleType.digital_behavior) {
-    const s = config.slug as string;
-    // só valida se for nova regra ou se o slug mudou
-    const slugChanged = !rule || s !== originalSlug;
-    if (slugChanged) {
-      // verifica formato
-      if (!validateSlug(s)) {
-        alert('Slug inválido: use apenas letras, números e hífens.');
+  const filteredCats = useMemo<ProductCategoryRead[]>(() => {
+    const q = normalize(catQuery);
+    const list = catShowSelectedOnly
+      ? categories.filter(c => selectedCategories.includes(c.id))
+      : categories;
+    return q ? list.filter(c => normalize(c.name).includes(q)) : list;
+  }, [categories, catQuery, catShowSelectedOnly, selectedCategories]);
+
+  const filteredItems = useMemo<InventoryItemRead[]>(() => {
+    const q = normalize(itemQuery);
+    const list = itemShowSelectedOnly
+      ? items.filter(i => selectedItems.includes(i.id))
+      : items;
+    return q ? list.filter(i => normalize(i.name).includes(q)) : list;
+  }, [items, itemQuery, itemShowSelectedOnly, selectedItems]);
+
+  // submit
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+
+    if (ruleType === RuleType.digital_behavior) {
+      const s = config.slug as string;
+      const slugChanged = !rule || s !== originalSlug;
+      if (slugChanged) {
+        if (!validateSlug(s)) {
+          alert('Slug inválido: use apenas letras, números e hífens.');
+          return;
+        }
+        setCheckingSlug(true);
+        const ok = await checkSlugAvailable(s);
+        setCheckingSlug(false);
+        if (!ok) {
+          alert('Este slug já está em uso. Escolha outro.');
+          return;
+        }
+        setSelectedItems([]);
+      }
+    }
+
+    let cfg = { ...config };
+    if (ruleType === RuleType.inventory) cfg.item_ids = selectedItems;
+
+    const v = validateAndNormalize(ruleType, cfg);
+    if (!v.ok) {
+      alert(v.msg);
+      return;
+    }
+    cfg = v.cfg;
+
+    if (ruleType === RuleType.special_date) {
+      const hasFixed = typeof cfg.date === 'string' && cfg.date.length > 0;
+      const hasRange =
+        typeof cfg.start === 'string' &&
+        typeof cfg.end === 'string' &&
+        cfg.start &&
+        cfg.end;
+      if (!hasFixed && !hasRange) {
+        alert('Data especial: preencha uma data fixa (MM-DD) ou um intervalo (start e end em YYYY-MM-DD).');
         return;
       }
-      // checa disponibilidade no backend
-      setCheckingSlug(true);
-      const ok = await checkSlugAvailable(s);
-      setCheckingSlug(false);
-      if (!ok) {
-        alert('Este slug já está em uso. Escolha outro.');
+      if (!cfg.multiplier || Number(cfg.multiplier) <= 0) {
+        alert('Defina um multiplicador maior que 0.');
         return;
-      }      
-      setSelectedItems([]);
+      }
     }
-  }
 
-  let cfg = { ...config };
-  if (ruleType === RuleType.inventory) cfg.item_ids = selectedItems;
+    const payload: PointsRuleCreate = {
+      name,
+      description,
+      rule_type: ruleType,
+      config: cfg,
+      active,
+      visible,
+    };
+    onSave(payload, rule?.id);
 
-  const v = validateAndNormalize(ruleType, cfg);
-  if (!v.ok) { alert(v.msg); return; }
-  cfg = v.cfg;
-
-  // ✅ validação básica para SPECIAL_DATE
-  if (ruleType === RuleType.special_date) {
-    const hasFixed = typeof cfg.date === 'string' && cfg.date.length > 0;
-    const hasRange = typeof cfg.start === 'string' && typeof cfg.end === 'string' && cfg.start && cfg.end;
-    if (!hasFixed && !hasRange) {
-      alert('Data especial: preencha uma data fixa (MM-DD) ou um intervalo (start e end em YYYY-MM-DD).');
-      return;
-    }
-    if (!cfg.multiplier || Number(cfg.multiplier) <= 0) {
-      alert('Defina um multiplicador maior que 0.');
-      return;
-    }
-  }
-
-  const payload: PointsRuleCreate = {
-    name,
-    description,
-    rule_type: ruleType,
-    config: cfg,        // 👈 usar cfg
-    active,
-    visible
+    localStorage.removeItem(DRAFT_KEY);
   };
-  onSave(payload, rule?.id);
 
-  localStorage.removeItem(DRAFT_KEY);
-};
+  // UI actions seleção
+  const toggleCat = (id: string) => {
+    const curr = (config.categories ?? []) as string[];
+    const next = curr.includes(id) ? curr.filter(x => x !== id) : [...curr, id];
+    setConfig({ ...config, categories: next });
+  };
+  const selectAllCatsPage = () => {
+    const curr = (config.categories ?? []) as string[];
+    const ids = filteredCats.map(c => c.id);
+    const next = Array.from(new Set([...curr, ...ids]));
+    setConfig({ ...config, categories: next });
+  };
+  const clearAllCats = () => {
+    setConfig({ ...config, categories: [] });
+  };
 
+  const toggleItem = (id: string) => {
+    setSelectedItems(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+  const selectAllItemsPage = () => {
+    const ids = filteredItems.map(i => i.id);
+    setSelectedItems(prev => Array.from(new Set([...prev, ...ids])));
+  };
+  const clearAllItems = () => setSelectedItems([]);
 
-
-
+  // render
   const num = (v: unknown) => (typeof v === 'number' ? v : '');
   const str = (v: unknown) => (typeof v === 'string' ? v : '');
 
@@ -324,125 +391,355 @@ const handleSubmit = async (e: FormEvent) => {
       case RuleType.value_spent:
         return (
           <>
-            <FloatingLabelInput label="R$ por passo" type="number" value={num(config.step)} onChange={e => setConfig({ ...config, step: Number(e.target.value) })} />
-            <FloatingLabelInput label="Pontos por passo" type="number" value={num(config.points)} onChange={e => setConfig({ ...config, points: Number(e.target.value) })} />
+            <FloatingLabelInput
+              label="R$ por passo"
+              type="number"
+              value={num(config.step)}
+              onChange={e => setConfig({ ...config, step: Number(e.target.value) })}
+            />
+            <FloatingLabelInput
+              label="Pontos por passo"
+              type="number"
+              value={num(config.points)}
+              onChange={e => setConfig({ ...config, points: Number(e.target.value) })}
+            />
           </>
         );
 
       case RuleType.event:
         return (
           <>
-            <FloatingLabelInput label="Nome do evento" type="text" value={str(config.event_name)} onChange={e => setConfig({ ...config, event_name: e.target.value })} />
-            <FloatingLabelInput label="Pontos" type="number" value={num(config.points)} onChange={e => setConfig({ ...config, points: Number(e.target.value) })} />
+            <FloatingLabelInput
+              label="Nome do evento"
+              type="text"
+              value={str(config.event_name)}
+              onChange={e => setConfig({ ...config, event_name: e.target.value })}
+            />
+            <FloatingLabelInput
+              label="Pontos"
+              type="number"
+              value={num(config.points)}
+              onChange={e => setConfig({ ...config, points: Number(e.target.value) })}
+            />
           </>
         );
 
-      case RuleType.category:
-        if (!categories.length) {
-          return <div className={styles.field}><Button onClick={() => router.push('/register?section=categories')}>Cadastrar categoria</Button></div>;
-        }
+      case RuleType.category: {
         return (
-          <div className={styles.field}>
-            <label>Categorias</label>
-            <select multiple size={Math.min(categories.length, 10)} className={styles.multiSelect} value={(config.categories ?? []) as string[]} onChange={() => {}}>
-              {categories.map(cat => (
-                <option key={cat.id} value={cat.id} onMouseDown={e => { e.preventDefault(); const curr = (config.categories ?? []) as string[]; const next = curr.includes(cat.id) ? curr.filter(id => id !== cat.id) : [...curr, cat.id]; setConfig({ ...config, categories: next }); }}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
-            <div className={styles.paginationControls}>
-              <button type="button" disabled={!catSkip} onClick={() => setCatSkip(catSkip - catLimit)}>Anterior</button>
-              <span>Página {Math.floor(catSkip / catLimit) + 1} de {Math.ceil(catTotal / catLimit)}</span>
-              <button type="button" disabled={catSkip + catLimit >= catTotal} onClick={() => setCatSkip(catSkip + catLimit)}>Próxima</button>
-            </div>
-            <div className={styles.selectedText}>{(config.categories ?? []).map(id => categories.find(c => c.id === id)?.name).filter(Boolean).join(', ') || 'Nenhuma selecionada'}</div>
-            <FloatingLabelInput label="Multiplicador" type="number" value={num(config.multiplier)} onChange={e => setConfig({ ...config, multiplier: Number(e.target.value) })} />
-          </div>
-        );
+          <section className={styles.selectSection}>
+            <header className={styles.selectHeader}>
+              <h3>
+                Categorias <span className={styles.countChip}>{selectedCategories.length}</span>
+              </h3>
+              <div className={styles.selectTools}>
+                <input
+                  className={styles.searchInput}
+                  placeholder="Buscar categoria..."
+                  value={catQuery}
+                  onChange={e => setCatQuery(e.target.value)}
+                />
+                <label className={styles.inlineToggle}>
+                  <input
+                    type="checkbox"
+                    checked={catShowSelectedOnly}
+                    onChange={e => setCatShowSelectedOnly(e.target.checked)}
+                  />
+                  Mostrar só selecionadas
+                </label>
+                <button
+                  type="button"
+                  className={styles.miniBtn}
+                  onClick={selectAllCatsPage}
+                  disabled={!filteredCats.length}
+                >
+                  Selecionar tudo (página)
+                </button>
+                <button
+                  type="button"
+                  className={styles.miniBtn}
+                  onClick={clearAllCats}
+                  disabled={!selectedCategories.length}
+                >
+                  Limpar seleção
+                </button>
+              </div>
+            </header>
 
-      case RuleType.inventory:
-        if (!items.length) {
-          return <div className={styles.field}><Button onClick={() => router.push('/register?section=inventory')}>Cadastrar item de inventário</Button></div>;
-        }
-        return (
-          <div className={styles.field}>
-            <label>Itens de Inventário</label>            
-            <div className={styles.checkboxList}>
-              {items.map(item => {
-                const checked = selectedItems.includes(item.id);
-                return (
-                  <label
-                    key={item.id}
-                    className={`${styles.itemLabel} ${
-                      checked ? styles.itemLabelChecked : ''
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() =>
-                        setSelectedItems(prev =>
-                          checked
-                            ? prev.filter(id => id !== item.id)
-                            : [...prev, item.id]
-                        )
+            {!catLoading && !categories.length ? (
+              <div className={styles.emptyBlock}>
+                <p>Você ainda não cadastrou nenhuma categoria.</p>
+                <Button onClick={() => router.push('/register?section=categories')}>
+                  Cadastrar categoria
+                </Button>
+              </div>
+            ) : (
+              <>
+                <div className={styles.checkboxGrid}>
+                  {catLoading ? (
+                    Array.from({ length: 6 }).map((_, i) => (
+                      <div className={`${styles.skeleton} ${styles.cardStub}`} key={i} />
+                    ))
+                  ) : (
+                    filteredCats.map(c => (
+                      <label
+                        key={c.id}
+                        className={`${styles.cardOption} ${
+                          selectedCategories.includes(c.id) ? styles.cardOptionChecked : ''
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedCategories.includes(c.id)}
+                          onChange={() => toggleCat(c.id)}
+                        />
+                        <span className={styles.cardTitle}>{c.name}</span>
+                      </label>
+                    ))
+                  )}
+                </div>
+
+                {!catLoading && filteredCats.length === 0 && categories.length > 0 && (
+                  <div className={styles.helperText}>Nenhuma categoria encontrada para o filtro.</div>
+                )}
+
+                <footer className={styles.selectFooter}>
+                  <div className={styles.paginationControls}>
+                    <button
+                      type="button"
+                      disabled={!hasPrevCatPage || catLoading}
+                      onClick={() => !catLoading && setCatSkip(prev => Math.max(prev - catLimit, 0))}
+                    >
+                      Anterior
+                    </button>
+                    <span>
+                      Página {Math.floor(catSkip / catLimit) + 1} de {Math.max(1, Math.ceil(catTotal / catLimit))}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={!hasNextCatPage || catLoading}
+                      onClick={() => !catLoading && setCatSkip(prev => prev + catLimit)}
+                    >
+                      Próxima
+                    </button>
+                    <select
+                      className={styles.pageSize}
+                      value={catLimit}
+                      onChange={e => {
+                        setCatSkip(0);
+                        setCatLimit(Number(e.target.value));
+                      }}
+                    >
+                      {[10, 20, 50, 100].map(n => (
+                        <option key={n} value={n}>
+                          {n}/página
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {selectedCategories.length > 0 && (
+                    <div className={styles.chips}>
+                      {selectedCategories.map(id => (
+                        <span key={id} className={styles.chip}>
+                          {catIndex[id] || toShortId(id)}
+                          <button type="button" aria-label="Remover" onClick={() => toggleCat(id)}>
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className={styles.field}>
+                    <FloatingLabelInput
+                      label="Multiplicador"
+                      type="number"
+                      value={num(config.multiplier)}
+                      onChange={e =>
+                        setConfig({ ...config, multiplier: Number(e.target.value) })
                       }
                     />
-                    {item.name}
-                  </label>
-                );
-              })}
-
-              {/* paginação dos itens */}
-              {itemTotal > itemLimit && (
-                <div className={styles.pagination}>
-                  <button
-                    onClick={goPrevPage}
-                    disabled={!hasPrevPage}
-                  >
-                    Anterior
-                  </button>
-                  <span>
-                    {Math.floor(itemSkip / itemLimit) + 1} /{' '}
-                    {Math.ceil(itemTotal / itemLimit)}
-                  </span>
-                  <button
-                    onClick={goNextPage}
-                    disabled={!hasNextPage}
-                  >
-                    Próxima
-                  </button>
-                </div>
-              )}
-              
-
-            {selectedItems.length > 0 && (
-              <p className={styles.selectedHint}>
-                Selecionados:&nbsp;
-                {items
-                  .filter(i => selectedItems.includes(i.id))
-                  .map(i => i.name)
-                  .join(', ')}
-              </p>
+                  </div>
+                </footer>
+              </>
             )}
-            </div>
-            <FloatingLabelInput label="Multiplicador" type="number" value={num(config.multiplier)} onChange={e => setConfig({ ...config, multiplier: Number(e.target.value) })} />
-          </div>
+          </section>
         );
+      }
+
+      case RuleType.inventory: {
+        return (
+          <section className={styles.selectSection}>
+            <header className={styles.selectHeader}>
+              <h3>
+                Itens de inventário{' '}
+                <span className={styles.countChip}>{selectedItems.length}</span>
+              </h3>
+              <div className={styles.selectTools}>
+                <input
+                  className={styles.searchInput}
+                  placeholder="Buscar item..."
+                  value={itemQuery}
+                  onChange={e => setItemQuery(e.target.value)}
+                />
+                <label className={styles.inlineToggle}>
+                  <input
+                    type="checkbox"
+                    checked={itemShowSelectedOnly}
+                    onChange={e => setItemShowSelectedOnly(e.target.checked)}
+                  />
+                  Mostrar só selecionados
+                </label>
+                <button
+                  type="button"
+                  className={styles.miniBtn}
+                  onClick={selectAllItemsPage}
+                  disabled={!filteredItems.length}
+                >
+                  Selecionar tudo (página)
+                </button>
+                <button
+                  type="button"
+                  className={styles.miniBtn}
+                  onClick={clearAllItems}
+                  disabled={!selectedItems.length}
+                >
+                  Limpar seleção
+                </button>
+              </div>
+            </header>
+
+            {!itemLoading && !items.length ? (
+              <div className={styles.emptyBlock}>
+                <p>Você ainda não cadastrou nenhum item de inventário.</p>
+                <Button onClick={() => router.push('/register?section=inventory')}>
+                  Cadastrar item de inventário
+                </Button>
+              </div>
+            ) : (
+              <>
+                <div className={styles.checkboxGrid}>
+                  {itemLoading ? (
+                    Array.from({ length: 6 }).map((_, i) => (
+                      <div className={`${styles.skeleton} ${styles.cardStub}`} key={i} />
+                    ))
+                  ) : (
+                    filteredItems.map(i => (
+                      <label
+                        key={i.id}
+                        className={`${styles.cardOption} ${
+                          selectedItems.includes(i.id) ? styles.cardOptionChecked : ''
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedItems.includes(i.id)}
+                          onChange={() => toggleItem(i.id)}
+                        />
+                        <span className={styles.cardTitle}>{i.name}</span>
+                      </label>
+                    ))
+                  )}
+                </div>
+
+                {!itemLoading && filteredItems.length === 0 && items.length > 0 && (
+                  <div className={styles.helperText}>Nenhum item encontrado para o filtro.</div>
+                )}
+
+                <footer className={styles.selectFooter}>
+                  <div className={styles.paginationControls}>
+                    <button
+                      type="button"
+                      disabled={!hasPrevItemPage || itemLoading}
+                      onClick={() => !itemLoading && setItemSkip(prev => Math.max(prev - itemLimit, 0))}
+                    >
+                      Anterior
+                    </button>
+                    <span>
+                      Página {Math.floor(itemSkip / itemLimit) + 1} de {Math.max(1, Math.ceil(itemTotal / itemLimit))}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={!hasNextItemPage || itemLoading}
+                      onClick={() => !itemLoading && setItemSkip(prev => prev + itemLimit)}
+                    >
+                      Próxima
+                    </button>
+                    <select
+                      className={styles.pageSize}
+                      value={itemLimit}
+                      onChange={e => {
+                        setItemSkip(0);
+                        setItemLimit(Number(e.target.value));
+                      }}
+                    >
+                      {[10, 20, 50, 100].map(n => (
+                        <option key={n} value={n}>
+                          {n}/página
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {selectedItems.length > 0 && (
+                    <div className={styles.chips}>
+                      {selectedItems.map(id => (
+                        <span key={id} className={styles.chip}>
+                          {itemIndex[id] || toShortId(id)}
+                          <button type="button" aria-label="Remover" onClick={() => toggleItem(id)}>
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className={styles.field}>
+                    <FloatingLabelInput
+                      label="Multiplicador"
+                      type="number"
+                      value={num(config.multiplier)}
+                      onChange={e =>
+                        setConfig({ ...config, multiplier: Number(e.target.value) })
+                      }
+                    />
+                  </div>
+                </footer>
+              </>
+            )}
+          </section>
+        );
+      }
 
       case RuleType.geolocation:
         if (!branches.length) {
-          return <div className={styles.field}><Button onClick={() => router.push('/register')}>Cadastrar filial</Button></div>;
+          return (
+            <div className={styles.field}>
+              <Button onClick={() => router.push('/register')}>Cadastrar filial</Button>
+            </div>
+          );
         }
         return (
           <div className={styles.field}>
             <label>Filial</label>
-            <select className={styles.select} value={str(config.branch_id)} onChange={e => setConfig({ ...config, branch_id: e.target.value })}>
+            <select
+              className={styles.select}
+              value={str(config.branch_id)}
+              onChange={e => setConfig({ ...config, branch_id: e.target.value })}
+            >
               <option value="">Nenhuma selecionada</option>
-              {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+              {branches.map(b => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
             </select>
-            <FloatingLabelInput label="Pontos" type="number" value={num(config.points)} onChange={e => setConfig({ ...config, points: Number(e.target.value) })} />
+            <FloatingLabelInput
+              label="Pontos"
+              type="number"
+              value={num(config.points)}
+              onChange={e => setConfig({ ...config, points: Number(e.target.value) })}
+            />
           </div>
         );
 
@@ -455,9 +752,7 @@ const handleSubmit = async (e: FormEvent) => {
               value={typeof config.slug === 'string' ? config.slug : ''}
               onChange={e => {
                 const raw = e.target.value;
-                // gera base slug (trim remove espaços das pontas)
                 let s = slugify(raw);
-                // se terminou num espaço, adiciona '-' no final
                 if (raw.endsWith(' ')) {
                   s = slugify(raw.trim()) + '-';
                 }
@@ -476,19 +771,12 @@ const handleSubmit = async (e: FormEvent) => {
                 setCheckingSlug(false);
               }}
             />
-            {/* mínimo de 1 caractere */}
             {!(config.slug as string)?.length && (
-              <div className={styles.errorText}>
-                O slug precisa ter ao menos 1 caractere.
-              </div>
+              <div className={styles.errorText}>O slug precisa ter ao menos 1 caractere.</div>
             )}
-            {checkingSlug && (
-              <div className={styles.helperText}>Verificando...</div>
-            )}
+            {checkingSlug && <div className={styles.helperText}>Verificando...</div>}
             {config.slug && !validateSlug(config.slug as string) && (
-              <div className={styles.errorText}>
-                Formato inválido. Use apenas a–z, 0–9 e hífens.
-              </div>
+              <div className={styles.errorText}>Formato inválido. Use apenas a–z, 0–9 e hífens.</div>
             )}
             {slugAvailable === false && validateSlug(config.slug as string) && (
               <div className={styles.errorText}>Este slug já está em uso.</div>
@@ -519,135 +807,170 @@ const handleSubmit = async (e: FormEvent) => {
               label="Máximo de usos por usuário"
               type="number"
               value={num(config.max_attributions)}
-              onChange={e => setConfig({ ...config, max_attributions: Number(e.target.value) })}
+              onChange={e =>
+                setConfig({ ...config, max_attributions: Number(e.target.value) })
+              }
             />
           </>
         );
+
       case RuleType.first_purchase:
-  return (
-    <>
-      <FloatingLabelInput
-        label="Bônus de pontos (primeira compra)"
-        type="number"
-        value={num(config.bonus_points)}
-        onChange={e => setConfig({ ...config, bonus_points: Number(e.target.value) })}
-      />
-      <FloatingLabelInput
-        label="Cooldown (dias) — opcional"
-        type="number"
-        value={num(config.cooldown_days)}
-        onChange={e => setConfig({ ...config, cooldown_days: Number(e.target.value) })}
-      />
-    </>
-  );
+        return (
+          <>
+            <FloatingLabelInput
+              label="Bônus de pontos (primeira compra)"
+              type="number"
+              value={num(config.bonus_points)}
+              onChange={e =>
+                setConfig({ ...config, bonus_points: Number(e.target.value) })
+              }
+            />
+            <FloatingLabelInput
+              label="Cooldown (dias) — opcional"
+              type="number"
+              value={num(config.cooldown_days)}
+              onChange={e =>
+                setConfig({ ...config, cooldown_days: Number(e.target.value) })
+              }
+            />
+          </>
+        );
 
-case RuleType.frequency:
-  return (
-    <>
-      <FloatingLabelInput
-        label="Janela (dias)"
-        type="number"
-        value={num(config.window_days)}
-        onChange={e => setConfig({ ...config, window_days: Number(e.target.value) })}
-      />
-      <FloatingLabelInput
-        label="Meta de compras na janela"
-        type="number"
-        value={num(config.threshold)}
-        onChange={e => setConfig({ ...config, threshold: Number(e.target.value) })}
-      />
-      <FloatingLabelInput
-        label="Bônus de pontos ao atingir a meta"
-        type="number"
-        value={num(config.bonus_points)}
-        onChange={e => setConfig({ ...config, bonus_points: Number(e.target.value) })}
-      />
-      <FloatingLabelInput
-        label="Cooldown (dias) — opcional"
-        type="number"
-        value={num(config.cooldown_days)}
-        onChange={e => setConfig({ ...config, cooldown_days: Number(e.target.value) })}
-      />
-    </>
-  );
+      case RuleType.frequency:
+        return (
+          <>
+            <FloatingLabelInput
+              label="Janela (dias)"
+              type="number"
+              value={num(config.window_days)}
+              onChange={e =>
+                setConfig({ ...config, window_days: Number(e.target.value) })
+              }
+            />
+            <FloatingLabelInput
+              label="Meta de compras na janela"
+              type="number"
+              value={num(config.threshold)}
+              onChange={e =>
+                setConfig({ ...config, threshold: Number(e.target.value) })
+              }
+            />
+            <FloatingLabelInput
+              label="Bônus de pontos ao atingir a meta"
+              type="number"
+              value={num(config.bonus_points)}
+              onChange={e =>
+                setConfig({ ...config, bonus_points: Number(e.target.value) })
+              }
+            />
+            <FloatingLabelInput
+              label="Cooldown (dias) — opcional"
+              type="number"
+              value={num(config.cooldown_days)}
+              onChange={e =>
+                setConfig({ ...config, cooldown_days: Number(e.target.value) })
+              }
+            />
+          </>
+        );
 
-case RuleType.recurrence:
-  return (
-    <>
-      <FloatingLabelInput
-        label="Tamanho do período (dias)"
-        type="number"
-        value={num(config.period_days)}
-        onChange={e => setConfig({ ...config, period_days: Number(e.target.value) })}
-      />
-      <FloatingLabelInput
-        label="Compras mínimas por período"
-        type="number"
-        value={num(config.threshold_per_period)}
-        onChange={e => setConfig({ ...config, threshold_per_period: Number(e.target.value) })}
-      />
-      <FloatingLabelInput
-        label="Períodos consecutivos necessários"
-        type="number"
-        value={num(config.consecutive_periods)}
-        onChange={e => setConfig({ ...config, consecutive_periods: Number(e.target.value) })}
-      />
-      <FloatingLabelInput
-        label="Bônus de pontos ao completar a sequência"
-        type="number"
-        value={num(config.bonus_points)}
-        onChange={e => setConfig({ ...config, bonus_points: Number(e.target.value) })}
-      />
-      <FloatingLabelInput
-        label="Cooldown (dias) — opcional"
-        type="number"
-        value={num(config.cooldown_days)}
-        onChange={e => setConfig({ ...config, cooldown_days: Number(e.target.value) })}
-      />
-    </>
-  );
+      case RuleType.recurrence:
+        return (
+          <>
+            <FloatingLabelInput
+              label="Tamanho do período (dias)"
+              type="number"
+              value={num(config.period_days)}
+              onChange={e =>
+                setConfig({ ...config, period_days: Number(e.target.value) })
+              }
+            />
+            <FloatingLabelInput
+              label="Compras mínimas por período"
+              type="number"
+              value={num(config.threshold_per_period)}
+              onChange={e =>
+                setConfig({
+                  ...config,
+                  threshold_per_period: Number(e.target.value),
+                })
+              }
+            />
+            <FloatingLabelInput
+              label="Períodos consecutivos necessários"
+              type="number"
+              value={num(config.consecutive_periods)}
+              onChange={e =>
+                setConfig({
+                  ...config,
+                  consecutive_periods: Number(e.target.value),
+                })
+              }
+            />
+            <FloatingLabelInput
+              label="Bônus de pontos ao completar a sequência"
+              type="number"
+              value={num(config.bonus_points)}
+              onChange={e =>
+                setConfig({ ...config, bonus_points: Number(e.target.value) })
+              }
+            />
+            <FloatingLabelInput
+              label="Cooldown (dias) — opcional"
+              type="number"
+              value={num(config.cooldown_days)}
+              onChange={e =>
+                setConfig({ ...config, cooldown_days: Number(e.target.value) })
+              }
+            />
+          </>
+        );
 
-case RuleType.special_date:
-  return (
-    <div className={styles.field}>
-      <p className={styles.helperText}>
-        Use <strong>uma</strong> das opções: <em>data fixa</em> (MM-DD) ou <em>intervalo</em> (YYYY-MM-DD a YYYY-MM-DD).
-      </p>
-      <FloatingLabelInput
-        label="Data fixa (MM-DD) — ex.: 09-15"
-        type="text"
-        value={str(config.date)}
-        onChange={e => setConfig({ ...config, date: e.target.value })}
-      />
-      <div className={styles.inline}>
-        <FloatingLabelInput
-          label="Início do intervalo (YYYY-MM-DD)"
-          type="date"
-          value={str(config.start)}
-          onChange={e => setConfig({ ...config, start: e.target.value })}
-        />
-        <FloatingLabelInput
-          label="Fim do intervalo (YYYY-MM-DD)"
-          type="date"
-          value={str(config.end)}
-          onChange={e => setConfig({ ...config, end: e.target.value })}
-        />
-      </div>
-      <FloatingLabelInput
-        label="Multiplicador (ex.: 2 = dobra)"
-        type="number"
-        value={num(config.multiplier)}
-        onChange={e => setConfig({ ...config, multiplier: Number(e.target.value) })}
-      />
-      <FloatingLabelInput
-        label="Cooldown (dias) — opcional"
-        type="number"
-        value={num(config.cooldown_days)}
-        onChange={e => setConfig({ ...config, cooldown_days: Number(e.target.value) })}
-      />
-    </div>
-  );
-
+      case RuleType.special_date:
+        return (
+          <div className={styles.field}>
+            <p className={styles.helperText}>
+              Use <strong>uma</strong> das opções: <em>data fixa</em> (MM-DD) ou{' '}
+              <em>intervalo</em> (YYYY-MM-DD a YYYY-MM-DD).
+            </p>
+            <FloatingLabelInput
+              label="Data fixa (MM-DD) — ex.: 09-15"
+              type="text"
+              value={str(config.date)}
+              onChange={e => setConfig({ ...config, date: e.target.value })}
+            />
+            <div className={styles.inline}>
+              <FloatingLabelInput
+                label="Início do intervalo (YYYY-MM-DD)"
+                type="date"
+                value={str(config.start)}
+                onChange={e => setConfig({ ...config, start: e.target.value })}
+              />
+              <FloatingLabelInput
+                label="Fim do intervalo (YYYY-MM-DD)"
+                type="date"
+                value={str(config.end)}
+                onChange={e => setConfig({ ...config, end: e.target.value })}
+              />
+            </div>
+            <FloatingLabelInput
+              label="Multiplicador (ex.: 2 = dobra)"
+              type="number"
+              value={num(config.multiplier)}
+              onChange={e =>
+                setConfig({ ...config, multiplier: Number(e.target.value) })
+              }
+            />
+            <FloatingLabelInput
+              label="Cooldown (dias) — opcional"
+              type="number"
+              value={num(config.cooldown_days)}
+              onChange={e =>
+                setConfig({ ...config, cooldown_days: Number(e.target.value) })
+              }
+            />
+          </div>
+        );
 
       default:
         return <p>Configuração não implementada para este tipo.</p>;
@@ -657,29 +980,80 @@ case RuleType.special_date:
   return (
     <div className={styles.modalContent}>
       <h2>{rule ? 'Editar Regra' : 'Nova Regra'}</h2>
-      <FloatingLabelInput label="Nome" type="text" value={name} onChange={e => setName(e.target.value)} />
-      <div className={styles.field}><label>Descrição</label><textarea value={description} onChange={e => setDescription(e.target.value)} className={styles.textarea} /></div>
-      <div className={styles.field}><label>Tipo de Regra</label><select value={ruleType} onChange={e => setRuleType(e.target.value as RuleType)} className={styles.select}>{Object.values(RuleType).filter(rt => !hiddenRuleTypes.includes(rt)).map(rt => <option key={rt} value={rt}>{getRuleTypeLabel(rt)}</option>)}</select></div>
-      <div className={styles.configSection}><h3>Configuração</h3>{renderConfigFields()}</div>
-      <div className={styles.switches}><label><input type="checkbox" checked={active} onChange={e => setActive(e.target.checked)} /> Ativa</label><label><input type="checkbox" checked={visible} onChange={e => setVisible(e.target.checked)} /> Visível</label></div>
-      
+
+      <FloatingLabelInput
+        label="Nome"
+        type="text"
+        value={name}
+        onChange={e => setName(e.target.value)}
+      />
+
+      <div className={styles.field}>
+        <label>Descrição</label>
+        <textarea
+          value={description}
+          onChange={e => setDescription(e.target.value)}
+          className={styles.textarea}
+        />
+      </div>
+
+      <div className={styles.field}>
+        <label>Tipo de Regra</label>
+        <select
+          value={ruleType}
+          onChange={e => setRuleType(e.target.value as RuleType)}
+          className={styles.select}
+        >
+          {Object.values(RuleType)
+            .filter(rt => !hiddenRuleTypes.includes(rt))
+            .map(rt => (
+              <option key={rt} value={rt}>
+                {getRuleTypeLabel(rt)}
+              </option>
+            ))}
+        </select>
+      </div>
+
+      <div className={styles.configSection}>
+        <h3>Configuração</h3>
+        {renderConfigFields()}
+      </div>
+
+      <div className={styles.switches}>
+        <label>
+          <input
+            type="checkbox"
+            checked={active}
+            onChange={e => setActive(e.target.checked)}
+          />{' '}
+          Ativa
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            checked={visible}
+            onChange={e => setVisible(e.target.checked)}
+          />{' '}
+          Visível
+        </label>
+      </div>
+
       <div className={styles.actions}>
         <Button
           onClick={handleSubmit}
           disabled={
             ruleType === RuleType.digital_behavior &&
-            (
-              !(config.slug as string)?.length || 
-              !validateSlug(config.slug as string) || 
-              checkingSlug ||                        
-              slugAvailable === false            
-            )
+            (!(config.slug as string)?.length ||
+              !validateSlug(config.slug as string) ||
+              checkingSlug ||
+              slugAvailable === false)
           }
         >
           Salvar
         </Button>
-
-        <Button onClick={onCancel} bgColor="#f3f4f6" style={{ color: '#374151' }}>Cancelar</Button>
+        <Button onClick={onCancel} bgColor="#f3f4f6" style={{ color: '#374151' }}>
+          Cancelar
+        </Button>
       </div>
     </div>
   );
