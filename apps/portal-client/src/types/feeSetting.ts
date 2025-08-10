@@ -3,8 +3,9 @@ export type SettingTypeEnum =
   | 'cashback'
   | 'points'
   | 'loyalty'
+  | 'coupon';  
   // adicione outros tipos conforme definidos no backend
-  ;
+  
 
 /**
  * Base para FeeSetting

@@ -169,29 +169,63 @@ export default function PointsRuleModal({ rule, onSave, onCancel }: Props) {
   };
 
   // fetch
-  useEffect(() => {
-    listProductCategories(catSkip, catLimit).then(res => {
+useEffect(() => {
+  let cancelled = false;
+  setCatLoading(true);
+  listProductCategories(catSkip, catLimit)
+    .then((res) => {
+      if (cancelled) return;
       setCategories(res.data.items);
       setCatTotal(res.data.total);
-      setCatIndex(prev => {
+      setCatIndex((prev) => {
         const next = { ...prev };
         res.data.items.forEach((c: ProductCategoryRead) => (next[c.id] = c.name));
         return next;
       });
+    })
+    .catch(() => {
+      if (!cancelled) {
+        setCategories([]);
+        setCatTotal(0);
+      }
+    })
+    .finally(() => {
+      if (!cancelled) setCatLoading(false);
     });
-  }, [catSkip, catLimit]);
+  return () => {
+    cancelled = true;
+  };
+}, [catSkip, catLimit]); // deps ok
 
-  useEffect(() => {
-    listInventoryItems(itemSkip, itemLimit).then(res => {
+// 🔧 3) Use os setters de loading na busca de ITENS
+useEffect(() => {
+  let cancelled = false;
+  setItemLoading(true);
+  listInventoryItems(itemSkip, itemLimit)
+    .then((res) => {
+      if (cancelled) return;
       setItems(res.data.items);
       setItemTotal(res.data.total);
-      setItemIndex(prev => {
+      setItemIndex((prev) => {
         const next = { ...prev };
         res.data.items.forEach((i: InventoryItemRead) => (next[i.id] = i.name));
         return next;
       });
+    })
+    .catch(() => {
+      if (!cancelled) {
+        setItems([]);
+        setItemTotal(0);
+      }
+    })
+    .finally(() => {
+      if (!cancelled) setItemLoading(false);
     });
-  }, [itemSkip, itemLimit]);
+  return () => {
+    cancelled = true;
+  };
+}, [itemSkip, itemLimit]);
+
 
   useEffect(() => {
     listBranches().then(res => setBranches(res.data));
@@ -273,7 +307,10 @@ export default function PointsRuleModal({ rule, onSave, onCancel }: Props) {
   }, [name, description, ruleType, config, active, visible, originalSlug, rule, DRAFT_KEY]);
 
   // filtros client-side na página atual
-  const selectedCategories = (config.categories ?? []) as string[];
+  const selectedCategories = useMemo(
+    () => (config.categories ?? []) as string[],
+    [config.categories]
+  );
 
   const filteredCats = useMemo<ProductCategoryRead[]>(() => {
     const q = normalize(catQuery);

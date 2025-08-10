@@ -1,7 +1,6 @@
-// src/components/ClientModal/ClientModal.tsx
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { isAxiosError } from 'axios';
 import { useAuth } from '@/context/AuthContext';
@@ -13,12 +12,16 @@ import { listInventoryItems, searchInventoryItems } from '@/services/inventoryIt
 import { listBranches } from '@/services/branchService';
 import { checkout } from '@/services/checkoutService';
 import { previewCoupon } from '@/services/couponService';
+import { adminStampCardDirect } from '@/services/loyaltyService'; // <- para carimbar direto
+import ClientCardsModal from '@/components/ClientCardsModal/ClientCardsModal';
+import SelectStampCardModal from '@/components/SelectStampCardModal/SelectStampCardModal';
 
 import type { BranchRead } from '@/types/branch';
 import type { LeadCreate, UserRead } from '@/types/user';
 import type { CashbackProgramRead } from '@/types/cashbackProgram';
 import type { UserWalletRead } from '@/types/wallet';
 import type { InventoryItemRead } from '@/types/inventoryItem';
+import type { InstanceDetail } from '@/types/loyalty';
 
 import FloatingLabelInput from '@/components/FloatingLabelInput/FloatingLabelInput';
 import Notification from '@/components/Notification/Notification';
@@ -59,6 +62,12 @@ export default function ClientModal({ onClose }: ClientModalProps) {
   const [page, setPage] = useState(0);
   const perPage = 10;
 
+  // UI extra
+  const [itemShowSelectedOnly, setItemShowSelectedOnly] = useState(false);
+
+  // Índice de nomes para chips (sobrevive a trocas de página)
+  const [itemNameIndex, setItemNameIndex] = useState<Record<string, string>>({});
+
   /* ---------- carteira ---------- */
   const [userWallet, setUserWallet] = useState<UserWalletRead | null>(null);
   const [walletLoading, setWalletLoading] = useState(false);
@@ -75,7 +84,6 @@ export default function ClientModal({ onClose }: ClientModalProps) {
   const [eventValue, setEventValue] = useState('');
   const [associateCb, setAssociateCb] = useState(false);
   const [selectedProg, setSelectedProg] = useState<string>('');
-  const [stampCode, setStampCode] = useState('');
 
   // Cupom
   const [couponCode, setCouponCode] = useState('');
@@ -97,6 +105,53 @@ export default function ClientModal({ onClose }: ClientModalProps) {
   const [branches, setBranches] = useState<BranchRead[]>([]);
   const [branchesLoading, setBranchesLoading] = useState(false);
 
+  /* ---------- cartões / modais ---------- */
+  const [cardsOpen, setCardsOpen] = useState(false); // ver cartões
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+
+  const [selectStampOpen, setSelectStampOpen] = useState(false); // selecionar para carimbar
+  const [selectedCardForStamp, setSelectedCardForStamp] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
+
+  // código de carimbo (opcional)
+  const [stampCode, setStampCode] = useState('');
+  function extractAxiosDetail(err: unknown): string {
+    if (isAxiosError(err)) {
+      const d = err.response?.data as any;
+      if (!d) return err.message;
+      if (typeof d === 'string') return d;
+      if (typeof d.detail === 'string') return d.detail;
+
+      // detail em array (p.ex. validações do FastAPI)
+      if (Array.isArray(d.detail)) {
+        try {
+          return d.detail
+            .map((x: any) => x?.msg ?? x?.detail ?? JSON.stringify(x))
+            .join(' | ');
+        } catch {
+          return JSON.stringify(d.detail);
+        }
+      }
+
+      // outro shape qualquer
+      return JSON.stringify(d);
+    }
+    return (err as Error)?.message ?? 'Erro desconhecido';
+  }
+
+  function buildStampData(amountNumber: number, items: string[], eventName: string) {
+    return {
+      amount: Number.isFinite(amountNumber) ? amountNumber : undefined,
+      purchased_items: items.length ? items : undefined,
+      event_name: eventName?.trim() || undefined,
+      // Sempre marcar visita
+      visit_count: 1,
+    } as const;
+  }
+
+
   /* ----------------------------- reset modal ---------------------------- */
   const handleReset = () => {
     setPhone('');
@@ -114,10 +169,15 @@ export default function ClientModal({ onClose }: ClientModalProps) {
     setSelectedItems([]);
     setItemCounts({});
     setSelectedIndex({});
+    setItemNameIndex({});
+    setItemShowSelectedOnly(false);
+    setSearchTerm('');
+    setPage(0);
 
     /* compra */
     setPurchaseAmount('');
     setStampCode('');
+    setSelectedCardForStamp(null);
     setBranchId('');
     setEventValue('');
     setAssociateCb(false);
@@ -146,6 +206,8 @@ export default function ClientModal({ onClose }: ClientModalProps) {
       setSelectedIndex(prevIdx =>
         prevIdx[id] === undefined ? { ...prevIdx, [id]: Number(price ?? 0) } : prevIdx
       );
+      const name = items.find(i => i.id === id)?.name;
+      if (name) setItemNameIndex(prevNames => (prevNames[id] ? prevNames : { ...prevNames, [id]: name }));
       return next;
     });
   };
@@ -236,6 +298,14 @@ export default function ClientModal({ onClose }: ClientModalProps) {
       .then(({ data }) => {
         setItems(data.items);
         setTotalPages(Math.ceil(data.total / perPage));
+        // index de nomes (para chips)
+        setItemNameIndex(prev => {
+          const next = { ...prev };
+          data.items.forEach((it: InventoryItemRead) => {
+            if (!next[it.id]) next[it.id] = it.name;
+          });
+          return next;
+        });
       })
       .catch(console.error)
       .finally(() => setItemsLoading(false));
@@ -288,7 +358,6 @@ export default function ClientModal({ onClose }: ClientModalProps) {
         user_id: client.id,
         amount,
         item_ids: uniqueSelectedItems.length ? uniqueSelectedItems : undefined,
-        // se quiser, passe lat/lng do PDV/branch
       });
       setCouponPreview({
         valid: data.valid,
@@ -303,7 +372,7 @@ export default function ClientModal({ onClose }: ClientModalProps) {
     }
   };
 
-  /* -------------------- 4) registrar compra (checkout) -------------------- */
+  /* -------------------- 4) registrar compra (checkout + carimbar) -------------------- */
   const handleRegisterPurchase = async () => {
     setPurchaseNotification(null);
     if (!client?.id) return;
@@ -324,18 +393,39 @@ export default function ClientModal({ onClose }: ClientModalProps) {
     setPurchaseLoading(true);
 
     try {
-      const { data } = await checkout({
+      // 1) Checkout (se houver cartão selecionado, NÃO enviar stamp_code)
+      const payload = {
         user_id: client.id,
         amount,
         item_ids: uniqueSelectedItems.length ? uniqueSelectedItems : undefined,
         branch_id: branchId || undefined,
         event: eventValue || undefined,
         coupon_code: couponCode.trim() || undefined,
-        // se quiser, envie source_lat/source_lng/source_location_name
         associate_cashback: associateCb,
         program_id: associateCb ? (programs.length === 1 ? programs[0].id : selectedProg || undefined) : undefined,
-        stamp_code: stampCode.trim() || undefined,
-      });
+        stamp_code: selectedCardForStamp ? undefined : (stampCode.trim() || undefined),
+      } as const;
+
+      const { data } = await checkout(payload);
+
+      // 2) Se um cartão foi selecionado, carimbar direto
+      let stampMsg = '';
+      if (selectedCardForStamp) {
+        try {
+          const stampData = buildStampData(
+            amount,
+            uniqueSelectedItems,           // ids dos itens selecionados
+            eventValue                     // evento (se você usa a regra custom_event)
+          );
+          await adminStampCardDirect(selectedCardForStamp.id, stampData /*, true se quiser force */);
+          stampMsg = ' • Cartão carimbado com sucesso.';
+        } catch (e: any) {
+          const detail = extractAxiosDetail(e);
+          stampMsg = ` • Compra ok, mas falhou ao carimbar o cartão selecionado: ${detail}`;
+        }
+      }
+
+
 
       // Atualiza carteira
       setWalletLoading(true);
@@ -348,15 +438,17 @@ export default function ClientModal({ onClose }: ClientModalProps) {
 
       setPurchaseNotification({
         type: 'success',
-        message: `Compra registrada! Desconto R$ ${data.discount.toFixed(2)} — Total final R$ ${data.final_amount.toFixed(2)}.`,
+        message: `Compra registrada! Desconto R$ ${data.discount.toFixed(2)} — Total final R$ ${data.final_amount.toFixed(2)}.${stampMsg}`,
       });
 
-      // Limpa campos
+      // Limpa campos de compra (mas mantém cliente)
       setPurchaseAmount('');
       setStampCode('');
+      setSelectedCardForStamp(null);
       setSelectedItems([]);
       setItemCounts({});
       setSelectedIndex({});
+      setItemNameIndex({});
       setBranchId('');
       setEventValue('');
       setAssociateCb(false);
@@ -395,6 +487,11 @@ export default function ClientModal({ onClose }: ClientModalProps) {
       setWithdrawLoading(false);
     }
   };
+
+  /* -------------------- MEMOs -------------------- */
+  const filteredPageItems = useMemo(() => {
+    return itemShowSelectedOnly ? items.filter(i => selectedItems.includes(i.id)) : items;
+  }, [items, itemShowSelectedOnly, selectedItems]);
 
   /* -------------------------------- UI -------------------------------- */
 
@@ -444,6 +541,37 @@ export default function ClientModal({ onClose }: ClientModalProps) {
     );
   }
 
+  // selecionar todos da página (coloca quantidade 1 para os que ainda não estavam)
+  const selectAllItemsPage = () => {
+    setItemCounts(prev => {
+      const next = { ...prev };
+      filteredPageItems.forEach(i => {
+        if (!next[i.id] || next[i.id] < 1) next[i.id] = 1;
+      });
+      return next;
+    });
+    setSelectedItems(prev => Array.from(new Set([...prev, ...filteredPageItems.map(i => i.id)])));
+    setSelectedIndex(prev => {
+      const next = { ...prev };
+      filteredPageItems.forEach(i => {
+        if (next[i.id] === undefined) next[i.id] = Number(i.price ?? 0);
+      });
+      return next;
+    });
+    setItemNameIndex(prev => {
+      const next = { ...prev };
+      filteredPageItems.forEach(i => { if (!next[i.id]) next[i.id] = i.name; });
+      return next;
+    });
+  };
+
+  const clearAllItems = () => {
+    setItemCounts({});
+    setSelectedItems([]);
+    setSelectedIndex({});
+    setItemNameIndex({});
+  };
+
   // visão do cliente
   return (
     <div className={styles.form}>
@@ -454,7 +582,74 @@ export default function ClientModal({ onClose }: ClientModalProps) {
         <p><strong>Nome:</strong> {client.name || '—'}</p>
         <p><strong>Telefone:</strong> {client.phone || '—'}</p>
         <p><strong>CPF:</strong> {client.cpf || '—'}</p>
+
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flexDirection: 'row' }}>
+          <Button
+            onClick={() => {
+              setSelectedUserId(client.id);
+              setCardsOpen(true);
+            }}
+          >
+            Ver cartões
+          </Button>
+
+          <Button
+            bgColor="#111827"
+            onClick={() => {
+              setSelectedUserId(client.id);
+              setSelectStampOpen(true);
+            }}
+          >
+            Selecionar cartão para carimbar
+          </Button>
+        </div>
+
+        {/* mostra seleção atual */}
+        {selectedCardForStamp && (
+          <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center', width: '100%' }}>
+            <span style={{ background: '#F3F4F6', padding: '6px 10px', borderRadius: 12, width: '100%' }}>
+              Cartão selecionado: <br/> <strong style={{ background: '#F3F4F6', padding: '6px 10px', borderRadius: 12, width: '100%' }}>{selectedCardForStamp.title}</strong>
+            </span>
+            <button
+              onClick={() => setSelectedCardForStamp(null)}
+              style={{
+                border: 'none',
+                background: 'transparent',
+                color: '#EF4444',
+                cursor: 'pointer',
+              }}
+              title="Limpar seleção"
+            >
+              Limpar
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* modais de cartões */}
+      {selectedUserId && (
+        <>
+          <ClientCardsModal
+            open={cardsOpen}
+            onClose={() => setCardsOpen(false)}
+            userId={selectedUserId}
+            userLabel={client.name ?? undefined}
+          />
+          <SelectStampCardModal
+            open={selectStampOpen}
+            onClose={() => setSelectStampOpen(false)}
+            userId={selectedUserId}
+            onSelect={(card: InstanceDetail) => {
+              setSelectedCardForStamp({
+                id: card.id,
+                title: card.template.title,
+              });
+              // ao selecionar um cartão, limpamos o código para evitar dupla via checkout
+              setStampCode('');
+            }}
+          />
+        </>
+      )}
 
       {/* registro de compra */}
       <div className={styles.section}>
@@ -469,6 +664,22 @@ export default function ClientModal({ onClose }: ClientModalProps) {
           readOnly
         />
 
+        {/* Se um cartão foi selecionado, desabilitamos o código para não duplicar */}
+        <FloatingLabelInput
+          id="stamp-code"
+          name="stampCode"
+          label="Código do cartão (opcional)"
+          type="text"
+          value={stampCode}
+          onChange={e => setStampCode(e.target.value)}
+          disabled={!!selectedCardForStamp}
+        />
+        {selectedCardForStamp && (
+          <p style={{ marginTop: 4, color: '#6B7280', fontSize: 12 }}>
+            Um cartão foi selecionado para carimbo, então o campo de código está desabilitado.
+          </p>
+        )}
+
         {/* CUPOM */}
         <div className={styles.couponRow}>
           <FloatingLabelInput
@@ -480,7 +691,7 @@ export default function ClientModal({ onClose }: ClientModalProps) {
             onChange={e => setCouponCode(e.target.value)}
           />
           <Button onClick={handlePreviewCoupon} disabled={validatingCoupon || !couponCode.trim()}>
-            {validatingCoupon ? 'Validando…' : 'Validar Cupom'}
+            {validatingCoupon ? 'Validando…' : 'Validar'}
           </Button>
         </div>
         {couponPreview && (
@@ -488,7 +699,18 @@ export default function ClientModal({ onClose }: ClientModalProps) {
             {couponPreview.valid ? (
               <>
                 <p>Desconto: <strong>R$ {couponPreview.discount.toFixed(2)}</strong></p>
-                <p>Total com cupom: <strong>R$ {(couponPreview.final_amount ?? Math.max(0, parseFloat(purchaseAmount || '0') - (couponPreview.discount || 0))).toFixed(2)}</strong></p>
+                <p>
+                  Total com cupom:{' '}
+                  <strong>
+                    {(
+                      couponPreview.final_amount ??
+                      Math.max(
+                        0,
+                        parseFloat(purchaseAmount || '0') - (couponPreview.discount || 0)
+                      )
+                    ).toFixed(2)}
+                  </strong>
+                </p>
               </>
             ) : (
               <p style={{ color: 'red' }}>{couponPreview.reason || 'Cupom inválido.'}</p>
@@ -496,96 +718,172 @@ export default function ClientModal({ onClose }: ClientModalProps) {
           </div>
         )}
 
-        {/* inventário */}
-        {itemsLoading ? (
-          <p>Carregando itens…</p>
-        ) : items.length > 0 ? (
-          <div>
-            <label className={styles.label}>Itens comprados (Opcional)</label>
-            <div className={styles.checkboxList}>
+        {/* ===== Inventário (layout novo) ===== */}
+        <section className={styles.selectSection}>
+          <header className={styles.selectHeader}>
+            <h3>
+              Itens de inventário <span className={styles.countChip}>{selectedItems.length}</span>
+            </h3>
+            <div className={styles.selectTools}>
               <input
-                type="text"
+                className={styles.searchInput}
                 placeholder="Buscar por nome ou SKU…"
                 value={searchTerm}
                 onChange={e => {
                   setSearchTerm(e.target.value);
                   setPage(0);
                 }}
-                className={styles.searchInput}
               />
+              <label className={styles.inlineToggle}>
+                <input
+                  type="checkbox"
+                  checked={itemShowSelectedOnly}
+                  onChange={e => setItemShowSelectedOnly(e.target.checked)}
+                />
+                Mostrar só selecionados
+              </label>
+              <button
+                type="button"
+                className={styles.miniBtn}
+                onClick={selectAllItemsPage}
+                disabled={!filteredPageItems.length || itemsLoading}
+              >
+                Selecionar tudo (página)
+              </button>
+              <button
+                type="button"
+                className={styles.miniBtn}
+                onClick={clearAllItems}
+                disabled={!selectedItems.length}
+              >
+                Limpar seleção
+              </button>
+            </div>
+          </header>
 
-              {items.map(item => {
-                const count = itemCounts[item.id] || 0;
-                const checked = (itemCounts[item.id] ?? 0) > 0;
+          {!itemsLoading && !items.length ? (
+            <div className={styles.emptyBlock}>
+              <p>Nenhum item de inventário encontrado.</p>
+              <Button onClick={() => router.push('/register?section=inventory')}>Cadastrar Inventário</Button>
+            </div>
+          ) : (
+            <>
+              <div className={styles.checkboxGrid}>
+                {itemsLoading ? (
+                  Array.from({ length: 6 }).map((_, i) => (
+                    <div className={`${styles.skeleton} ${styles.cardStub}`} key={i} />
+                  ))
+                ) : (
+                  filteredPageItems.map(item => {
+                    const count = itemCounts[item.id] || 0;
+                    const checked = count > 0;
+                    return (
+                      <div
+                        key={item.id}
+                        className={`${styles.cardOption} ${checked ? styles.cardOptionChecked : ''}`}
+                      >
+                        <label className={styles.cardMain}>
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => {
+                              if (checked) {
+                                // desmarca e zera contagem
+                                setItemCounts(prev => {
+                                  const next = { ...prev };
+                                  delete next[item.id];
+                                  return next;
+                                });
+                                setSelectedItems(s => s.filter(x => x !== item.id));
+                                setSelectedIndex(prevIndex => {
+                                  const nextIndex = { ...prevIndex };
+                                  delete nextIndex[item.id];
+                                  return nextIndex;
+                                });
+                              } else {
+                                setItemCounts(prev => ({ ...prev, [item.id]: 1 }));
+                                setSelectedItems(s => (s.includes(item.id) ? s : [...s, item.id]));
+                                setSelectedIndex(prev =>
+                                  prev[item.id] === undefined
+                                    ? { ...prev, [item.id]: Number(item.price) }
+                                    : prev
+                                );
+                                setItemNameIndex(prev =>
+                                  prev[item.id] ? prev : { ...prev, [item.id]: item.name }
+                                );
+                              }
+                            }}
+                          />
+                          <span className={styles.cardTitle}>{item.name}</span>
+                        </label>
 
-                return (
-                  <div key={item.id} className={styles.itemRow}>
-                    <label className={`${styles.itemLabel} ${checked ? styles.itemLabelChecked : ''}`}>
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => {
-                          if (checked) {
-                            setItemCounts(prev => {
-                              const next = { ...prev };
-                              delete next[item.id];
-                              return next;
-                            });
-                            setSelectedItems(s => s.filter(x => x !== item.id));
-                            setSelectedIndex(prevIndex => {
-                              const nextIndex = { ...prevIndex };
-                              delete nextIndex[item.id];
-                              return nextIndex;
-                            });
-                          } else {
-                            setItemCounts(prev => ({ ...prev, [item.id]: 1 }));
-                            setSelectedItems(s => (s.includes(item.id) ? s : [...s, item.id]));
-                            setSelectedIndex(prev => (prev[item.id] === undefined ? { ...prev, [item.id]: Number(item.price) } : prev));
-                          }
-                        }}
-                      />
-                      {item.name}
-                    </label>
+                        <div className={styles.qtyControls}>
+                          <button type="button" onClick={() => decrementItem(item.id)} disabled={count === 0}>–</button>
+                          <span>{count}</span>
+                          <button type="button" onClick={() => incrementItem(item.id)}>+</button>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
 
-                    <div className={styles.qtyControls}>
-                      <button type="button" onClick={() => decrementItem(item.id)} disabled={count === 0}>–</button>
-                      <span>{count}</span>
-                      <button type="button" onClick={() => incrementItem(item.id)}>+</button>
-                    </div>
-                  </div>
-                );
-              })}
-
-              {/* paginação */}
-              {totalPages > 1 && (
-                <div className={styles.pagination}>
-                  <button onClick={() => setPage(p => Math.max(p - 1, 0))} disabled={page === 0}>Anterior</button>
-                  <span>{page + 1} / {totalPages || 1}</span>
-                  <button onClick={() => setPage(p => Math.min(p + 1, totalPages - 1))} disabled={page + 1 >= totalPages}>Próxima</button>
+              {!itemsLoading && filteredPageItems.length === 0 && items.length > 0 && (
+                <div className={styles.helperText}>
+                  Nenhum item nesta página corresponde ao filtro/seleção.
                 </div>
               )}
-            </div>
 
-            {selectedItems.length > 0 && (
-              <p className={styles.selectedHint}>
-                Selecionados:&nbsp;
-                {Array.from(new Set(selectedItems))
-                  .map(id => {
-                    const it = items.find(i => i.id === id);
-                    const qty = itemCounts[id] ?? 0;
-                    return it ? `${it.name} × ${qty}` : `${id} × ${qty}`;
-                  })
-                  .filter(Boolean)
-                  .join(', ')}
-              </p>
-            )}
-          </div>
-        ) : (
-          <div className={styles.noInventory}>
-            <p>Nenhum item de inventário encontrado.</p>
-            <Button onClick={() => router.push('/register?section=inventory')}>Cadastrar Inventário</Button>
-          </div>
-        )}
+              <footer className={styles.selectFooter}>
+                {totalPages > 1 && (
+                  <div className={styles.paginationControls}>
+                    <button onClick={() => setPage(p => Math.max(p - 1, 0))} disabled={page === 0 || itemsLoading}>
+                      Anterior
+                    </button>
+                    <span>
+                      Página {page + 1} de {Math.max(1, totalPages)}
+                    </span>
+                    <button
+                      onClick={() => setPage(p => Math.min(p + 1, totalPages - 1))}
+                      disabled={page + 1 >= totalPages || itemsLoading}
+                    >
+                      Próxima
+                    </button>
+                  </div>
+                )}
+
+                {selectedItems.length > 0 && (
+                  <div className={styles.chips}>
+                    {Array.from(new Set(selectedItems)).map(id => (
+                      <span key={id} className={styles.chip}>
+                        {itemNameIndex[id] || `${id.slice(0, 8)}…`} × {itemCounts[id] ?? 0}
+                        <button
+                          type="button"
+                          aria-label="Remover"
+                          onClick={() => {
+                            setItemCounts(prev => {
+                              const next = { ...prev };
+                              delete next[id];
+                              return next;
+                            });
+                            setSelectedItems(s => s.filter(x => x !== id));
+                            setSelectedIndex(prev => {
+                              const next = { ...prev };
+                              delete next[id];
+                              return next;
+                            });
+                          }}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </footer>
+            </>
+          )}
+        </section>
 
         {/* seletor de filial */}
         {branchesLoading ? (
@@ -630,15 +928,6 @@ export default function ClientModal({ onClose }: ClientModalProps) {
             </select>
           </>
         )}
-
-        <FloatingLabelInput
-          id="stamp-code"
-          name="stampCode"
-          label="Código do cartão (opcional)"
-          type="text"
-          value={stampCode}
-          onChange={e => setStampCode(e.target.value)}
-        />
 
         {progLoading && <p>Carregando programas…</p>}
 

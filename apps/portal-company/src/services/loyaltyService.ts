@@ -5,11 +5,16 @@ import type {
   RuleRead,
   TemplateCreate,
   TemplateRead,
+  TemplateReadFull,
   TemplateUpdate,
   InstanceRead,
   StampRequest,
   Paginated,
-  InstanceAdminDetail
+  InstanceAdminDetail,
+  IssueForUserPayload,
+  StampData,
+  AdminCompanyInstanceFilters,
+  InstanceDetail,
 } from '@/types/loyalty'
 import type { AxiosResponse } from 'axios'
 
@@ -74,7 +79,7 @@ export function adminUpdateTemplate(
 
 /** Empresa: listar templates */
 export const adminListTemplates = () =>
-  api.get<TemplateRead[]>('/loyalty/admin/templates')
+  api.get<TemplateReadFull[]>('/loyalty/admin/templates')
 
 /** Empresa: obter template pelo ID */
 export const adminGetTemplate = (id: string) =>
@@ -133,4 +138,84 @@ export async function getTemplateInstances(
     page: Number(res.headers['x-page']),
     pageSize: Number(res.headers['x-page-size']),
   }
+}
+
+
+
+
+
+/** Empresa: carimbar DIRETO uma instância (sem código) */
+export function adminStampCardDirect(
+  instanceId: string,
+  data?: StampData,
+  force = false
+): Promise<AxiosResponse<InstanceRead>> {
+  return api.post<InstanceRead>(
+    `/loyalty/admin/cards/${instanceId}/stamp`,
+    data ?? {},
+    { params: { force } }
+  )
+}
+
+/** Empresa: carimbar o cartão ativo de um usuário num template (auto_issue opcional) */
+export function adminStampUserTemplate(
+  templateId: string,
+  userId: string,
+  data?: StampData,
+  opts?: { autoIssue?: boolean; force?: boolean }
+): Promise<AxiosResponse<InstanceRead>> {
+  const params = {
+    auto_issue: opts?.autoIssue ?? false,
+    force: opts?.force ?? false,
+  }
+  return api.post<InstanceRead>(
+    `/loyalty/admin/templates/${templateId}/users/${userId}/stamp`,
+    data ?? {},
+    { params }
+  )
+}
+
+/** Empresa: listar cartões emitidos da empresa (todos os templates) */
+export async function getCompanyInstances(
+  filters: AdminCompanyInstanceFilters = {}
+): Promise<Paginated<InstanceAdminDetail>> {
+  const res = await api.get<InstanceAdminDetail[]>(
+    '/loyalty/admin/cards',
+    { params: filters }
+  )
+  return {
+    data: res.data,
+    total: Number(res.headers['x-total-count']),
+    page: Number(res.headers['x-page']),
+    pageSize: Number(res.headers['x-page-size']),
+  }
+}
+
+/** Empresa: listar cartões de um usuário (dentro da empresa logada) */
+export async function getUserCompanyInstances(
+  userId: string,
+  filters: InstanceFilters = {}
+): Promise<Paginated<InstanceAdminDetail>> {
+  const res = await api.get<InstanceAdminDetail[]>(
+    `/loyalty/admin/users/${userId}/cards`,
+    { params: filters }
+  )
+  return {
+    data: res.data,
+    total: Number(res.headers['x-total-count']),
+    page: Number(res.headers['x-page']),
+    pageSize: Number(res.headers['x-page-size']),
+  }
+}
+
+/** Admin: listar cartões detalhados de um usuário da empresa logada */
+export const adminGetUserCardsDetailed = (userId: string) =>
+  api.get<InstanceDetail[]>(`/loyalty/admin/users/${userId}/cards/detail`)
+
+/** Admin: emitir/atribuir cartão para um usuário (já adicionamos antes, mas deixo aqui) */
+export function adminIssueCardForUser(
+  templateId: string,
+  payload: IssueForUserPayload
+) {
+  return api.post<InstanceRead>(`/loyalty/admin/templates/${templateId}/issue-for-user`, payload)
 }

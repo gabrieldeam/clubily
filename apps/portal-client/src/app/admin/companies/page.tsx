@@ -52,6 +52,7 @@ const feeTypeLabels: Record<SettingTypeEnum, string> = {
   cashback: 'Cashback',
   points:   'Pontos',
   loyalty:  'Cartão Fidelidade',
+  coupon:   'Cupom',     
 };
 
 // Tipos de configuração de taxa disponíveis
@@ -59,6 +60,7 @@ const allTypes: SettingTypeEnum[] = [
   'cashback',
   'points',
   'loyalty',
+  'coupon',   
 ];
 
 type NotificationState = {

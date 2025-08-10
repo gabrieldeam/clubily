@@ -1,4 +1,4 @@
 apps/backend/venv/
-.venv/
+venv/
 .env.production
 .env.local

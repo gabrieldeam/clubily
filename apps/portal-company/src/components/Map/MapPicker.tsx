@@ -43,9 +43,9 @@ export default function MapPicker({ lat, lng, onChange }: Props) {
     }
   }, [lat, lng]);
 
-  // Click handler via hook do Leaflet
+  // Click handler via hook do Leaflet (sem atribuir a variável não usada)
   function ClickHandler() {
-    const map = useMapEvents({
+    useMapEvents({
       click: async (e) => {
         const { latlng } = e;
         setMarker([latlng.lat, latlng.lng]);
@@ -59,7 +59,6 @@ export default function MapPicker({ lat, lng, onChange }: Props) {
           url.searchParams.set('lon', String(latlng.lng));
           url.searchParams.set('zoom', '18');
           url.searchParams.set('addressdetails', '1');
-          // Dica: se possível, configure o referer do seu domínio em produção
 
           const res = await fetch(url.toString(), {
             headers: { 'Accept-Language': 'pt-BR' },
@@ -81,9 +80,11 @@ export default function MapPicker({ lat, lng, onChange }: Props) {
   // mover programaticamente o mapa quando center mudar
   function CenterSetter() {
     const map = useMap();
+    // Deriva valores primitivos para agradar o eslint
+    const [latC, lngC] = center;
     useEffect(() => {
-      map.setView(center);
-    }, [center, map]);
+      map.setView([latC, lngC]);
+    }, [latC, lngC, map]);
     return null;
   }
 
@@ -99,8 +100,6 @@ export default function MapPicker({ lat, lng, onChange }: Props) {
       url.searchParams.set('format', 'jsonv2');
       url.searchParams.set('limit', '8');
       url.searchParams.set('addressdetails', '1');
-      // Opcional: inclua um "email" se a política do Nominatim exigir identificação do app:
-      // url.searchParams.set('email', 'seu-email@dominio.com');
 
       const res = await fetch(url.toString(), {
         headers: { 'Accept-Language': 'pt-BR' },
@@ -109,7 +108,10 @@ export default function MapPicker({ lat, lng, onChange }: Props) {
       const data = (await res.json()) as SearchResult[];
       setResults(data);
       // scroll to list
-      setTimeout(() => listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 0);
+      setTimeout(
+        () => listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }),
+        0
+      );
     } catch {
       setResults([]);
     } finally {
@@ -151,8 +153,8 @@ export default function MapPicker({ lat, lng, onChange }: Props) {
           className={styles.input}
           placeholder="Busque um local (rua, cidade, ponto de interesse)"
           value={query}
-          onChange={e => setQuery(e.target.value)}
-          onKeyDown={e => {
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
             if (e.key === 'Enter') doSearch();
           }}
         />
@@ -165,12 +167,7 @@ export default function MapPicker({ lat, lng, onChange }: Props) {
       </div>
 
       <div className={styles.mapContainer}>
-        <MapContainer
-          center={center}
-          zoom={14}
-          style={{ height: 360, width: '100%' }}
-          scrollWheelZoom
-        >
+        <MapContainer center={center} zoom={14} style={{ height: 360, width: '100%' }} scrollWheelZoom>
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -214,8 +211,7 @@ export default function MapPicker({ lat, lng, onChange }: Props) {
       </div>
 
       <div className={styles.hint}>
-        Dica: clique no mapa para posicionar o marcador. Você também pode usar o botão
-        “Minha localização”.
+        Dica: clique no mapa para posicionar o marcador. Você também pode usar o botão “Minha localização”.
       </div>
     </div>
   );

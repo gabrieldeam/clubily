@@ -10,6 +10,7 @@ class SettingTypeEnum(str, enum.Enum):
     cashback = "cashback"
     points   = "points"
     loyalty  = "loyalty"
+    coupon   = "coupon" 
 
 class FeeSetting(Base):
     __tablename__ = "fee_settings"

@@ -1,0 +1,467 @@
+.cardContainer {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  overflow: hidden;
+}
+
+/* === Card principal === */
+.cardMain {
+  display: flex;
+  flex-direction: column;
+  padding: 20px 80px;
+  gap: 24px;
+}
+
+
+
+/* === Footer e recompensas (fora do cardMain) === */
+.cardFooter {
+  padding: 12px 16px;
+  border-top: 1px solid #f1f5f9;
+  font-size: 13px;
+  color: #64748b;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+
+.rewardsSection {
+  padding: 16px 20px;
+  background-color: #f8fafc;
+  border-top: 1px solid #f1f5f9;
+}
+
+.rewardsTitle {
+  margin: 0 0 12px;
+  font-size: 16px;
+  color: #1e293b;
+}
+
+.rewardsGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rewardItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.rewardIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rewardInfo h5 {
+  margin: 0;
+  font-size: 15px;
+  color: #1e293b;
+}
+
+.rewardInfo p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.rewardStatus {
+  margin-left: auto;
+}
+
+.claimSmallButton {
+  background: #4f46e5;
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.claimed {
+  color: #ffffff;
+  background: #FF4C00;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.claimedAlreadyButton {
+  color: #FF4C00;
+  background: #ffffff;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.pending {
+  font-size: 12px;
+  color: #64748b;
+}
+
+
+.card {
+  width: 100%;
+  flex: none;
+  display: flex;
+  border: 10px solid;
+  border-radius: 10px;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.leftPane {
+  width: 30%;
+  display: flex;
+  flex-direction: column;
+}
+
+
+.headerTop {
+  flex: 1;
+  display: flex;
+  flex-direction: column;   /* empilha título e imagem */
+  align-items: center;      /* centraliza horizontalmente */
+  justify-content: center;  /* centraliza verticalmente */
+  color: #fff;
+  padding: 8px;
+}
+
+.headerTop .title {
+  margin-bottom: 8px;
+}
+
+.headerTop img {
+  width: 50%;              /* ocupa toda a largura do container */
+  height: auto;             /* mantém proporção */
+  border-radius: 50%;       /* deixa a imagem redonda */
+  object-fit: cover;        /* garante que preencha sem distorcer */
+}
+
+.title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.headerBottom {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #000;
+  padding: 8px;
+  text-align: center;
+}
+
+.promo {
+  margin: 0;
+  font-size: 12px;
+}
+
+.rightPane {
+  width: 70%;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-radius: 5px 5px 5px 0;
+}
+
+.stampsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  /* flex: 1; */
+  padding: 10px 20px 15px 10px;
+  justify-items: center;
+  align-items: center;
+}
+
+
+.stampsGridSimpleCard {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  padding: 10px 20px 15px 10px;
+  justify-items: center;
+  align-items: center;
+}
+
+.stampCircle {
+  position: relative;
+  border-radius: 50%;
+  background: #eee;
+  aspect-ratio: 1;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid black;
+  width: 100%;       /* ocupa toda a largura da célula */
+  aspect-ratio: 1;   /* altura = largura */
+  /* caso queira evitar qualquer transbordamento: */
+  max-width: 100%;
+}
+
+.desat {
+  filter: grayscale(80%) opacity(40%);
+  border: 1px solid black;
+}
+
+.ownerSignatureWrapper {
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.ownerSignatureWrapper span{
+  font-size: 14px;
+}
+
+/* a linha da assinatura */
+.signatureLine {
+  width: 100%;
+  border-bottom: 1px solid #000;
+  margin-top: 4px;
+  height: 1px;
+}
+
+
+.ownerName {
+  font-family: 'Pacifico', cursive;
+  font-size: 16px;
+  margin-top: 4px;
+  min-height: 24px;
+}
+
+
+
+/* define a keyframe */
+@keyframes blinkBorder {
+  0%, 100% { border-color: #e2e8f0; }
+  50%       { border-color: #FF4C00; /* ou sua cor primary */ }
+}
+
+/* classe que aplica a animação */
+.blink {
+  animation: blinkBorder 3s ease-in-out;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.actionButton {
+  background: #FFA600;
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  border: none;
+  cursor: pointer;
+}
+
+.actionButton:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.stampCode {
+  position: relative;      /* necessário para posicionar o “X” */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+  background: #fff;
+  border-radius: 12px;
+}
+
+.closeButton {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: transparent;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.closeButton:hover {
+  transform: scale(1.1);
+}
+
+.codeText {
+  margin-top: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+  word-break: break-all;
+}
+
+.expiration {
+  margin-top: 4px;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+
+
+.errorText {
+  margin-top: 8px;
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+.companyCard {
+  background: #F0F0F0;
+  padding: 10px 30px;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  height: auto;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  gap: 10px;  
+  width: 100%;
+}
+
+.companyLogo {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background-color: #FFA600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: #fff;
+  font-weight: bold;
+}
+
+.companyInfo {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+}
+
+.companyButton, .exploreMap {
+  font-size: 12px;
+  padding: 10px 20px;
+  background-color: #F0F0F0;
+  border: 1px solid #D9D9D9;
+  border-radius: 50px;
+  white-space: nowrap;
+}
+
+.companyButton:hover {
+  background-color: #dfdfdf;
+}
+
+.companyName {
+  font-size: 20px;
+}
+
+.companyContact, .companyCNPJ {
+  font-size: 12px;
+}
+
+
+.expiry {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  font-size: 12px;
+}
+
+.rulesContainer {
+  margin-top: 8px;
+  padding-top: 8px;
+}
+
+.ruleText {
+  font-size: 14px;
+  color: #374151;
+  margin: 4px 0;
+}
+
+
+
+
+
+@media (max-width: 767px) {
+  .cardMain {
+    display: flex;
+    padding: 10px;
+    gap: 24px;
+  }
+  .stampExtra {
+  font-size: 24px;
+}
+
+  .title {
+    font-size: 12px;
+  }
+  .promo {
+    font-size: 10px;
+}
+.companyCard {
+  flex-direction: column;  
+  gap: 1px;  
+}
+.companyButton, .exploreMap {
+  font-size: 12px;
+  padding: 5px 10px;
+}
+}

@@ -85,3 +85,81 @@ export interface InstanceAdminDetail extends InstanceRead {
   /** Quantas recompensas esse usuário ganhou mas ainda não resgatou */
   pending_count: number
 }
+
+
+// payload para emitir cartão para um usuário
+export interface IssueForUserPayload {
+  user_id: string;
+}
+
+// payload de carimbo DIRETO (sem código)
+export interface StampData {
+  amount?: number;
+  purchased_items?: string[];
+  service_id?: string;
+  event_name?: string;
+  visit_count?: number;
+}
+
+// filtros extras para listar cartões da empresa
+export interface AdminCompanyInstanceFilters extends InstanceFilters {
+  template_id?: string;
+  user_id?: string;
+}
+
+// filtros base para listagem de instâncias
+export interface InstanceFilters {
+  page?: number;
+  page_size?: number;
+  status?: 'active' | 'completed';
+  missing_leq?: number;
+  expires_within?: number;
+}
+
+// --- Tipos extras para o admin ver cartões detalhados ---
+export interface CompanyBasic {
+  id: string;
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  cnpj?: string | null;
+  logo_url?: string | null;
+}
+
+export interface RewardRead {
+  id: string;
+  name: string;
+  image_url?: string | null;
+}
+
+export interface TemplateRewardLinkRead {
+  id: string;
+  stamp_no: number;
+  reward: RewardRead;
+}
+
+export interface StampRead {
+  stamp_no: number;
+  given_at: string;
+  given_by_id?: string | null;
+}
+
+export interface RewardRedemptionRead {
+  link_id: string;
+  instance_id: string;
+  used: boolean;
+  code?: string;
+  expires_at?: string;
+}
+
+// Evita quebrar TemplateRead existente
+export interface TemplateReadFull extends TemplateRead {
+  company: CompanyBasic;
+  rewards_map: TemplateRewardLinkRead[];
+}
+
+export interface InstanceDetail extends InstanceRead {
+  template: TemplateReadFull;
+  stamps: StampRead[];
+  redemptions: RewardRedemptionRead[];
+}

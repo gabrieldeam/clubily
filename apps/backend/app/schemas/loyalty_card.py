@@ -111,3 +111,19 @@ class InstanceAdminDetail(InstanceRead):
     redeemed_count: int = Field(..., description="Recompensas já resgatadas")
     pending_count: int = Field(..., description="Recompensas ganhas mas não resgatadas")
     model_config = ConfigDict(from_attributes=True)
+
+# ─── PAYLOAD: emitir cartão para um usuário ─────────────────────────────────────
+class IssueForUserPayload(BaseModel):
+    user_id: UUID
+
+# app/schemas/loyalty_card.py
+
+class StampData(BaseModel):
+    amount: Optional[Decimal] = None
+    purchased_items: Optional[List[UUID]] = None
+    service_id: Optional[UUID] = None
+    event_name: Optional[str] = None
+    visit_count: Optional[int] = None
+
+class StampWithCode(StampData):
+    code: str

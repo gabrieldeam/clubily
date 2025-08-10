@@ -2,10 +2,12 @@
 import random, string
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
+from decimal import Decimal
 from typing import Optional, List, Set
 import os
 from pathlib import Path
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy import select
+from sqlalchemy.orm import Session, selectinload, noload
 
 from app.models.loyalty_card import (
     LoyaltyCardTemplate, LoyaltyCardRule, LoyaltyCardInstance,
@@ -16,6 +18,7 @@ from app.models.inventory_item import InventoryItem
 from app.services.wallet_service import get_wallet_balance, debit_wallet
 from app.services.fee_setting_service import get_effective_fee
 from app.models.fee_setting import SettingTypeEnum
+from app.schemas.loyalty_card import StampData
 
 # ───────── helpers ─────────────────────────────────────────────
 def _rand_code(n: int = 6) -> str:
@@ -278,4 +281,204 @@ def stamp_with_code(
     # 11) Persiste e retorna
     db.commit()
     db.refresh(inst)
+    return inst
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def _rtype(rule) -> str:
+    return rule.rule_type.value if hasattr(rule.rule_type, "value") else str(rule.rule_type)
+
+def _calc_stamps_from_rules(
+    db: Session,
+    rules: list[LoyaltyCardRule],
+    payload: Optional[StampData],
+) -> int:
+    if not rules:
+        return 1
+    if payload is None:
+        return 0
+
+    # prepara insumos do payload
+    amount = float(payload.amount or 0)
+    visit_count = int(payload.visit_count or 0)
+    purchased_ids = [str(x) for x in (payload.purchased_items or [])]
+    service_id = str(payload.service_id) if payload.service_id else None
+    event_name = payload.event_name
+
+    # resolve categorias dos itens comprados (p/ category_bought)
+    purchased_category_ids: set[str] = set()
+    if purchased_ids:
+        items = (
+            db.query(InventoryItem)
+              .filter(InventoryItem.id.in_(purchased_ids))
+              .options(selectinload(InventoryItem.categories))
+              .all()
+        )
+        for it in items:
+            for cat in it.categories:
+                purchased_category_ids.add(str(cat.id))
+
+    max_stamps = 0
+
+    for rule in rules:
+        if not getattr(rule, "active", True):
+            continue
+
+        cfg = rule.config or {}
+        rt = _rtype(rule)
+        stamps_from_rule = 0
+
+        if rt == "purchase_amount":
+            min_amount = float(cfg.get("amount") or 0)
+            if min_amount > 0 and amount >= min_amount:
+                stamps_from_rule = int(amount // min_amount)
+
+        elif rt == "visit":
+            needed = int(cfg.get("visits") or 1)
+            if needed > 0 and visit_count >= needed:
+                stamps_from_rule = visit_count // needed
+
+        elif rt == "service_done":
+            if service_id and str(cfg.get("service_id")) == service_id:
+                stamps_from_rule = 1
+
+        elif rt == "product_bought":
+            cfg_ids = set(str(x) for x in (cfg.get("product_ids") or []))
+            if cfg_ids and set(purchased_ids) & cfg_ids:
+                stamps_from_rule = 1
+
+        elif rt == "category_bought":
+            cfg_cat_ids = set(str(x) for x in (cfg.get("category_ids") or []))
+            if cfg_cat_ids and purchased_category_ids & cfg_cat_ids:
+                stamps_from_rule = 1
+
+        elif rt == "custom_event":
+            if event_name and cfg.get("event_name") == event_name:
+                stamps_from_rule = 1
+
+        max_stamps = max(max_stamps, stamps_from_rule)
+
+    return max_stamps
+
+# ─── NOVO: carimbar diretamente sem código ─────────────────────────────────────
+def stamp_direct(
+    db: Session,
+    company_id: str,
+    instance_id: UUID,
+    payload: Optional[StampData],
+    *,
+    force: bool = False,
+):
+    """
+    Carimba diretamente uma instância (admin), travando apenas a linha da instância.
+    Regras:
+      - Se `force=True`, ignora regras do template (mas ainda respeita expiração e limite).
+      - Se `force=False`, aplica a 1ª/maior regra que caiba (ver _calc_stamps_from_rules).
+      - Sempre limita ao máximo de carimbos do template.
+    """
+
+    # 1) Lock SOMENTE a linha da instância, sem eager loads (evita LEFT OUTER JOIN + FOR UPDATE)
+    inst = db.execute(
+        select(LoyaltyCardInstance)
+        .options(noload("*"))
+        .where(LoyaltyCardInstance.id == instance_id)
+        .with_for_update(of=LoyaltyCardInstance)
+    ).scalar_one_or_none()
+
+    if not inst:
+        raise ValueError("Cartão não encontrado")
+
+    # 2) Validar se o cartão pertence a um template da empresa logada
+    tpl = db.get(LoyaltyCardTemplate, inst.template_id)
+    if not tpl or str(tpl.company_id) != str(company_id):
+        raise ValueError("Cartão não pertence à sua empresa")
+
+    # 3) Regras de expiração
+    now = datetime.now(timezone.utc)
+    if inst.expires_at and inst.expires_at < now:
+        raise ValueError("Cartão expirado")
+
+    # 4) Se já está completo, não pode receber mais carimbos
+    if inst.completed_at is not None or inst.stamps_given >= tpl.stamp_total:
+        raise ValueError("Cartão já está completo")
+
+    # 5) Determinar quantos carimbos dar
+    if force:
+        # Admin forçando: permite informar visit_count para dar múltiplos carimbos
+        stamps_to_add = int(getattr(payload, "visit_count", 0) or 1)
+    else:
+        # Aplica regras
+        rules = (
+            db.query(LoyaltyCardRule)
+            .filter(LoyaltyCardRule.template_id == tpl.id, LoyaltyCardRule.active.is_(True))
+            .order_by(LoyaltyCardRule.order.asc())
+            .all()
+        )
+        stamps_to_add = _calc_stamps_from_rules(db, rules, payload)
+
+    if stamps_to_add <= 0:
+        raise ValueError("As regras do template não foram atendidas para carimbar")
+
+    # 6) Respeitar o limite do template
+    remaining = tpl.stamp_total - inst.stamps_given
+    stamps_to_add = min(stamps_to_add, remaining)
+
+    if stamps_to_add <= 0:
+        raise ValueError("Nenhum carimbo disponível para adicionar")
+
+    # 7) Criar registros de carimbo + atualizar contadores
+    #    Gera stamp_no sequenciais: (stamps_given + 1) ... (stamps_given + stamps_to_add)
+    new_stamps = []
+    for i in range(1, stamps_to_add + 1):
+        stamp_no = inst.stamps_given + i
+        new_stamps.append(
+            LoyaltyCardStamp(
+                instance_id=inst.id,
+                stamp_no=stamp_no,
+                # Se o seu modelo tiver um campo JSON para metadados, descomente:
+                # meta=(payload.model_dump(exclude_none=True) if payload else None),
+            )
+        )
+
+    for s in new_stamps:
+        db.add(s)
+
+    inst.stamps_given += stamps_to_add
+
+    # 8) Marcar como completo, se alcançou o total
+    if inst.stamps_given >= tpl.stamp_total and inst.completed_at is None:
+        inst.completed_at = now
+
+
+    fee = Decimal(str(get_effective_fee(db, str(tpl.company_id), SettingTypeEnum.loyalty)))
+    balance = get_wallet_balance(db, str(tpl.company_id))
+    if balance < fee:
+        raise ValueError(f"Saldo insuficiente para taxa de carimbo no cartão fidelidade (custa R${fee:.2f})")
+
+    debit_wallet(
+        db,
+        str(tpl.company_id),
+        fee,
+        description="taxa de carimbo no cartão fidelidade"
+    )
+
+    db.add(inst)
+    db.commit()
+    db.refresh(inst)  # retorna com valores atualizados
+
     return inst

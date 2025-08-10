@@ -19,17 +19,17 @@ from app.core.cpf_utils   import normalize_cpf
 
 router = APIRouter(tags=["digital_behavior"])
 
-class DigitalBehaviorResponse(BaseModel):    
+class DigitalBehaviorResponse(BaseModel):
     company: CompanyBasic
     slug: str
-    name: Optional[str] = None
-    description: Optional[str] = None
-    points: int
-    valid_from: str | None
-    valid_to: str | None
-    max_attributions: int
-
+    name: str | None = None
+    description: str | None = None
+    points: int = 0
+    valid_from: str | None = None
+    valid_to: str | None = None
+    max_attributions: int = 0
     model_config = ConfigDict(from_attributes=True)
+
 
 class DigitalBehaviorTriggerPayload(BaseModel):    
     user_id: UUID4 | None = None
@@ -65,21 +65,19 @@ def check_slug_available(
 
 @router.get("/{slug}", response_model=DigitalBehaviorResponse)
 def get_digital_rule(slug: str, db: Session = Depends(get_db)):
-    # usa seu helper que já traz o filtro por rule_type
     rule: PointsRule | None = get_digital_rule_by_slug(db, slug)
     if not rule:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="Regra não encontrada")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Regra não encontrada")
 
-    cfg = rule.config
+    cfg = rule.config or {}
     return DigitalBehaviorResponse(
         slug=slug,
         name=rule.name,
         description=rule.description,
-        points=cfg.get("points"),
-        valid_from=cfg.get("valid_from"),
-        valid_to=cfg.get("valid_to"),
-        max_attributions=cfg.get("max_attributions"),
+        points=int(cfg.get("points") or 0),
+        valid_from=cfg.get("valid_from") or None,
+        valid_to=cfg.get("valid_to") or None,
+        max_attributions=int(cfg.get("max_attributions") or 0),
         company=rule.company,
     )
 
