@@ -1,7 +1,7 @@
 // src/app/points/page.tsx
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { isAxiosError } from 'axios';
@@ -26,15 +26,20 @@ export default function PointsPage() {
   const intervalRef = useRef<number | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // load plans
+  // Carrega planos
   useEffect(() => {
     listPointPlans(0, 100)
-      .then(res => setPlans(res.data.items))
+      .then((res) => setPlans(res.data.items))
       .catch(() => setPlanError('Não foi possível carregar os planos.'))
       .finally(() => setLoadingPlans(false));
   }, []);
 
-  // start purchase for a given plan
+  // Ordena colocando recomendados primeiro (sem alterar o array original)
+  const orderedPlans = useMemo(() => {
+    return [...plans].sort((a, b) => Number(b.recommended) - Number(a.recommended));
+  }, [plans]);
+
+  // Inicia compra de um plano
   const handlePurchasePlan = async (planId: string) => {
     setError(null);
     try {
@@ -51,21 +56,22 @@ export default function PointsPage() {
     }
   };
 
-  // poll status
+  // Poll do status a cada 30s (mostra contagem regressiva)
   useEffect(() => {
-    if (!purchase || ['PAID', 'FAILED', 'CANCELLED'].includes(status!)) {
+    if (!purchase || (status && ['PAID', 'FAILED', 'CANCELLED'].includes(status))) {
       if (intervalRef.current !== null) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
       return;
     }
+
     if (intervalRef.current === null) {
       intervalRef.current = window.setInterval(() => {
-        setCountdown(c => {
+        setCountdown((c) => {
           if (c <= 1) {
             getPointPurchase(purchase.id)
-              .then(upd => setStatus(upd.data.status))
+              .then((upd) => setStatus(upd.data.status))
               .catch(() => {});
             return 30;
           }
@@ -73,6 +79,7 @@ export default function PointsPage() {
         });
       }, 1000);
     }
+
     return () => {
       if (intervalRef.current !== null) {
         clearInterval(intervalRef.current);
@@ -86,7 +93,6 @@ export default function PointsPage() {
       : `data:image/png;base64,${purchase.pix_qr_code}`
     : '';
 
-  // class de status (fallback vazio se null)
   const statusClass = status ? styles[status.toLowerCase()] : '';
 
   return (
@@ -94,14 +100,10 @@ export default function PointsPage() {
       <Header />
       <div className={styles.page}>
         <main className={styles.main}>
-
           {/* ------------- PLANOS ------------- */}
           {!purchase && (
             <section className={styles.pricingBlock}>
               <h2 className={styles.pricingTitle}>Planos de Pontos</h2>
-              {/* <p className={styles.pricingSubtitle}>
-                -50% em todos os planos durante a Black Friday • Garanta até 1 de Dezembro
-              </p> */}
 
               {planError && (
                 <Notification
@@ -115,8 +117,8 @@ export default function PointsPage() {
                 <p>Carregando planos…</p>
               ) : (
                 <div className={styles.cardsGrid}>
-                  {plans.map((plan, idx) => {
-                    const isFeatured = idx === 1; // destaca o plano do meio
+                  {orderedPlans.map((plan) => {
+                    const isFeatured = plan.recommended;
                     return (
                       <div
                         key={plan.id}
@@ -124,9 +126,7 @@ export default function PointsPage() {
                       >
                         <header className={styles.cardHeader}>
                           <span className={styles.planName}>{plan.name}</span>
-                          <span className={styles.planQuota}>
-                            {plan.points} pontos
-                          </span>
+                          <span className={styles.planQuota}>{plan.points} pontos</span>
                         </header>
 
                         <div className={styles.priceBox}>
@@ -169,15 +169,13 @@ export default function PointsPage() {
                 </div>
               )}
 
-              <p className={styles.legalNote}>
-                Taxas podem variar conforme sua região.
-              </p>
+              <p className={styles.legalNote}>Taxas podem variar conforme sua região.</p>
             </section>
           )}
 
-          {/* STEP 2: success */}
+          {/* ------------- PAGO ------------- */}
           {purchase && status === 'PAID' && (
-            <div className={styles.card}>
+            <div className={`${styles.card} ${styles.centerCard}`}>
               <div className={styles.success}>
                 <span className={styles.checkIcon}>✅</span>
                 <h2 className={styles.title}>Compra Confirmada!</h2>
@@ -189,37 +187,39 @@ export default function PointsPage() {
             </div>
           )}
 
-          {/* STEP 3: pending / failed */}
+          {/* ------------- PENDENTE/FAIL ------------- */}
           {purchase && status !== 'PAID' && (
-            <div className={styles.card}>
+            <div className={`${styles.card} ${styles.centerCard}`}>
               <div className={styles.status}>
                 <h2 className={styles.title}>Status da Compra</h2>
+
                 <div>
                   <div className={styles.infoGrid}>
-                    <div><strong>Plano</strong></div>
+                    <div>
+                      <strong>Plano</strong>
+                    </div>
                     <div>{purchase.plan?.name}</div>
                   </div>
                   <div className={styles.infoGrid}>
-                    <div><strong>Valor</strong></div>
+                    <div>
+                      <strong>Valor</strong>
+                    </div>
                     <div>R$ {purchase.amount.toFixed(2)}</div>
                   </div>
                   <div className={styles.infoGrid}>
-                    <div><strong>Status</strong></div>
+                    <div>
+                      <strong>Status</strong>
+                    </div>
                     <div className={statusClass}>{status}</div>
                   </div>
-                  
                 </div>
+
                 {qrSrc && (
                   <div className={styles.qrContainer}>
-                    <Image
-                      src={qrSrc}
-                      alt="PIX QR Code"
-                      width={200}
-                      height={200}
-                      priority
-                    />
+                    <Image src={qrSrc} alt="PIX QR Code" width={200} height={200} priority />
                   </div>
                 )}
+
                 <div className={styles.copyContainer}>
                   <label htmlFor="pix-code">Código PIX</label>
                   <div className={styles.copyRow}>
@@ -233,24 +233,23 @@ export default function PointsPage() {
                       onClick={() => {
                         navigator.clipboard.writeText(purchase.pix_copy_paste_code ?? '');
                         setCopied(true);
-                        // volta ao texto original após 3s
                         setTimeout(() => setCopied(false), 3000);
                       }}
                       className={styles.copyBtn}
-                    >                    
+                    >
                       {copied ? 'Copiado' : 'Copiar'}
                     </button>
                   </div>
                 </div>
+
                 <p className={styles.meta}>
                   Expira em:{' '}
-                  <strong>
-                    {new Date(purchase.pix_expires_at!).toLocaleString()}
-                  </strong>
+                  <strong>{new Date(purchase.pix_expires_at!).toLocaleString()}</strong>
                 </p>
                 <p className={styles.meta}>
                   Próxima verificação em <strong>{countdown}s</strong>
                 </p>
+
                 {(status === 'FAILED' || status === 'CANCELLED') && (
                   <Notification
                     type="error"
@@ -261,7 +260,6 @@ export default function PointsPage() {
               </div>
             </div>
           )}
-
         </main>
       </div>
     </>

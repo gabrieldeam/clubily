@@ -8,13 +8,19 @@ import FloatingMenu from '@/components/FloatingMenu/FloatingMenu'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const path = usePathname()
-  const isAdmin = path?.startsWith('/admin')
+
+  // o menu NÃO aparece em /admin/** e /link/**
+  const hideMenu =
+    path === '/admin' ||
+    path?.startsWith('/admin/') ||
+    path === '/link' ||
+    path?.startsWith('/link/')
 
   return (
     <AuthProvider>
       <AddressProvider>
         <CartProvider>
-          {!isAdmin && <FloatingMenu />}
+          {!hideMenu && <FloatingMenu />}
           {children}
         </CartProvider>
       </AddressProvider>

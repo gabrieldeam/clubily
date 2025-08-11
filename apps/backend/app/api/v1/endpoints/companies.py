@@ -555,7 +555,7 @@ def get_company_info(
     "/{company_id}",
     response_model=CompanyRead,
     status_code=status.HTTP_200_OK,
-    summary="Atualiza campos da empresa (parcial)"
+    summary="Atualiza campos da empresa (parcial)",
 )
 def update_company(
     company_id: str,
@@ -573,7 +573,7 @@ def update_company(
 
     data = payload.model_dump(exclude_unset=True)
 
-    # Se alterou e-mail, trata verificação igual antes...
+    # e-mail: reset verificação + envia link
     if "email" in data:
         new_email = data.pop("email").lower()
         if new_email != company.email:
@@ -588,22 +588,19 @@ def update_company(
                 html=f"<p>Você alterou seu e-mail. Clique <a href='{verify_url}'>aqui</a> para confirmar.</p>",
             )
 
-    # Se vier category_ids, já estava correto...
+    # categorias
     if "category_ids" in data:
-        ids = data.pop("category_ids")
-        cats_result = db.scalars(
-            select(Category).where(Category.id.in_(ids))
-        )
-        cats = cats_result.unique().all()
+        ids = data.pop("category_ids") or []
+        cats = db.scalars(select(Category).where(Category.id.in_(ids))).unique().all()
         company.categories = cats
 
-    # Antes de fazer setattr para todos os campos, pego online_url para converter
+    # online_url: aceita None, "" (já convertido no schema), ou HttpUrl
     if "online_url" in data:
-        # Converte o HttpUrl (ou Url) para string pura
         raw_url = data.pop("online_url")
-        company.online_url = str(raw_url)
+        # se vier None ou "", zera; senão, salva como string
+        company.online_url = None if not raw_url else str(raw_url)
 
-    # Agora aplica os demais campos diretamente
+    # demais campos
     for field, value in data.items():
         setattr(company, field, value)
 

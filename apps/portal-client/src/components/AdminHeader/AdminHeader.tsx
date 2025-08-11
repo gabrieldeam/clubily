@@ -17,7 +17,7 @@ export default function AdminHeader() {
 
   return (
     <header className={styles.header}>
-      <div className={styles.brand}>Admin Panel</div>
+      <div className={styles.brand}>Painel Administrativo</div>
       <button
         className={styles.logoutBtn}
         onClick={handleLogout}

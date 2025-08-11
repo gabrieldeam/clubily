@@ -51,6 +51,45 @@ export default function SimpleEditCompanyForm({
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
+  function formatErrorDetail(detail: unknown): string {
+  if (!detail) return 'Erro inesperado.';
+  if (typeof detail === 'string') return detail;
+
+  // Padrão FastAPI/Pydantic: array de erros [{loc, msg, type, ...}]
+  if (Array.isArray(detail)) {
+    const parts = detail.map((d: any) => {
+      const loc = Array.isArray(d?.loc) ? d.loc.join('.') : d?.loc;
+      const msg = d?.msg ?? d?.message ?? JSON.stringify(d);
+      return loc ? `${loc}: ${msg}` : `${msg}`;
+    });
+    return parts.join('\n');
+  }
+
+  // Objeto com msg/detail
+  if (typeof detail === 'object') {
+    const anyDetail: any = detail;
+    if (anyDetail.msg) return String(anyDetail.msg);
+    if (anyDetail.detail && anyDetail.detail !== detail) {
+      return formatErrorDetail(anyDetail.detail);
+    }
+    // fallback: chave: valor
+    try {
+      return Object.entries(anyDetail)
+        .map(([k, v]) => `${k}: ${typeof v === 'string' ? v : JSON.stringify(v)}`)
+        .join('\n');
+    } catch {
+      /* ignore */
+    }
+  }
+
+  try {
+    return JSON.stringify(detail);
+  } catch {
+    return String(detail);
+  }
+}
+
+
   /* --------------------------- load initial data -------------------------- */
   useEffect(() => {
     getCompanyInfo(companyId).then(res => {
@@ -122,10 +161,12 @@ export default function SimpleEditCompanyForm({
       onSaved();
       onClose();
     } catch (err) {
-      const detail = isAxiosError(err)
-        ? err.response?.data?.detail
-        : undefined;
-      setNotification({ type: 'error', message: detail || 'Erro ao salvar.' });
+      const detail = isAxiosError(err) ? err.response?.data?.detail : undefined;
+        setNotification({
+          type: 'error',
+          message: formatErrorDetail(detail) || 'Erro ao salvar.',
+        });
+
     }
   };
 

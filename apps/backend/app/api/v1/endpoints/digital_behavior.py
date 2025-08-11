@@ -91,15 +91,20 @@ def trigger_rule(
     slug: str,
     payload: DigitalBehaviorTriggerPayload,
     db: Session = Depends(get_db),
-    current_company=Depends(get_current_company)
 ):
     """
-    1) Pré-cadastra ou atualiza lead (usuário) se vier phone ou cpf
-    2) Dispara a atribuição de pontos para o evento digital
+    Público: identifica a empresa pelo slug da regra.
+    1) Pré-cadastra/atualiza lead com phone/cpf (ou usa user_id)
+    2) Processa o evento digital e atribui pontos
     """
-    # 1) Pré‑cadastro / atualização de lead
+    # Descobre a empresa pelo slug (sem exigir login)
+    rule = get_digital_rule_by_slug(db, slug)
+    if not rule:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Regra não encontrada")
+    company_id = str(rule.company_id)
+
+    # 1) Pré-cadastro / atualização de lead
     if payload.phone or payload.cpf:
-        # normaliza antes de criar/atualizar
         phone_norm = normalize_phone(payload.phone) if payload.phone else None
         cpf_norm   = normalize_cpf(payload.cpf)     if payload.cpf   else None
 
@@ -108,7 +113,7 @@ def trigger_rule(
             LeadCreate(
                 phone      = phone_norm,
                 cpf        = cpf_norm,
-                company_id = str(current_company.id)
+                company_id = company_id
             )
         )
         user_id = str(lead.id)
@@ -119,12 +124,11 @@ def trigger_rule(
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="É necessário fornecer user_id ou phone/cpf para pré‑cadastro"
+            detail="É necessário fornecer user_id ou phone/cpf para pré-cadastro"
         )
 
     # 2) Processa o evento digital e atribui pontos
     try:
-        # note: aqui usamos amount=0 e purchased_items=[]
         awarded = process_digital_behavior_event(
             db,
             user_id,
@@ -133,9 +137,9 @@ def trigger_rule(
             purchased_items=[]
         )
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        # se a regra estiver inativa/expirada/etc, converte para 404 quando fizer sentido
+        msg = str(e)
+        status_code = status.HTTP_404_NOT_FOUND if "não encontrada" in msg or "inativa" in msg else status.HTTP_400_BAD_REQUEST
+        raise HTTPException(status_code=status_code, detail=msg)
 
     return {"points_awarded": awarded}

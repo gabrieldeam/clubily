@@ -449,155 +449,11 @@
 
 
 
-.gridSubItemReferral {
-  background: linear-gradient(90deg, #FF4C00 0%, #FFA600 100%);
-  padding: 40px 20px;
-  border-radius: 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 24px;
-  color: white;
-  margin-top: 10px;
-}
 
-/* Title (h4) */
-.title {
-  margin: 0;
-  font-size: 1.5rem;
-  font-weight: 700;
-}
-
-/* Wrapper for the dynamic content */
-.affiliateWrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  max-width: 600px;
-  width: 100%;
-  gap: 20px;
-}
-
-/* Content block shared by both states */
-.affiliateContent {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  gap: 16px;
-}
-
-/* Secondary headings (h5) */
-.headline {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 700;
-}
-
-/* Paragraph text */
-.description {
-  margin: 0;
-  font-size: 1rem;
-  line-height: 1.5;
-}
-
-/* Input + copy button group */
-.inputGroup {
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-}
-
-.referralInput {
-  flex: 1;
-  padding: 10px 16px;
-  font-size: 1rem;
-  font-family: monospace;
-  background: #ffffff;
-  color: #000;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-/* Buttons */
-.copyButton,
-.generateButton {
-  font-size: 1rem;
-  font-weight: 700;
-  padding: 12px 24px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: transform .1s, opacity .2s;
-}
-
-.copyButton {
-  background: #ffffff33; /* semi-transparent white */
-  color: white;
-}
-
-.copyButton:hover {
-  transform: translateY(-1px);
-  opacity: 0.9;
-}
-
-.generateButton {
-  background: #ffffff33;
-  color: white;
-  align-self: center;
-}
-
-.generateButton:hover {
-  transform: translateY(-1px);
-  opacity: 0.9;
-}
-
-.generateButton:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* Steps and benefits lists */
-.stepContent {
-  display: flex;
-  gap: 16px;
-}
-
-.stepList,
-.benefitList {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  font-size: 0.95rem;
-}
-
-.benefitList div {
-  display: flex;
-  justify-content: center;
-}
-
-/* Affiliate link */
-.linkWrapper {
-  margin-top: 12px;
-}
-
-.affiliateLink {
-  font-weight: 500;
-  text-decoration: underline;
-  color: white;
-}
-
-/* Loading state */
-.loading {
-  font-size: 1rem;
-  color: #ffffffbb;
-}
 
 /* Responsive adjustments */
 @media (max-width: 640px) {
-  .gridSubItemReferral {
-    padding: 32px 16px;
-  }
+  
   .inputGroup {
     flex-direction: column;
   }
@@ -605,4 +461,257 @@
   .generateButton {
     width: 100%;
   }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* ===== Indicação (PRO) ===== */
+
+.affWrapper {
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  background: radial-gradient(110% 90% at 0% 0%, #FF6A00 0%, #FF4C00 30%, #FFA600 100%);
+  color: #fff;
+  padding: 28px 22px;
+  scroll-margin-top: 90px; /* ancora suave pro /profile#affiliate */
+  box-shadow: 0 12px 28px rgba(255, 76, 0, .25);
+  margin-top: 10px;
+}
+
+/* textura sutil */
+.affWrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(16px 16px at 16px 16px, rgba(255,255,255,.06) 25%, transparent 26%) 0 0/32px 32px;
+  mix-blend-mode: soft-light;
+  opacity: .35;
+  pointer-events: none;
+}
+
+.affHero {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1.2fr .8fr;
+  gap: 22px;
+  align-items: stretch;
+  z-index: 1;
+}
+
+.affHeroText {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.affKicker {
+  display: inline-block;
+  font-size: .8rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.18);
+  border: 1px solid rgba(255,255,255,.35);
+  width: fit-content;
+}
+
+.affTitle {
+  margin: 0;
+  font-size: clamp(1.4rem, 2.5vw, 2rem);
+  font-weight: 900;
+  letter-spacing: -.01em;
+  line-height: 1.1;
+}
+
+.affSubtitle {
+  margin: 0;
+  font-size: .98rem;
+  opacity: .95;
+}
+
+.affCTAs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.affBtnWhite,
+.affBtnDark,
+.affBtnGhost {
+  border: none;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-weight: 800;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform .1s, box-shadow .2s, opacity .2s, background .2s;
+  white-space: nowrap;
+}
+
+.affBtnWhite {
+  background: #fff;
+  color: #FF4C00;
+}
+.affBtnWhite:hover { transform: translateY(-1px); box-shadow: 0 8px 18px rgba(0,0,0,.15); }
+
+.affBtnDark {
+  background: #111;
+  color: #fff;
+}
+.affBtnDark:hover { transform: translateY(-1px); box-shadow: 0 8px 18px rgba(0,0,0,.3); }
+.affBtnDark:disabled { opacity: .6; cursor: not-allowed; }
+
+.affBtnGhost {
+  background: rgba(255,255,255,.18);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.35);
+}
+.affBtnGhost:hover { transform: translateY(-1px); opacity: .95; }
+
+.affBenefits {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+  padding: 0;
+  list-style: none;
+  font-weight: 600;
+}
+.affBenefits li {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.18);
+  border: 1px solid rgba(255,255,255,.35);
+}
+
+/* Card direito */
+.affCard {
+  background: rgba(255,255,255,.14);
+  border: 1px solid rgba(255,255,255,.28);
+  backdrop-filter: blur(6px);
+  border-radius: 16px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.affCardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.18);
+  border: 1px solid rgba(255,255,255,.35);
+  font-size: .8rem;
+  font-weight: 800;
+}
+
+.affLoading { text-align: center; padding: 12px 0; }
+
+.steps {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+  font-size: .98rem;
+}
+
+.codeRow {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.codeInput {
+  padding: 12px 14px;
+  font-size: 1.05rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  background: #fff;
+  color: #000;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.affLinks {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.linkBtn,
+.linkBtnAlt {
+  border: none;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-weight: 800;
+  cursor: pointer;
+  text-decoration: none;
+  text-align: center;
+  transition: transform .1s, opacity .2s, box-shadow .2s;
+}
+
+.linkBtn {
+  background: rgba(255,255,255,.18);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.35);
+}
+.linkBtn:hover { transform: translateY(-1px); opacity: .95; }
+
+.linkBtnAlt {
+  background: #fff;
+  color: #FF4C00;
+}
+.linkBtnAlt:hover { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(0,0,0,.15); }
+
+/* Responsivo */
+@media (max-width: 900px) {
+  .affHero {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 640px) {
+  .affWrapper { padding: 22px 16px; }
+  .codeRow { grid-template-columns: 1fr; }
+  .affBtnWhite, .affBtnDark, .affBtnGhost,
+  .linkBtn, .linkBtnAlt { width: 100%; }
 }

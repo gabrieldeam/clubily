@@ -337,71 +337,152 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* ---------- CÓDIGO DE AFILIADO ---------- */}
-      <div className={`${styles.gridSubItemReferral} ${styles.lastGridSubItem}`}>
-        <h4 className={styles.title}>Código de Afiliado</h4>
+      {/* ---------- INDICAÇÃO / AFILIADO (PRO COM LINK) ---------- */}
+      <section
+        id="affiliate"
+        className={`${styles.affWrapper} ${styles.lastGridSubItem}`}
+        aria-label="Indicação de empresas"
+      >
+        <header className={styles.affHero}>
+          <div className={styles.affHeroText}>
+            <span className={styles.affKicker}>Programa de Indicação</span>
+            <h4 className={styles.affTitle}>
+              Indique empresas. <span className={styles.highlight}>Receba comissões.</span>
+            </h4>
+            <p className={styles.affSubtitle}>
+              O valor é por <strong>categoria da empresa</strong>. Consulte a tabela oficial.
+            </p>
 
-        <div className={styles.affiliateWrapper}>
-          {loadingRef ? (
-            <p className={styles.loading}><Loading/></p>
-          ) : referralCode ? (
-            /* ---------- código JÁ gerado ---------- */
-            <div className={styles.affiliateContent}>
-              <p className={styles.description}>
-                Entregue este código ao lojista e garanta <strong>3 % de cashback vitalício</strong> sobre todas as compras que ele fizer.
-              </p>
-
-              <div className={styles.inputGroup}>
-                <input
-                  readOnly
-                  className={styles.referralInput}
-                  value={referralCode}
-                  onClick={handleCopyReferral}
-                />
-                <button
-                  className={styles.copyButton}
-                  onClick={handleCopyReferral}
-                >
-                  Copiar
-                </button>
-              </div>
-
-              <div className={styles.linkWrapper}>
-                <Link href={`/affiliate/${referralCode}`} className={styles.copyButton}>
-                  Ver página de afiliado
-                </Link>
-              </div>
-            </div>
-          ) : (
-            /* ---------- AINDA não gerado ---------- */
-            <div className={styles.affiliateContent}>
-              <h5 className={styles.headline}>Ganhe dinheiro em 3 passos simples</h5>
-
-              <div className={styles.stepContent}>
-                <div className={styles.stepList}>
-                  <div><strong>Gerar</strong> seu código agora.</div>
-                  <div><strong>Entregar</strong> ao lojista.</div>
-                  <div><strong>Receber 3 %</strong> de todas as compras dele.</div>
-                </div>
-
-                <div className={styles.benefitList}>
-                  <div>Pronto em menos de 1 minuto</div>
-                  <div>Sem gastos com anúncios</div>
-                  <div>Comissões recorrentes todos os meses</div>
-                </div>
-              </div>
-
-              <button
-                className={styles.generateButton}
-                onClick={handleCreateReferral}
-                disabled={creatingRef}
+            <div className={styles.affCTAs}>
+              <a
+                href="https://clubi.ly/indicação"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.affBtnWhite}
               >
-                {creatingRef ? 'Gerando…' : 'Quero meu código agora'}
-              </button>
+                Ver tabela de comissões
+              </a>
+
+              {!loadingRef && !referralCode && (
+                <button
+                  className={styles.affBtnDark}
+                  onClick={handleCreateReferral}
+                  disabled={creatingRef}
+                  aria-label="Gerar meu código de indicação"
+                >
+                  {creatingRef ? 'Gerando…' : 'Gerar meu código agora'}
+                </button>
+              )}
             </div>
-          )}
-        </div>
-      </div>
+
+            <ul className={styles.affBenefits}>
+              <li>Sem custo para indicar</li>
+              <li>Comissões recorrentes</li>
+              <li>Acompanhe tudo no app</li>
+            </ul>
+          </div>
+
+          {/* Painel do código / ações */}
+          <div className={styles.affCard}>
+            {loadingRef ? (
+              <div className={styles.affLoading}><Loading/></div>
+            ) : referralCode ? (
+              <>
+                <div className={styles.affCardHead}>
+                  <span className={styles.badge}>Seu código</span>
+                </div>
+
+                {/* Código */}
+                <div className={styles.codeRow}>
+                  <input
+                    readOnly
+                    className={styles.codeInput}
+                    value={referralCode}
+                    onClick={handleCopyReferral}
+                    aria-label="Código de indicação"
+                  />
+                  <button className={styles.affBtnDark} onClick={handleCopyReferral}>
+                    Copiar código
+                  </button>
+                </div>
+
+                {/* Link de indicação pronto */}
+                <div className={styles.codeRow}>
+                  <input
+                    readOnly
+                    className={styles.codeInput}
+                    value={`${process.env.NEXT_PUBLIC_HOME_URL}/register?code=${referralCode}`}
+                    onClick={() => {
+                      navigator.clipboard.writeText(
+                        `${process.env.NEXT_PUBLIC_HOME_URL}/register?code=${referralCode}`
+                      );
+                      alert('Link copiado!');
+                    }}
+                    aria-label="Link de indicação"
+                  />
+                  <button
+                    className={styles.affBtnDark}
+                    onClick={() => {
+                      navigator.clipboard.writeText(
+                        `${process.env.NEXT_PUBLIC_HOME_URL}/register?code=${referralCode}`
+                      );
+                      alert('Link copiado!');
+                    }}
+                  >
+                    Copiar link
+                  </button>
+                  <button
+                    className={styles.affBtnGhost}
+                    onClick={() => {
+                      const shareUrl = `${process.env.NEXT_PUBLIC_HOME_URL}/register?code=${referralCode}`;
+                      if (navigator.share) {
+                        navigator.share({
+                          title: 'Minha indicação',
+                          text: 'Cadastre sua empresa e comece a vender com benefícios exclusivos.',
+                          url: shareUrl
+                        }).catch(() => {});
+                      } else {
+                        navigator.clipboard.writeText(shareUrl);
+                        alert('Link copiado!');
+                      }
+                    }}
+                  >
+                    Compartilhar
+                  </button>
+                </div>
+
+                {/* Links extras */}
+                <div className={styles.affLinks}>
+                  <Link href={`/affiliate/${referralCode}`} className={styles.linkBtn}>
+                    Ver minha página de indições
+                  </Link>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className={styles.affCardHead}>
+                  <span className={styles.badge}>Comece em 1 minuto</span>
+                </div>
+                <ol className={styles.steps}>
+                  <li><strong>Gere</strong> seu código exclusivo.</li>
+                  <li><strong>Compartilhe</strong> com o lojista.</li>
+                  <li><strong>Receba</strong> comissões conforme a categoria.</li>
+                </ol>
+                <button
+                  className={styles.affBtnDark}
+                  onClick={handleCreateReferral}
+                  disabled={creatingRef}
+                >
+                  {creatingRef ? 'Gerando…' : 'Quero meu código'}
+                </button>
+              </>
+            )}
+          </div>
+        </header>
+      </section>
+
+
+
 
 
       {/* ---------- MODAL EDITAR ---------- */}

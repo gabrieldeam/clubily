@@ -65,13 +65,13 @@ export default function CashbackSummaryCard() {
         <div className={styles.balanceConteiner}>
           <Image src="/icons/reembolso-alt.svg" alt="" width={32} height={32} />
           <div className={styles.balance}>
-            <span className={styles.balanceLabel}>Saldo total</span>
+            <span className={styles.balanceLabel}>Saldo total de cash back</span>
             <span className={styles.balanceValue}>{formattedBalance}</span>
           </div>
         </div>
         {!isMobile && (
           <div className={styles.expiration}>
-            <span className={styles.expLabel}>Carteiras</span>
+            <span className={styles.expLabel}>Carteiras de cash back</span>
             <span className={styles.expValue}>{wallet_count}</span>
           </div>
         )}

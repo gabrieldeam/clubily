@@ -1,12 +1,7 @@
-# backend/app/schemas/company.py
-
 from datetime import datetime
-from uuid import UUID
-import re
 from typing import List, Optional
 from uuid import UUID
-from app.schemas.category import CategoryRead
-
+import re
 
 from pydantic import (
     BaseModel,
@@ -17,6 +12,8 @@ from pydantic import (
     field_validator,
     HttpUrl,
 )
+
+from app.schemas.category import CategoryRead
 
 
 class CompanyBase(BaseModel):
@@ -31,14 +28,14 @@ class CompanyBase(BaseModel):
     neighborhood: str
     complement: Optional[str] = None
     postal_code: str
-    description: str | None = None
+    description: Optional[str] = None
     online_url: Optional[HttpUrl] = None
     only_online: bool = False
 
     @field_validator("online_url", mode="before")
     @classmethod
     def empty_str_to_none(cls, v):
-        # converte "" ou "None" (ou "null") para Python None
+        # converte "" / "none" / "null" -> None
         if isinstance(v, str):
             vv = v.strip().lower()
             if vv in ("", "none", "null"):
@@ -46,6 +43,7 @@ class CompanyBase(BaseModel):
         return v
 
     @field_validator("cnpj", mode="before")
+    @classmethod
     def normalize_cnpj(cls, v: str) -> str:
         digits = re.sub(r"\D", "", v or "")
         if len(digits) != 14:
@@ -61,10 +59,10 @@ class CompanyCreate(CompanyBase):
 class CompanyRead(CompanyBase):
     id: UUID
     created_at: datetime
-    email_verified_at: datetime | None = None
-    phone_verified_at: datetime | None = None
+    email_verified_at: Optional[datetime] = None
+    phone_verified_at: Optional[datetime] = None
     is_active: bool
-    logo_url: str | None = None
+    logo_url: Optional[str] = None
     categories: List[CategoryRead] = []
 
     @computed_field
@@ -84,6 +82,7 @@ class CompanyLogin(BaseModel):
     identifier: str  # email ou telefone
     password: str
 
+
 class CompanyUpdate(BaseModel):
     name: Optional[str] = None
     email: Optional[EmailStr] = None
@@ -101,8 +100,19 @@ class CompanyUpdate(BaseModel):
     online_url: Optional[HttpUrl] = None
     only_online: Optional[bool] = None
 
+    @field_validator("online_url", mode="before")
+    @classmethod
+    def empty_str_to_none_update(cls, v):
+        # garante que PATCH com "" funcione
+        if isinstance(v, str):
+            vv = v.strip().lower()
+            if vv in ("", "none", "null"):
+                return None
+        return v
+
     @field_validator("cnpj", mode="before")
-    def normalize_cnpj(cls, v: str) -> str:
+    @classmethod
+    def normalize_cnpj_update(cls, v: str) -> str:
         from re import sub
         digits = sub(r"\D", "", v or "")
         if len(digits) != 14:
@@ -114,14 +124,14 @@ class CompanyUpdate(BaseModel):
 
 class CompanyReadWithService(CompanyRead):
     serves_address: bool
-
     model_config = ConfigDict(from_attributes=True)
+
 
 class CompanyBasic(BaseModel):
     id: UUID
     name: str
     email: str
-    phone: str    
+    phone: str
     cnpj: Optional[str] = None
     logo_url: Optional[str] = None
 

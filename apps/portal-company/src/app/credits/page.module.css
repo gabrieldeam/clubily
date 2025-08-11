@@ -1,9 +1,7 @@
 /* src/app/credits/page.module.css */
 
 .page {
-  height: calc(100dvh - 10px);  
-  margin-top: 10px;
-  margin-bottom: 120px;
+  height: calc(100dvh - 84px);  
 }
 
 .main {
