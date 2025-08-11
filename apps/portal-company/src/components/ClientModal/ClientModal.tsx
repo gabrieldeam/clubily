@@ -28,6 +28,14 @@ import Notification from '@/components/Notification/Notification';
 import Button from '@/components/Button/Button';
 import styles from './ClientModal.module.css';
 
+type FastApiValidationItem = { msg?: string; detail?: string } & Record<string, unknown>;
+
+type FastApiErrorBody =
+  | { detail?: string | FastApiValidationItem[] }
+  | string
+  | Record<string, unknown>;
+
+
 interface ClientModalProps {
   onClose: () => void;
 }
@@ -118,28 +126,31 @@ export default function ClientModal({ onClose }: ClientModalProps) {
   // código de carimbo (opcional)
   const [stampCode, setStampCode] = useState('');
   function extractAxiosDetail(err: unknown): string {
-    if (isAxiosError(err)) {
-      const d = err.response?.data as any;
-      if (!d) return err.message;
-      if (typeof d === 'string') return d;
-      if (typeof d.detail === 'string') return d.detail;
+  if (isAxiosError(err)) {
+    const d = err.response?.data as FastApiErrorBody | undefined;
+    if (!d) return err.message;
 
-      // detail em array (p.ex. validações do FastAPI)
-      if (Array.isArray(d.detail)) {
-        try {
-          return d.detail
-            .map((x: any) => x?.msg ?? x?.detail ?? JSON.stringify(x))
-            .join(' | ');
-        } catch {
-          return JSON.stringify(d.detail);
-        }
+    if (typeof d === 'string') return d;
+
+    const detail = (d as { detail?: unknown }).detail;
+
+    if (typeof detail === 'string') return detail;
+
+    if (Array.isArray(detail)) {
+      try {
+        return (detail as FastApiValidationItem[])
+          .map((x) => x.msg ?? x.detail ?? JSON.stringify(x))
+          .join(' | ');
+      } catch {
+        return JSON.stringify(detail);
       }
-
-      // outro shape qualquer
-      return JSON.stringify(d);
     }
-    return (err as Error)?.message ?? 'Erro desconhecido';
+
+    return JSON.stringify(d);
   }
+  return err instanceof Error ? err.message : 'Erro desconhecido';
+}
+
 
   function buildStampData(amountNumber: number, items: string[], eventName: string) {
     return {
@@ -419,7 +430,7 @@ export default function ClientModal({ onClose }: ClientModalProps) {
           );
           await adminStampCardDirect(selectedCardForStamp.id, stampData /*, true se quiser force */);
           stampMsg = ' • Cartão carimbado com sucesso.';
-        } catch (e: any) {
+        } catch (e: unknown) {
           const detail = extractAxiosDetail(e);
           stampMsg = ` • Compra ok, mas falhou ao carimbar o cartão selecionado: ${detail}`;
         }

@@ -5,7 +5,7 @@ import Modal from '@/components/Modal/Modal';
 import Notification from '@/components/Notification/Notification';
 import OverlappingCards from '@/components/OverlappingCards/OverlappingCards';
 import WalletCard from '@/components/WalletCard/WalletCard';
-
+import { isAxiosError } from 'axios';
 import {
   adminListTemplates,
   adminIssueCardForUser,
@@ -67,15 +67,23 @@ export default function ClientCardsModal({
     }
   };
 
-  const handleIssueCard = async (templateId: string) => {
-    if (!userId) return;
-    try {
-      await adminIssueCardForUser(templateId, { user_id: userId });
-      await refreshUserCards();
-    } catch (e: any) {
-      setCardsError(e?.response?.data?.detail ?? 'Falha ao emitir cartão.');
+const handleIssueCard = async (templateId: string) => {
+  if (!userId) return;
+  try {
+    await adminIssueCardForUser(templateId, { user_id: userId });
+    await refreshUserCards();
+  } catch (e: unknown) {
+    if (isAxiosError(e)) {
+      // opcional: tipar o corpo esperado
+      const detail = (e.response?.data as { detail?: string } | undefined)?.detail;
+      setCardsError(detail ?? e.message ?? 'Falha ao emitir cartão.');
+    } else if (e instanceof Error) {
+      setCardsError(e.message);
+    } else {
+      setCardsError('Falha ao emitir cartão.');
     }
-  };
+  }
+};
 
   const handleOpenCard = (card: InstanceDetail) => {
     setSelectedUserCard(card);

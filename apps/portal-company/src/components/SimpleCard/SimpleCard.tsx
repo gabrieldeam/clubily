@@ -8,6 +8,12 @@ import WalletCard from '../WalletCard/WalletCard';
 import type { InstanceDetail, RuleRead, TemplateReadFull } from '@/types/loyalty';
 import styles from '../WalletCard/WalletCard.module.css';
 
+type PurchaseAmountCfg = { amount?: number };
+type VisitCfg          = { visits?: number };
+type ServiceDoneCfg    = { service_id?: string };
+type CustomEventCfg    = { event_name?: string };
+
+
 const lighten = (hex: string) => {
   const safe = hex || '#f9fafb';
   const num = parseInt(safe.replace('#', ''), 16);
@@ -18,26 +24,35 @@ const lighten = (hex: string) => {
 };
 
 function getConfigText(rule: RuleRead): string {
-  const cfg = rule.config as any;
+  const cfg = rule.config as unknown;
+
   switch (rule.rule_type) {
-    case 'purchase_amount':
-      return `Ganhe um carimbo para compras a partir de R$ ${cfg?.amount ?? 0}`;
+    case 'purchase_amount': {
+      const { amount } = (cfg as PurchaseAmountCfg) ?? {};
+      return `Ganhe um carimbo para compras a partir de R$ ${amount ?? 0}`;
+    }
     case 'visit': {
-      const v = Number(cfg?.visits ?? 1);
+      const v = Number((cfg as VisitCfg)?.visits ?? 1);
       return `Ganhe um carimbo a cada ${v} visita${v > 1 ? 's' : ''}`;
     }
-    case 'service_done':
-      return `Ganhe um carimbo ao realizar o serviço de ID ${cfg?.service_id ?? '—'}`;
+    case 'service_done': {
+      const { service_id } = (cfg as ServiceDoneCfg) ?? {};
+      return `Ganhe um carimbo ao realizar o serviço de ID ${service_id ?? '—'}`;
+    }
     case 'product_bought':
-      return `Ganhe um carimbo na compra de produtos selecionados`;
+      return 'Ganhe um carimbo na compra de produtos selecionados';
     case 'category_bought':
-      return `Ganhe um carimbo na compra em categorias selecionadas`;
-    case 'custom_event':
-      return `Ganhe um carimbo ao disparar o evento “${cfg?.event_name ?? '—'}”`;
-    default:
-      return JSON.stringify(cfg ?? {});
+      return 'Ganhe um carimbo na compra em categorias selecionadas';
+    case 'custom_event': {
+      const { event_name } = (cfg as CustomEventCfg) ?? {};
+      return `Ganhe um carimbo ao disparar o evento “${event_name ?? '—'}”`;
+    }
+    default: {
+      return typeof cfg === 'object' ? JSON.stringify(cfg ?? {}) : String(cfg ?? '');
+    }
   }
 }
+
 
 /** VARIANTE 1: instância de cartão do usuário */
 type InstanceVariantProps = {

@@ -54,50 +54,38 @@ def process_digital_behavior_event(
     if not rule or not rule.active:
         raise ValueError("Regra digital não encontrada ou inativa")
 
-    cfg = rule.config
+    cfg = (rule.config or {})
     now = datetime.now(timezone.utc)
 
-    # valida período (corrigido)
-    if cfg.get("valid_from"):
-        start = datetime.fromisoformat(cfg["valid_from"])
-        # se for naive, assume UTC
-        if start.tzinfo is None:
-            start = start.replace(tzinfo=timezone.utc)
-        if now < start:
-            raise ValueError("Regra ainda não iniciou")
+    def parse_iso(dt: str | None):
+        if not dt:
+            return None
+        return datetime.fromisoformat(dt.replace("Z", "+00:00"))
 
-    if cfg.get("valid_to"):
-        end = datetime.fromisoformat(cfg["valid_to"])
-        if end.tzinfo is None:
-            end = end.replace(tzinfo=timezone.utc)
-        if now > end:
-            raise ValueError("Regra expirada")
+    # valida período
+    start = parse_iso(cfg.get("valid_from"))
+    if start and now < (start if start.tzinfo else start.replace(tzinfo=timezone.utc)):
+        raise ValueError("Regra ainda não iniciou")
 
-    # limite por usuário
-    max_attr = int(cfg.get("max_attributions", 0))
+    end = parse_iso(cfg.get("valid_to"))
+    if end and now > (end if end.tzinfo else end.replace(tzinfo=timezone.utc)):
+        raise ValueError("Regra expirada")
+
+    # limite por usuário (robusto a None)
+    max_attr = int((cfg.get("max_attributions") or 0))
     if max_attr > 0:
         used = (
             db.query(UserPointsTransaction)
-              .filter_by(
-                  user_id=user_id,
-                  rule_id=str(rule.id),
-                  type=UserPointsTxType.award
-              )
+              .filter_by(user_id=user_id, rule_id=str(rule.id), type=UserPointsTxType.award)
               .count()
         )
         if used >= max_attr:
             raise ValueError("Limite de usos atingido para este usuário")
 
-    # 2) log de evento
-    log_purchase(
-        db,
-        user_id,
-        str(rule.company_id),
-        amount,
-        purchased_items
-    )
+    # log do evento
+    log_purchase(db, user_id, str(rule.company_id), amount, purchased_items)
 
-    # 3) cobra taxa
+    # cobra taxa
     fee = get_effective_fee(db, str(rule.company_id), SettingTypeEnum.points)
     bal = get_wallet_balance(db, str(rule.company_id))
     if bal < fee:
@@ -105,15 +93,10 @@ def process_digital_behavior_event(
         db.commit()
         raise ValueError("Saldo da empresa insuficiente para taxa de pontos")
 
-    debit_wallet(
-        db,
-        str(rule.company_id),
-        fee,
-        description=f"Taxa pontos (digital: {cfg.get('name')})"
-    )
+    debit_wallet(db, str(rule.company_id), fee, description=f"Taxa pontos (digital: {cfg.get('name')})")
 
-    # 4) debita reserva
-    pts_to_award = int(cfg.get("points", 0))
+    # reserva e crédito dos pontos (robusto a None)
+    pts_to_award = int((cfg.get("points") or 0))
     try:
         debit_points(
             db,
@@ -126,7 +109,6 @@ def process_digital_behavior_event(
         db.commit()
         raise ValueError("Falha ao reservar pontos; regra desativada")
 
-    # 5) credita usuário
     credit_user_points(
         db,
         user_id,

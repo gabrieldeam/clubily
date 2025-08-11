@@ -7,6 +7,7 @@ import AppNotification from '@/components/Notification/Notification'; // alias p
 import SimpleCard from '@/components/SimpleCard/SimpleCard';
 import { adminGetUserCardsDetailed } from '@/services/loyaltyService';
 import type { InstanceDetail } from '@/types/loyalty';
+import { isAxiosError } from 'axios';
 
 type SelectStampCardModalProps = {
   /** Abre/fecha a modal */
@@ -49,8 +50,16 @@ export default function SelectStampCardModal({
         setCards(data);
         // se houver somente um, já pré-seleciona
         setSelectedId(data.length === 1 ? data[0].id : null);
-      } catch (e: any) {
-        setError(e?.response?.data?.detail || 'Erro ao carregar cartões do cliente.');
+      } catch (err: unknown) {
+        if (isAxiosError(err)) {
+          const data = err.response?.data as { detail?: string } | string | undefined;
+          const detail = typeof data === 'string' ? data : data?.detail;
+          setError(detail ?? err.message ?? 'Erro ao carregar cartões do cliente.');
+        } else if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError('Erro ao carregar cartões do cliente.');
+        }
       } finally {
         setLoading(false);
       }

@@ -49,18 +49,28 @@ def delete_category(db: Session, category_id: UUID):
     db.delete(cat)
 
 # ---------- Produtos ----------
+# app/services/reward_service.py
 def create_product(db: Session, payload, image_url, pdf_url):
     cat_ids = payload.category_ids
-    prod = RewardProduct(
-        **payload.model_dump(exclude={"category_ids"}),
-        image_url=image_url,
-        pdf_url=pdf_url, active=payload.active
-    )
+
+    data = payload.model_dump(exclude={"category_ids"})
+    # anexe URLs só se vierem
+    if image_url is not None:
+        data["image_url"] = image_url
+    if pdf_url is not None:
+        data["pdf_url"] = pdf_url
+
+    prod = RewardProduct(**data)
+
     if cat_ids:
         cats = db.query(RewardCategory).filter(RewardCategory.id.in_(cat_ids)).all()
         prod.categories = cats
-    db.add(prod); db.commit(); db.refresh(prod)
+
+    db.add(prod)
+    db.commit()
+    db.refresh(prod)
     return prod
+
 
 def list_products(db: Session):
     return db.query(RewardProduct).filter_by(active=True).all()
