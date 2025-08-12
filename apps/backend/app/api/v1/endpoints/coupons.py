@@ -3,10 +3,10 @@ from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Path
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from app.api.deps import get_db, get_current_company
+from app.api.deps import get_db, get_current_company, get_current_user
 from app.schemas.coupon import CouponCreate, CouponUpdate, CouponRead, PaginatedCoupons
 from app.services.coupon_service import (
-    create_coupon, get_coupon, list_coupons_by_company, update_coupon, delete_coupon, serialize_coupon
+    create_coupon, get_coupon, list_coupons_by_company, update_coupon, delete_coupon, serialize_coupon, list_active_visible
 )
 from app.models.coupon import Coupon
 from app.schemas.coupon_redeem import CouponValidateRequest, CouponValidateResponse
@@ -37,6 +37,26 @@ def list_coupons_endpoint(
 ):
     total, items = list_coupons_by_company(db, str(current_company.id), skip, limit)
     # ⬇️ serialize itens
+    return PaginatedCoupons(
+        total=total,
+        skip=skip,
+        limit=limit,
+        items=[serialize_coupon(db, c) for c in items],
+    )
+
+@router.get(
+    "/public/visible",
+    response_model=PaginatedCoupons,
+    summary="Lista cupons ativos e visíveis (público; exige usuário logado)",
+)
+def list_public_visible_coupons(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
+    company_id: str | None = Query(None, description="Filtrar por empresa (opcional)"),
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user),  # ⬅️ exige login de usuário
+):
+    total, items = list_active_visible(db, skip, limit, company_id)
     return PaginatedCoupons(
         total=total,
         skip=skip,

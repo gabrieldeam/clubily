@@ -41,8 +41,8 @@ class CouponBubblePoint(BaseModel):
     name: str
     label: Optional[str] = None
     uses: int
+    total_discount: float = 0.0   # <-- NOVO
     order: int
-
 
 class CouponMapPoint(BaseModel):
     coupon_id: UUID
@@ -50,6 +50,7 @@ class CouponMapPoint(BaseModel):
     name: str
     label: Optional[str] = None
     uses: int
+    total_discount: float = 0.0   # <-- NOVO
     lat: Optional[float] = None
     lng: Optional[float] = None
 

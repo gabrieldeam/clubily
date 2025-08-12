@@ -12,6 +12,7 @@ import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { getCompanyInfo } from '@/services/companyService';
 import type { CompanyRead } from '@/types/company';
 import PointsCompanyRulesMain from '@/components/PointsCompanyRulesMain/PointsCompanyRulesMain';
+import CompanyCouponsMain from '@/components/CompanyCouponsMain/CompanyCouponsMain';
 import CompanyCashbackProgramsMain from '@/components/CompanyCashbackProgramsMain/CompanyCashbackProgramsMain';
 import LoyaltyTemplates from '@/components/LoyaltyTemplates/LoyaltyTemplates';
 import Header from '@/components/Header/Header';
@@ -245,6 +246,7 @@ export default function CompanyPage() {
         </div>
 
         <CompanyCashbackProgramsMain companyId={id!} />
+        <CompanyCouponsMain companyId={id!} />
         <PointsCompanyRulesMain companyId={id!} />
         <LoyaltyTemplates companyId={id!} />
 

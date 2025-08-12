@@ -201,7 +201,10 @@ const handleSave = async (data: CouponCreate, id?: string) => {
           />
         )}
 
-        <div className={styles.actionsHeader}>
+        <div className={styles.actionsHeader}>          
+          <Link href="/programs/coupons/tracking" className={styles.addTracking}>
+            Rastreamento
+          </Link>
           <button className={styles.addBtn} onClick={openCreate}>
             + Novo Cupom
           </button>
@@ -361,7 +364,7 @@ const handleSave = async (data: CouponCreate, id?: string) => {
               </div>
               <div className={styles.cardActions}>
                 <Link
-                  href={`/coupons/${c.id}`}
+                  href={`/programs/coupons/${c.id}`}
                   className={styles.view}
                   onClick={e => e.stopPropagation()}
                   title="Ver detalhes"

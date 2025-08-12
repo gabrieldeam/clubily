@@ -166,3 +166,21 @@ def update_coupon(db: Session, coupon: Coupon, data) -> CouponRead:
 def delete_coupon(db: Session, coupon: Coupon) -> None:
     db.delete(coupon)
     db.commit()
+
+
+def list_active_visible(
+    db: Session,
+    skip: int,
+    limit: int,
+    company_id: Optional[str] = None,
+) -> Tuple[int, List[Coupon]]:
+    q = db.query(Coupon).filter(
+        Coupon.is_active.is_(True),
+        Coupon.is_visible.is_(True),
+    )
+    if company_id:
+        q = q.filter(Coupon.company_id == company_id)
+
+    total = q.count()
+    items = q.order_by(Coupon.created_at.desc()).offset(skip).limit(limit).all()
+    return total, items

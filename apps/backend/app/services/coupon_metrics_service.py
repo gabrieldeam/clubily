@@ -162,18 +162,22 @@ def tracking_bubbles(
     date_to: date,
 ) -> List[CouponBubblePoint]:
     """
-    “Cupons de rastreamento de texto”: sem desconto e com source_location_name.
-    Tamanho do círculo = número de usos no período.
+    Bubbles = cupons com APENAS source_location_name (texto) e sem source_location (ponto).
+    Retorna usos e total de desconto no período.
     """
     dt_from, dt_to = _dt_start_end(date_from, date_to)
 
     C = (
-        db.query(Coupon.id, Coupon.code, Coupon.name, Coupon.source_location_name)
+        db.query(
+            Coupon.id,
+            Coupon.code,
+            Coupon.name,
+            Coupon.source_location_name,
+        )
         .filter(
             Coupon.company_id == company_id,
-            Coupon.discount_type.is_(None),
-            Coupon.discount_value.is_(None),
             Coupon.source_location_name.isnot(None),
+            Coupon.source_location.is_(None),   # <-- garante que NÃO tem ponto
         )
         .subquery()
     )
@@ -182,6 +186,7 @@ def tracking_bubbles(
         db.query(
             CouponRedemption.coupon_id.label("cid"),
             func.count(CouponRedemption.id).label("uses"),
+            func.coalesce(func.sum(CouponRedemption.discount_applied), 0).label("sum_discount"),
         )
         .filter(CouponRedemption.company_id == company_id)
     )
@@ -195,6 +200,7 @@ def tracking_bubbles(
             C.c.name,
             C.c.source_location_name,
             func.coalesce(R.c.uses, 0).label("uses"),
+            func.coalesce(R.c.sum_discount, 0).label("total_discount"),
         )
         .outerjoin(R, R.c.cid == C.c.id)
         .order_by(func.coalesce(R.c.uses, 0).desc(), C.c.name.asc())
@@ -210,6 +216,7 @@ def tracking_bubbles(
                 name=r.name,
                 label=r.source_location_name,
                 uses=int(r.uses or 0),
+                total_discount=float(r.total_discount or 0.0),
                 order=idx,
             )
         )
@@ -224,8 +231,8 @@ def tracking_map_points(
     date_to: date,
 ) -> List[CouponMapPoint]:
     """
-    Ponto no mapa por cupom de rastreamento.
-    lat/lng: prioriza Coupon.source_location; se ausente, média das coords dos resgates.
+    Mapa = todos os cupons com source_location (ponto).
+    Retorna lat/lng do cupom, label (se houver), usos e total de desconto no período.
     """
     dt_from, dt_to = _dt_start_end(date_from, date_to)
 
@@ -235,14 +242,12 @@ def tracking_map_points(
             Coupon.code,
             Coupon.name,
             Coupon.source_location_name,
-            func.ST_Y(cast(Coupon.source_location, Geometry)).label("c_lat"),
-            func.ST_X(cast(Coupon.source_location, Geometry)).label("c_lng"),
+            func.ST_Y(cast(Coupon.source_location, Geometry)).label("lat"),
+            func.ST_X(cast(Coupon.source_location, Geometry)).label("lng"),
         )
         .filter(
             Coupon.company_id == company_id,
-            Coupon.discount_type.is_(None),
-            Coupon.discount_value.is_(None),
-            Coupon.source_location_name.isnot(None),
+            Coupon.source_location.isnot(None),   # <-- garante que TEM ponto
         )
         .subquery()
     )
@@ -251,8 +256,7 @@ def tracking_map_points(
         db.query(
             CouponRedemption.coupon_id.label("cid"),
             func.count(CouponRedemption.id).label("uses"),
-            func.avg(func.ST_Y(cast(CouponRedemption.redemption_location, Geometry))).label("avg_lat"),
-            func.avg(func.ST_X(cast(CouponRedemption.redemption_location, Geometry))).label("avg_lng"),
+            func.coalesce(func.sum(CouponRedemption.discount_applied), 0).label("sum_discount"),
         )
         .filter(CouponRedemption.company_id == company_id)
     )
@@ -265,9 +269,10 @@ def tracking_map_points(
             C.c.code,
             C.c.name,
             C.c.source_location_name,
-            func.coalesce(C.c.c_lat, R.c.avg_lat).label("lat"),
-            func.coalesce(C.c.c_lng, R.c.avg_lng).label("lng"),
+            C.c.lat,
+            C.c.lng,
             func.coalesce(R.c.uses, 0).label("uses"),
+            func.coalesce(R.c.sum_discount, 0).label("total_discount"),
         )
         .outerjoin(R, R.c.cid == C.c.id)
     )
@@ -284,6 +289,7 @@ def tracking_map_points(
                 name=r.name,
                 label=r.source_location_name,
                 uses=int(r.uses or 0),
+                total_discount=float(r.total_discount or 0.0),
                 lat=lat,
                 lng=lng,
             )

@@ -25,6 +25,7 @@ export interface CouponBubblePoint {
   name: string;
   label?: string | null;
   uses: number;
+  total_discount: number; // <— NOVO
   order: number;
 }
 
@@ -34,6 +35,7 @@ export interface CouponMapPoint {
   name: string;
   label?: string | null;
   uses: number;
+  total_discount: number; // <— NOVO
   lat?: number | null;
   lng?: number | null;
 }

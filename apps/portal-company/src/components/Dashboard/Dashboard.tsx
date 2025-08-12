@@ -8,6 +8,7 @@ import styles from './Dashboard.module.css';
 import MetricsPoints from '@/components/MetricsPoints/MetricsPoints';
 import MetricsPurchase from '@/components/MetricsPurchase/MetricsPurchase';
 import MetricsLoyalty from '@/components/MetricsLoyalty/MetricsLoyalty';
+import CouponsMetrics from '@/components/CouponsOverview/CouponsOverview';
 import { useSearchParams } from 'next/navigation';
 import WelcomeSlider from '@/components/WelcomeSlider/WelcomeSlider';
 
@@ -27,6 +28,7 @@ export default function Dashboard() {
         <CashbackOverview />
         <MetricsPoints />
         <MetricsLoyalty/>
+        <CouponsMetrics/>
       </div>
     </>
   );

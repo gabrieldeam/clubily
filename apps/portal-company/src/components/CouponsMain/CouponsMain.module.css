@@ -48,6 +48,19 @@
   background: #e59400;
 }
 
+.addTracking {
+  padding: 8px 16px;
+  background: #ff7a00;
+  border: none;
+  border-radius: 4px;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.addTracking:hover {
+  background: #af5908;
+}
+
 .viewToggleBtn {
   padding: 8px 12px;
   background: #f8f8f8;

@@ -1,0 +1,196 @@
+.container {
+  margin-top: 10px;
+  margin-bottom: 120px;
+}
+
+.main {
+  margin: 10px auto;
+  padding: 1.5rem;
+  background: #fff;
+  border-radius: 1rem;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+}
+
+.loading, .error, .empty {
+  text-align: center;
+  padding: 2rem;
+  color: #555;
+}
+
+/* Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+.header h1 {
+  margin: 0;
+  font-size: 1.85rem;
+  color: #111827;
+}
+.subtitle {
+  margin: .25rem 0 0 0;
+  color: #6b7280;
+  font-size: .95rem;
+}
+.rangeBtn {
+  border: 1px solid var(--clr-border, #e5e7eb);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.rangeBtn:hover { background: #f3f4f6; }
+
+/* KPIs */
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(160px,1fr));
+  gap: 1rem;
+  margin: 1rem 0 1.25rem;
+}
+.metrics div {
+  background: #f0f4f8;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  text-align: center;
+}
+.metrics span { display: block; font-size: 0.9rem; color: #666; }
+.metrics strong { font-size: 1.2rem; color: #111; }
+
+/* Tabs */
+.tabs {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: .5rem;
+  margin-bottom: 1rem;
+}
+.tabBtn {
+  padding: .5rem .9rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  font-weight: 600;
+  color: #374151;
+}
+.tabBtn:hover { background: #f3f4f6; }
+.tabActive {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: #1f2937;
+}
+.tabsRight { margin-left: auto; }
+.search {
+  padding: 8px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  min-width: 240px;
+}
+
+/* Names tab */
+.namesTab { display: flex; flex-direction: column; gap: 1rem; }
+.cloud {
+  display: flex; flex-wrap: wrap; gap: .5rem;
+  background: #fafbff; border: 1px dashed #e5e7eb; border-radius: 12px;
+  padding: .75rem;
+}
+.cloudItem {
+  border-radius: 999px;
+  color: #1f2937;
+  line-height: 1;
+  display: inline-flex; align-items: center; gap: .5rem;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.04);
+}
+.badge {
+  display: inline-block;
+  font-size: .8em;
+  background: rgba(0,0,0,0.08);
+  padding: .15em .5em;
+  border-radius: 999px;
+  color: #111827;
+}
+
+/* Table */
+.tableWrapper { overflow-x: auto; }
+.tableHeader, .tableRow {
+  display: grid;
+  grid-template-columns: 60px 1.6fr 1fr 100px;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  gap: 0.5rem;
+}
+.tableHeader {
+  background: #f3f4f6;
+  border-radius: 8px;
+  font-weight: 600;
+  color: #374151;
+}
+.tableBody { margin-top: 4px; }
+.tableRow {
+  background: #fff;
+  transition: background 0.2s, transform 0.2s;
+  border-radius: 8px;
+}
+.tableRow:hover { background: #fafafa; transform: translateY(-1px); }
+.dim { color: #6b7280; }
+
+.colRank { width: 60px; }
+.colName { }
+.colCode { }
+.colUses { text-align: right; }
+
+/* Map tab */
+.mapTab { }
+.mapBox {
+  height: 520px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+.popup { font-size: .9rem; line-height: 1.2; }
+
+/* Modal calendário e presets (mesmo padrão) */
+.calendarDropdown {
+  background: #fff;
+  border: 1px solid #ddd;
+  padding: 20px;
+  border-radius: 20px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  max-width: 500px;
+  margin: 0 auto;
+}
+.presetsWrapper {
+  display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem;
+}
+.presetBtn {
+  flex: 1 1 calc(33% - 0.5rem);
+  padding: 0.5rem;
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.presetBtn:hover { background: #e0e0e0; }
+
+/* Responsivo */
+@media (max-width: 1000px) {
+  .metrics { grid-template-columns: repeat(2, minmax(160px,1fr)); }
+}
+@media (max-width: 640px) {
+  .tableHeader { display: none; }
+  .tableRow {
+    display: flex; flex-direction: column;
+    padding: 0.75rem; gap: 4px;
+  }
+  .tableRow div::before {
+    content: attr(data-label);
+    font-weight: 600; margin-right: 6px; width: 120px;
+    display: inline-block; color: #444;
+  }
+}
