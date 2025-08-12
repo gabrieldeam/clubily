@@ -1,3 +1,4 @@
+// src/components/RewardModal/RewardModal.tsx
 'use client';
 
 import { FormEvent, useState, useEffect, useRef } from 'react';
@@ -8,6 +9,9 @@ import Button from '@/components/Button/Button';
 import Notification from '@/components/Notification/Notification';
 import type { RewardRead, RewardCreate } from '@/types/companyReward';
 import { getImageUrl } from '@/utils/getImageUrl';
+
+// 👉 novo: picker/cropper 1:1
+import ImagePickerSquare from '@/components/ImagePickerSquare/ImagePickerSquare';
 
 interface Props {
   reward: RewardRead | null;
@@ -85,17 +89,6 @@ export default function RewardModal({ reward, onSave, onCancel }: Props) {
     }
   }, [name, description, secret, stock, reward]);
 
-  const handleFile = (file: File | null) => {
-    setImage(file);
-    if (file) {
-      setPreview(URL.createObjectURL(file));
-    } else if (reward?.image_url) {
-      setPreview(getImageUrl(reward.image_url) ?? undefined);
-    } else {
-      setPreview(undefined);
-    }
-  };
-
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
@@ -108,7 +101,7 @@ export default function RewardModal({ reward, onSave, onCancel }: Props) {
         description: description?.trim() || undefined,
         secret,
         stock_qty: stock,
-        image: image ?? undefined,
+        image: image ?? undefined, // se não escolheu nova imagem, mantém a atual
       },
       reward?.id
     );
@@ -130,6 +123,7 @@ export default function RewardModal({ reward, onSave, onCancel }: Props) {
       {notification && (
         <Notification type="error" message={notification.message} onClose={() => setNotification(null)} />
       )}
+
       <FloatingLabelInput
         id="reward-name"
         label="Nome"
@@ -137,6 +131,7 @@ export default function RewardModal({ reward, onSave, onCancel }: Props) {
         onChange={e => setName(e.target.value)}
         required
       />
+
       <div className={styles.fieldGroup}>
         <label htmlFor="reward-desc" className={styles.label}>
           Descrição (opcional)
@@ -148,7 +143,8 @@ export default function RewardModal({ reward, onSave, onCancel }: Props) {
           value={description}
           onChange={e => setDescription(e.target.value)}
         />
-      </div>      
+      </div>
+
       <FloatingLabelInput
         id="reward-stock"
         label="Estoque (opcional)"
@@ -156,15 +152,12 @@ export default function RewardModal({ reward, onSave, onCancel }: Props) {
         value={stock ?? ''}
         onChange={e => setStock(e.target.value === '' ? undefined : Number(e.target.value))}
       />
+
+      {/* --- Imagem com crop 1:1 --- */}
       <div className={styles.fieldGroup}>
-        <label className={styles.fileLabel}>
-          Ícone / Imagem (opcional)
-          <input
-            type="file"
-            accept="image/*"
-            onChange={e => handleFile(e.target.files?.[0] ?? null)}
-          />
-        </label>
+        <div className={styles.label}>Ícone / Imagem</div>
+
+        {/* preview atual */}
         {preview && (
           <Image
             src={preview}
@@ -174,7 +167,21 @@ export default function RewardModal({ reward, onSave, onCancel }: Props) {
             className={styles.preview}
           />
         )}
+
+        {/* botão que abre a modal de corte */}
+        <ImagePickerSquare
+          buttonLabel={reward ? 'Trocar imagem' : 'Escolher imagem'}
+          stageSize={360}
+          outputSize={512}
+          outputFileName="reward.jpg"
+          outputType="image/jpeg" // fundo branco garantido
+          onCropped={(file, dataUrl) => {
+            setImage(file);
+            setPreview(dataUrl); // usa dataURL do recorte para o preview
+          }}
+        />
       </div>
+
       <div className={styles.actions}>
         <Button type="submit">{reward ? 'Salvar' : 'Criar'}</Button>
         <Button bgColor="#AAA" onClick={handleCancel}>

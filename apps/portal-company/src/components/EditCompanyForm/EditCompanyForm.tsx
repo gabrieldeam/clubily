@@ -20,6 +20,9 @@ import { listCategories } from '@/services/categoryService';
 import type { CompanyRead, CompanyUpdate } from '@/types/company';
 import type { CategoryRead } from '@/types/category';
 
+// 👉 novo: picker/cropper 1:1
+import ImagePickerSquare from '@/components/ImagePickerSquare/ImagePickerSquare';
+
 type NotificationType = 'success' | 'error' | 'info';
 type NotificationData = { type: NotificationType; message: string };
 
@@ -44,86 +47,88 @@ export default function CompanySettings({
     useState<NotificationData | null>(null);
   const maxDescriptionLength = 130;
   const [showAddress, setShowAddress] = useState(false);
+
+  // logo (após crop fica 1:1 e com fundo branco)
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+
   const [dataDirty, setDataDirty] = useState(false);
 
-
-  
   type FastAPIErrorItem = {
-  loc?: string | (string | number)[];
-  msg?: string;
-  message?: string;
-  detail?: unknown;
-  [key: string]: unknown;
-};
+    loc?: string | (string | number)[];
+    msg?: string;
+    message?: string;
+    detail?: unknown;
+    [key: string]: unknown;
+  };
 
-function formatErrorDetail(detail: unknown): string {
-  if (!detail) return 'Erro inesperado.';
-  if (typeof detail === 'string') return detail;
+  function formatErrorDetail(detail: unknown): string {
+    if (!detail) return 'Erro inesperado.';
+    if (typeof detail === 'string') return detail;
 
-  // Array no padrão FastAPI/Pydantic
-  if (Array.isArray(detail)) {
-    const items = detail as FastAPIErrorItem[];
-    const parts = items.map((d) => {
-      const loc =
-        Array.isArray(d.loc)
-          ? d.loc.join('.')
-          : typeof d.loc === 'string'
-          ? d.loc
-          : undefined;
+    // Array no padrão FastAPI/Pydantic
+    if (Array.isArray(detail)) {
+      const items = detail as FastAPIErrorItem[];
+      const parts = items.map((d) => {
+        const loc =
+          Array.isArray(d.loc)
+            ? d.loc.join('.')
+            : typeof d.loc === 'string'
+            ? d.loc
+            : undefined;
 
-      const msg =
-        typeof d.msg === 'string'
-          ? d.msg
-          : typeof d.message === 'string'
-          ? d.message
-          : JSON.stringify(d);
+        const msg =
+          typeof d.msg === 'string'
+            ? d.msg
+            : typeof d.message === 'string'
+            ? d.message
+            : JSON.stringify(d);
 
-      return loc ? `${loc}: ${msg}` : msg;
-    });
-    return parts.join('\n');
-  }
+        return loc ? `${loc}: ${msg}` : msg;
+      });
+      return parts.join('\n');
+    }
 
-  // Objeto com campos msg/detail
-  if (typeof detail === 'object' && detail !== null) {
-    const obj = detail as FastAPIErrorItem;
+    // Objeto com campos msg/detail
+    if (typeof detail === 'object' && detail !== null) {
+      const obj = detail as FastAPIErrorItem;
 
-    if (typeof obj.msg === 'string') return obj.msg;
+      if (typeof obj.msg === 'string') return obj.msg;
 
-    if (obj.detail && obj.detail !== detail) {
-      return formatErrorDetail(obj.detail);
+      if (obj.detail && obj.detail !== detail) {
+        return formatErrorDetail(obj.detail);
+      }
+
+      try {
+        return Object.entries(obj)
+          .map(([k, v]) => `${k}: ${typeof v === 'string' ? v : JSON.stringify(v)}`)
+          .join('\n');
+      } catch {
+        /* ignore */
+      }
     }
 
     try {
-      return Object.entries(obj)
-        .map(([k, v]) => `${k}: ${typeof v === 'string' ? v : JSON.stringify(v)}`)
-        .join('\n');
+      return JSON.stringify(detail);
     } catch {
-      /* ignore */
+      return String(detail);
     }
   }
 
-  try {
-    return JSON.stringify(detail);
-  } catch {
-    return String(detail);
-  }
-}
-
-
   /* --------------------------- carregar dados --------------------------- */
   useEffect(() => {
-    getCompanyInfo(companyId).then(res => {
+    getCompanyInfo(companyId).then((res) => {
       const { categories: cats, ...rest } = res.data as CompanyRead;
       setCompany({
         ...rest,
         logo_url: rest.logo_url ?? undefined,
-        category_ids: cats.map(c => c.id),
+        category_ids: cats.map((c) => c.id),
       });
+      // se já houver logo, mantém preview remoto; se trocar, usamos o dataUrl do crop
+      setLogoPreview(null);
       setDataDirty(false);
     });
-    listCategories().then(res => setCategories(res.data));
+    listCategories().then((res) => setCategories(res.data));
   }, [companyId]);
 
   /* --------------------- auto-preencher via CEP (ViaCEP) --------------------- */
@@ -131,10 +136,10 @@ function formatErrorDetail(detail: unknown): string {
     const cep = (company.postal_code ?? '').replace(/\D/g, '');
     if (showAddress && cep.length === 8) {
       fetch(`https://viacep.com.br/ws/${cep}/json/`)
-        .then(r => r.json())
-        .then(data => {
+        .then((r) => r.json())
+        .then((data) => {
           if (!data.erro) {
-            setCompany(prev => ({
+            setCompany((prev) => ({
               ...prev,
               street: data.logradouro || '',
               city: data.localidade || '',
@@ -162,7 +167,7 @@ function formatErrorDetail(detail: unknown): string {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, type, value, checked } = e.target as HTMLInputElement;
-    setCompany(prev => ({
+    setCompany((prev) => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
     }));
@@ -170,29 +175,16 @@ function formatErrorDetail(detail: unknown): string {
   };
 
   const handleCategoryToggle = (id: string) => {
-    setCompany(prev => {
+    setCompany((prev) => {
       const current = prev.category_ids ?? [];
       return {
         ...prev,
         category_ids: current.includes(id)
-          ? current.filter(c => c !== id)
+          ? current.filter((c) => c !== id)
           : [...current, id],
       };
     });
     setDataDirty(true);
-  };
-
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && file.type.startsWith('image/')) {
-      setLogoFile(file);
-      setLogoPreview(URL.createObjectURL(file));
-    } else {
-      setCompanyNotification({
-        type: 'error',
-        message: 'Selecione um arquivo de imagem válido.',
-      });
-    }
   };
 
   const handleDescriptionChange = (
@@ -209,7 +201,7 @@ function formatErrorDetail(detail: unknown): string {
     } else {
       setCompanyNotification(null);
     }
-    setCompany(prev => ({
+    setCompany((prev) => ({
       ...prev,
       description: value.slice(0, maxDescriptionLength),
     }));
@@ -237,8 +229,7 @@ function formatErrorDetail(detail: unknown): string {
       /* ---------- 2) somente dados ---------- */
       if (!hasLogoChange && hasDataChange) {
         const payload: Partial<CompanyUpdate> = { ...company };
-        delete (payload as Partial<CompanyUpdate> & { logo_url?: string })
-          .logo_url;
+        delete (payload as Partial<CompanyUpdate> & { logo_url?: string }).logo_url;
         if (!showAddress) {
           delete payload.postal_code;
           delete payload.street;
@@ -262,8 +253,7 @@ function formatErrorDetail(detail: unknown): string {
         await uploadCompanyLogo(fd);
 
         const payload: Partial<CompanyUpdate> = { ...company };
-        delete (payload as Partial<CompanyUpdate> & { logo_url?: string })
-          .logo_url;
+        delete (payload as Partial<CompanyUpdate> & { logo_url?: string }).logo_url;
         if (!showAddress) {
           delete payload.postal_code;
           delete payload.street;
@@ -333,7 +323,6 @@ function formatErrorDetail(detail: unknown): string {
         type: 'error',
         message: formatErrorDetail(detail) || 'Erro ao enviar código.',
       });
-
     }
   };
 
@@ -356,7 +345,6 @@ function formatErrorDetail(detail: unknown): string {
         type: 'error',
         message: formatErrorDetail(detail) || 'Erro na redefinição.',
       });
-
     }
   };
 
@@ -377,7 +365,7 @@ function formatErrorDetail(detail: unknown): string {
           <>
             <div className={editStyles.back}>
               <div className={editStyles.background}>
-                {/* ---------- logo ---------- */}
+                {/* ---------- logo (com cropper) ---------- */}
                 <div className={editStyles.logoUpload}>
                   {logoPreview ? (
                     <Image
@@ -401,15 +389,18 @@ function formatErrorDetail(detail: unknown): string {
                     <div className={editStyles.logoPlaceholder}>Sem logo</div>
                   )}
 
-                  <label className={editStyles.logoBtn}>
-                    Trocar logo
-                    <input
-                      type="file"
-                      accept="image/*"
-                      hidden
-                      onChange={handleLogoChange}
-                    />
-                  </label>
+                  <ImagePickerSquare
+                    buttonLabel="Trocar logo"
+                    stageSize={360}
+                    outputSize={512}
+                    outputFileName="logo.jpg"
+                    outputType="image/jpeg" // força fundo branco aparecer
+                    onCropped={(file, dataUrl) => {
+                      setLogoFile(file);
+                      setLogoPreview(dataUrl);
+                      // não marca dataDirty; logo é salvo via upload separado
+                    }}
+                  />
                 </div>
 
                 {/* ---------- campos básicos ---------- */}
@@ -459,13 +450,11 @@ function formatErrorDetail(detail: unknown): string {
                 />
 
                 <div className={editStyles.catContainer}>
-                  {categories.map(cat => (
+                  {categories.map((cat) => (
                     <label key={cat.id} className={editStyles.catItem}>
                       <input
                         type="checkbox"
-                        checked={
-                          company.category_ids?.includes(cat.id) || false
-                        }
+                        checked={company.category_ids?.includes(cat.id) || false}
                         onChange={() => handleCategoryToggle(cat.id)}
                       />
                       {cat.name}
@@ -608,7 +597,7 @@ function formatErrorDetail(detail: unknown): string {
               label="E-mail cadastrado"
               type="email"
               value={email}
-              onChange={e => setEmail(e.target.value)}
+              onChange={(e) => setEmail(e.target.value)}
               required
             />
           )}
@@ -621,7 +610,7 @@ function formatErrorDetail(detail: unknown): string {
                 label="Código de verificação"
                 type="text"
                 value={code}
-                onChange={e => setCode(e.target.value)}
+                onChange={(e) => setCode(e.target.value)}
                 required
               />
               <FloatingLabelInput
@@ -630,7 +619,7 @@ function formatErrorDetail(detail: unknown): string {
                 label="Nova senha"
                 type="password"
                 value={newPassword}
-                onChange={e => setNewPassword(e.target.value)}
+                onChange={(e) => setNewPassword(e.target.value)}
                 required
               />
             </>

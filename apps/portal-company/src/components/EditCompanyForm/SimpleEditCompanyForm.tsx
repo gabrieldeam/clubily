@@ -15,6 +15,7 @@ import {
 import { listCategories } from '@/services/categoryService';
 import type { CompanyRead, CompanyUpdate } from '@/types/company';
 import type { CategoryRead } from '@/types/category';
+import ImagePickerSquare from '@/components/ImagePickerSquare/ImagePickerSquare';
 
 /* -------- tipos -------- */
 type NotificationType = 'success' | 'error' | 'info';
@@ -90,16 +91,6 @@ export default function SimpleEditCompanyForm({
     }));
   };
 
-  const handleLogoChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !file.type.startsWith('image/')) {
-      setNotification({ type: 'error', message: 'Selecione uma imagem válida.' });
-      return;
-    }
-    setLogoFile(file);
-    setLogoPreview(URL.createObjectURL(file));
-  };
-
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     try {
@@ -145,38 +136,40 @@ export default function SimpleEditCompanyForm({
 
         {/* logo */}
         <div className={styles.logoUpload}>
-          {logoPreview ? (
-            <Image
-              src={logoPreview}
-              alt="Pré-visualização"
-              className={styles.logoPreview}
-              width={128}
-              height={128}
-              unoptimized
-            />
-          ) : form.logo_url ? (
-            <Image
-              src={`${process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL}${form.logo_url}`}
-              alt="Logo atual"
-              className={styles.logoPreview}
-              width={128}
-              height={128}
-              unoptimized
-            />
-          ) : (
-            <div className={styles.logoPlaceholder}>Sem logo</div>
-          )}
+        {logoPreview ? (
+          <Image
+            src={logoPreview}
+            alt="Pré-visualização"
+            className={styles.logoPreview}
+            width={128}
+            height={128}
+            unoptimized
+          />
+        ) : form.logo_url ? (
+          <Image
+            src={`${process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL}${form.logo_url}`}
+            alt="Logo atual"
+            className={styles.logoPreview}
+            width={128}
+            height={128}
+            unoptimized
+          />
+        ) : (
+          <div className={styles.logoPlaceholder}>Sem logo</div>
+        )}
 
-          <label className={styles.logoBtn}>
-            Escolher logo
-            <input
-              type="file"
-              accept="image/*"
-              hidden
-              onChange={handleLogoChange}
-            />
-          </label>
-        </div>
+        <ImagePickerSquare
+          buttonLabel="Escolher logo"
+          stageSize={360}
+          outputSize={512}           // tamanho do arquivo final (quadrado 1:1)
+          outputFileName="logo.jpg"  // nome do arquivo
+          outputType="image/jpeg"    // força fundo branco “aparecer”
+          onCropped={(file, dataUrl) => {
+            setLogoFile(file);       // você já usa isso no submit
+            setLogoPreview(dataUrl); // atualiza o preview
+          }}
+        />
+      </div>
 
         {/* descrição */}
         <label className={styles.label}>Descrição</label>

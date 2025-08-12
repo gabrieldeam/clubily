@@ -39,6 +39,9 @@ import Button from "@/components/Button/Button";
 import { PlusCircle } from "lucide-react";
 import styles from "./page.module.css";
 
+// 👇 novo: cropper reutilizável
+import ImagePickerSquare from "@/components/ImagePickerSquare/ImagePickerSquare";
+
 /* ────── TYPES & HELPERS ────── */
 type ViewMode = "table" | "cards";
 interface NotificationState {
@@ -62,6 +65,7 @@ type ProductExtended = RewardProductRead & {
   short_desc?: string;
   long_desc?: string;
   categories?: RewardCategoryRead[];
+  image_url?: string | null;
 };
 
 const badgeClass = (status: string) => {
@@ -82,9 +86,10 @@ const badgeClass = (status: string) => {
 /* ────── COMPONENT ────── */
 export default function AdminRewardsPage() {
   /* GLOBAL NOTIFICATION */
-  const [notification, setNotification] = useState<NotificationState | null>(
-    null
-  );
+  const [notification, setNotification] = useState<NotificationState | null>(null);
+
+  // base para imagens públicas
+  const baseUrl = process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL ?? "";
 
   /* ========== CATEGORIES ========== */
   const [categories, setCategories] = useState<RewardCategoryRead[]>([]);
@@ -97,26 +102,17 @@ export default function AdminRewardsPage() {
   const [categorySlug, setCategorySlug] = useState("");
 
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
-  const [categoryMode, setCategoryMode] = useState<"create" | "edit">(
-    "create"
-  );
-  const [currentCategory, setCurrentCategory] =
-    useState<RewardCategoryRead | null>(null);
+  const [categoryMode, setCategoryMode] = useState<"create" | "edit">("create");
+  const [currentCategory, setCurrentCategory] = useState<RewardCategoryRead | null>(null);
   const [categoryName, setCategoryName] = useState("");
 
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
-    null
-  );
-  const [selectedProductIds, setSelectedProductIds] = useState<
-    Set<string>
-  >(new Set());
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
 
   /* ---- Seleções persistidas ---- */
   useEffect(() => {
     getCategorySelection().then((res) => setSelectedCategoryId(res.data.item_id));
-    listProductSelections().then((res) =>
-      setSelectedProductIds(new Set(res.data.map((p) => p.item_id)))
-    );
+    listProductSelections().then((res) => setSelectedProductIds(new Set(res.data.map((p) => p.item_id))));
   }, []);
 
   async function toggleCategorySelection(id: string) {
@@ -162,8 +158,7 @@ export default function AdminRewardsPage() {
       setCategories(res.data.items);
       setCategoryTotal(res.data.total);
     } catch (error: unknown) {
-      const msg =
-        error instanceof Error ? error.message : "Erro ao buscar categorias";
+      const msg = error instanceof Error ? error.message : "Erro ao buscar categorias";
       setNotification({ type: "error", message: msg });
     } finally {
       setLoadingCategories(false);
@@ -197,25 +192,18 @@ export default function AdminRewardsPage() {
     e.preventDefault();
     try {
       if (categoryMode === "create") {
-        const payload: RewardCategoryCreate = {
-          name: categoryName,
-          slug: categorySlug,
-        };
+        const payload: RewardCategoryCreate = { name: categoryName, slug: categorySlug };
         await adminCreateRewardCategory(payload);
         setNotification({ type: "success", message: "Categoria criada!" });
       } else if (currentCategory) {
-        const payload: RewardCategoryUpdate = {
-          name: categoryName,
-          slug: categorySlug,
-        };
+        const payload: RewardCategoryUpdate = { name: categoryName, slug: categorySlug };
         await adminUpdateRewardCategory(currentCategory.id, payload);
         setNotification({ type: "success", message: "Categoria atualizada!" });
       }
       await fetchCategories();
       closeCategoryModal();
     } catch (error: unknown) {
-      const msg =
-        error instanceof Error ? error.message : "Erro ao salvar categoria";
+      const msg = error instanceof Error ? error.message : "Erro ao salvar categoria";
       setNotification({ type: "error", message: msg });
     }
   }
@@ -228,8 +216,7 @@ export default function AdminRewardsPage() {
       await fetchCategories();
       closeCategoryModal();
     } catch (error: unknown) {
-      const msg =
-        error instanceof Error ? error.message : "Erro ao excluir categoria";
+      const msg = error instanceof Error ? error.message : "Erro ao excluir categoria";
       setNotification({ type: "error", message: msg });
     }
   }
@@ -245,8 +232,8 @@ export default function AdminRewardsPage() {
 
   const [productModalOpen, setProductModalOpen] = useState(false);
   const [productMode, setProductMode] = useState<"create" | "edit">("create");
-  const [currentProduct, setCurrentProduct] =
-    useState<RewardProductRead | null>(null);
+  const [currentProduct, setCurrentProduct] = useState<RewardProductRead | null>(null);
+
   const [productForm, setProductForm] = useState<ProductForm>({
     name: "",
     sku: "",
@@ -258,10 +245,11 @@ export default function AdminRewardsPage() {
     pdf: null,
     active: true,
   });
-  const updateProductField = <K extends keyof ProductForm>(
-    field: K,
-    value: ProductForm[K]
-  ) => setProductForm((prev) => ({ ...prev, [field]: value }));
+  const updateProductField = <K extends keyof ProductForm>(field: K, value: ProductForm[K]) =>
+    setProductForm((prev) => ({ ...prev, [field]: value }));
+
+  // preview da imagem recortada ou atual
+  const [productImagePreview, setProductImagePreview] = useState<string | null>(null);
 
   /* ---- Fetch products ---- */
   const fetchProducts = useCallback(async () => {
@@ -272,8 +260,7 @@ export default function AdminRewardsPage() {
       setProducts(res.data.items);
       setProductTotal(res.data.total);
     } catch (error: unknown) {
-      const msg =
-        error instanceof Error ? error.message : "Erro ao buscar produtos";
+      const msg = error instanceof Error ? error.message : "Erro ao buscar produtos";
       setNotification({ type: "error", message: msg });
     } finally {
       setLoadingProducts(false);
@@ -298,6 +285,7 @@ export default function AdminRewardsPage() {
       pdf: null,
       active: true,
     });
+    setProductImagePreview(null);
     setProductModalOpen(true);
   }
 
@@ -315,6 +303,7 @@ export default function AdminRewardsPage() {
       pdf: null,
       active: p.active,
     });
+    setProductImagePreview(p.image_url ? `${baseUrl}${p.image_url}` : null);
     setProductModalOpen(true);
   }
 
@@ -336,8 +325,7 @@ export default function AdminRewardsPage() {
       await fetchProducts();
       closeProductModal();
     } catch (error: unknown) {
-      const msg =
-        error instanceof Error ? error.message : "Erro ao salvar produto";
+      const msg = error instanceof Error ? error.message : "Erro ao salvar produto";
       setNotification({ type: "error", message: msg });
     }
   }
@@ -350,14 +338,12 @@ export default function AdminRewardsPage() {
       await fetchProducts();
       closeProductModal();
     } catch (error: unknown) {
-      const msg =
-        error instanceof Error ? error.message : "Erro ao excluir produto";
+      const msg = error instanceof Error ? error.message : "Erro ao excluir produto";
       setNotification({ type: "error", message: msg });
     }
   }
 
   /* ========== ORDERS ========== */
-  const baseUrl = process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL ?? "";
   const [orders, setOrders] = useState<RewardOrderRead[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [orderPage, setOrderPage] = useState(1);
@@ -368,24 +354,19 @@ export default function AdminRewardsPage() {
   const [orderStatusFilter, setOrderStatusFilter] = useState<string>("");
 
   const [orderModalOpen, setOrderModalOpen] = useState(false);
-  const [currentOrder, setCurrentOrder] = useState<RewardOrderRead | null>(
-    null
-  );
+  const [currentOrder, setCurrentOrder] = useState<RewardOrderRead | null>(null);
 
   /* ---- Fetch orders ---- */
   const fetchOrders = useCallback(async () => {
     setLoadingOrders(true);
     try {
       const skip = (orderPage - 1) * orderLimit;
-      const statusParam = (orderStatusFilter || undefined) as
-        | OrderStatus
-        | undefined;
+      const statusParam = (orderStatusFilter || undefined) as OrderStatus | undefined;
       const res = await adminListRewardOrders(statusParam, skip, orderLimit);
       setOrders(res.data.items);
       setOrderTotal(res.data.total);
     } catch (error: unknown) {
-      const msg =
-        error instanceof Error ? error.message : "Erro ao buscar pedidos";
+      const msg = error instanceof Error ? error.message : "Erro ao buscar pedidos";
       setNotification({ type: "error", message: msg });
     } finally {
       setLoadingOrders(false);
@@ -413,8 +394,7 @@ export default function AdminRewardsPage() {
       await fetchOrders();
       closeOrderModal();
     } catch (error: unknown) {
-      const msg =
-        error instanceof Error ? error.message : "Erro ao aprovar pedido";
+      const msg = error instanceof Error ? error.message : "Erro ao aprovar pedido";
       setNotification({ type: "error", message: msg });
     }
   }
@@ -429,8 +409,7 @@ export default function AdminRewardsPage() {
       await fetchOrders();
       closeOrderModal();
     } catch (error: unknown) {
-      const msg =
-        error instanceof Error ? error.message : "Erro ao recusar pedido";
+      const msg = error instanceof Error ? error.message : "Erro ao recusar pedido";
       setNotification({ type: "error", message: msg });
     }
   }
@@ -457,17 +436,13 @@ export default function AdminRewardsPage() {
             </button>
             <div className={styles.viewToggle}>
               <button
-                className={
-                  categoryViewMode === "table" ? styles.activeToggle : ""
-                }
+                className={categoryViewMode === "table" ? styles.activeToggle : ""}
                 onClick={() => setCategoryViewMode("table")}
               >
                 Tabela
               </button>
               <button
-                className={
-                  categoryViewMode === "cards" ? styles.activeToggle : ""
-                }
+                className={categoryViewMode === "cards" ? styles.activeToggle : ""}
                 onClick={() => setCategoryViewMode("cards")}
               >
                 Cards
@@ -501,15 +476,11 @@ export default function AdminRewardsPage() {
                       </button>
                       <button
                         className={
-                          selectedCategoryId === cat.id
-                            ? styles.btnSelected
-                            : styles.btnSelect
+                          selectedCategoryId === cat.id ? styles.btnSelected : styles.btnSelect
                         }
                         onClick={() => toggleCategorySelection(cat.id)}
                       >
-                        {selectedCategoryId === cat.id
-                          ? "Selecionada"
-                          : "Selecionar"}
+                        {selectedCategoryId === cat.id ? "Selecionada" : "Selecionar"}
                       </button>
                     </td>
                   </tr>
@@ -523,23 +494,16 @@ export default function AdminRewardsPage() {
               <div key={cat.id} className={styles.card}>
                 <div className={styles.cardBody}>
                   <h3>{cat.name}</h3>
-                  <button
-                    className={styles.btnDetail}
-                    onClick={() => openEditCategory(cat)}
-                  >
+                  <button className={styles.btnDetail} onClick={() => openEditCategory(cat)}>
                     Detalhes
                   </button>
                   <button
                     className={
-                      selectedCategoryId === cat.id
-                        ? styles.btnSelected
-                        : styles.btnSelect
+                      selectedCategoryId === cat.id ? styles.btnSelected : styles.btnSelect
                     }
                     onClick={() => toggleCategorySelection(cat.id)}
                   >
-                    {selectedCategoryId === cat.id
-                      ? "Selecionada"
-                      : "Selecionar"}
+                    {selectedCategoryId === cat.id ? "Selecionada" : "Selecionar"}
                   </button>
                 </div>
               </div>
@@ -547,19 +511,14 @@ export default function AdminRewardsPage() {
           </div>
         )}
         <div className={styles.pagination}>
-          <button
-            onClick={() => setCategoryPage((p) => Math.max(1, p - 1))}
-            disabled={categoryPage === 1}
-          >
+          <button onClick={() => setCategoryPage((p) => Math.max(1, p - 1))} disabled={categoryPage === 1}>
             ←
           </button>
           <span>
             {categoryPage} / {lastCategoryPage}
           </span>
           <button
-            onClick={() =>
-              setCategoryPage((p) => Math.min(lastCategoryPage, p + 1))
-            }
+            onClick={() => setCategoryPage((p) => Math.min(lastCategoryPage, p + 1))}
             disabled={categoryPage === lastCategoryPage}
           >
             →
@@ -570,9 +529,7 @@ export default function AdminRewardsPage() {
       {/* Modal Categoria */}
       <Modal open={categoryModalOpen} onClose={closeCategoryModal} width={400}>
         <div className={styles.detail}>
-          <h2>
-            {categoryMode === "create" ? "Nova Categoria" : "Editar Categoria"}
-          </h2>
+          <h2>{categoryMode === "create" ? "Nova Categoria" : "Editar Categoria"}</h2>
           <form className={styles.form} onSubmit={handleSaveCategory}>
             <FloatingLabelInput
               id="cat-name"
@@ -610,17 +567,13 @@ export default function AdminRewardsPage() {
             </button>
             <div className={styles.viewToggle}>
               <button
-                className={
-                  productViewMode === "table" ? styles.activeToggle : ""
-                }
+                className={productViewMode === "table" ? styles.activeToggle : ""}
                 onClick={() => setProductViewMode("table")}
               >
                 Tabela
               </button>
               <button
-                className={
-                  productViewMode === "cards" ? styles.activeToggle : ""
-                }
+                className={productViewMode === "cards" ? styles.activeToggle : ""}
                 onClick={() => setProductViewMode("cards")}
               >
                 Cards
@@ -650,23 +603,17 @@ export default function AdminRewardsPage() {
                     <td data-label="Ações" className={styles.actions}>
                       <button
                         className={styles.btnDetail}
-                        onClick={() =>
-                          openEditProduct(prod as ProductExtended)
-                        }
+                        onClick={() => openEditProduct(prod as ProductExtended)}
                       >
                         Detalhes
                       </button>
                       <button
                         className={
-                          selectedProductIds.has(prod.id)
-                            ? styles.btnSelected
-                            : styles.btnSelect
+                          selectedProductIds.has(prod.id) ? styles.btnSelected : styles.btnSelect
                         }
                         onClick={() => toggleProductSelection(prod.id)}
                       >
-                        {selectedProductIds.has(prod.id)
-                          ? "Selecionado"
-                          : "Selecionar"}
+                        {selectedProductIds.has(prod.id) ? "Selecionado" : "Selecionar"}
                       </button>
                     </td>
                   </tr>
@@ -681,28 +628,20 @@ export default function AdminRewardsPage() {
                 <div className={styles.cardBody}>
                   <h3>{prod.name}</h3>
                   <p>{prod.points_cost} pontos</p>
-                  <p className={styles.subText}>
-                    {(prod as ProductExtended).short_desc ?? ""}
-                  </p>
+                  <p className={styles.subText}>{(prod as ProductExtended).short_desc ?? ""}</p>
                   <button
                     className={styles.btnDetail}
-                    onClick={() =>
-                      openEditProduct(prod as ProductExtended)
-                    }
+                    onClick={() => openEditProduct(prod as ProductExtended)}
                   >
                     Detalhes
                   </button>
                   <button
                     className={
-                      selectedProductIds.has(prod.id)
-                        ? styles.btnSelected
-                        : styles.btnSelect
+                      selectedProductIds.has(prod.id) ? styles.btnSelected : styles.btnSelect
                     }
                     onClick={() => toggleProductSelection(prod.id)}
                   >
-                    {selectedProductIds.has(prod.id)
-                      ? "Selecionado"
-                      : "Selecionar"}
+                    {selectedProductIds.has(prod.id) ? "Selecionado" : "Selecionar"}
                   </button>
                 </div>
               </div>
@@ -710,19 +649,14 @@ export default function AdminRewardsPage() {
           </div>
         )}
         <div className={styles.pagination}>
-          <button
-            onClick={() => setProductPage((p) => Math.max(1, p - 1))}
-            disabled={productPage === 1}
-          >
+          <button onClick={() => setProductPage((p) => Math.max(1, p - 1))} disabled={productPage === 1}>
             ←
           </button>
           <span>
             {productPage} / {lastProductPage}
           </span>
           <button
-            onClick={() =>
-              setProductPage((p) => Math.min(lastProductPage, p + 1))
-            }
+            onClick={() => setProductPage((p) => Math.min(lastProductPage, p + 1))}
             disabled={productPage === lastProductPage}
           >
             →
@@ -733,71 +667,144 @@ export default function AdminRewardsPage() {
       {/* Modal Produto */}
       <Modal open={productModalOpen} onClose={closeProductModal} width={600}>
         <div className={styles.detail}>
-          <h2>{productMode === 'create' ? 'Novo Produto' : 'Editar Produto'}</h2>
+          <h2>{productMode === "create" ? "Novo Produto" : "Editar Produto"}</h2>
           <form className={styles.form} onSubmit={handleSaveProduct}>
-            <FloatingLabelInput id="prod-name" label="Nome" value={productForm.name} onChange={e => updateProductField('name', e.target.value)} required />
-            <FloatingLabelInput id="prod-sku" label="SKU" value={productForm.sku} onChange={e => updateProductField('sku', e.target.value)} required />
-            <FloatingLabelInput id="prod-points" label="Pontos" type="number" value={productForm.points_cost} onChange={e => updateProductField('points_cost', parseInt(e.target.value, 10) || 0)} required />
-             {/* Descrição Curta com limite e contador */}
-          <div className={styles.fieldGroup}>
-            <label htmlFor="prod-short" className={styles.label}>Descrição Curta</label>
-            <textarea
-              id="prod-short"
-              className={styles.textarea}
-              maxLength={255}
-              rows={3}
-              value={productForm.short_desc ?? ''}
-              onChange={e => updateProductField('short_desc', e.target.value)}
+            <FloatingLabelInput
+              id="prod-name"
+              label="Nome"
+              value={productForm.name}
+              onChange={(e) => updateProductField("name", e.target.value)}
+              required
             />
-            <div className={styles.charCount}>
-              {(productForm.short_desc ?? '').length} / 255
-            </div>
-          </div>
+            <FloatingLabelInput
+              id="prod-sku"
+              label="SKU"
+              value={productForm.sku}
+              onChange={(e) => updateProductField("sku", e.target.value)}
+              required
+            />
+            <FloatingLabelInput
+              id="prod-points"
+              label="Pontos"
+              type="number"
+              value={productForm.points_cost}
+              onChange={(e) => updateProductField("points_cost", parseInt(e.target.value, 10) || 0)}
+              required
+            />
 
-          {/* Descrição Longa com limite e contador */}
-          <div className={styles.fieldGroup}>
-            <label htmlFor="prod-long" className={styles.label}>Descrição Longa</label>
-            <textarea
-              id="prod-long"
-              className={styles.textarea}
-              maxLength={1000}
-              rows={6}
-              value={productForm.long_desc ?? ''}
-              onChange={e => updateProductField('long_desc', e.target.value)}
-            />
-            <div className={styles.charCount}>
-              {(productForm.long_desc ?? '').length} / 1000
+            {/* Descrição Curta com limite e contador */}
+            <div className={styles.fieldGroup}>
+              <label htmlFor="prod-short" className={styles.label}>
+                Descrição Curta
+              </label>
+              <textarea
+                id="prod-short"
+                className={styles.textarea}
+                maxLength={255}
+                rows={3}
+                value={productForm.short_desc ?? ""}
+                onChange={(e) => updateProductField("short_desc", e.target.value)}
+              />
+              <div className={styles.charCount}>{(productForm.short_desc ?? "").length} / 255</div>
             </div>
-          </div>
+
+            {/* Descrição Longa com limite e contador */}
+            <div className={styles.fieldGroup}>
+              <label htmlFor="prod-long" className={styles.label}>
+                Descrição Longa
+              </label>
+              <textarea
+                id="prod-long"
+                className={styles.textarea}
+                maxLength={1000}
+                rows={6}
+                value={productForm.long_desc ?? ""}
+                onChange={(e) => updateProductField("long_desc", e.target.value)}
+              />
+              <div className={styles.charCount}>{(productForm.long_desc ?? "").length} / 1000</div>
+            </div>
+
             {/* Categorias */}
-            <label className={styles.subText}><strong>Categorias</strong></label>
-            <select multiple value={productForm.category_ids} onChange={e => {
-              const sel = Array.from(e.target.selectedOptions).map(o => o.value);
-              updateProductField('category_ids', sel);
-            }}>
-              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            <label className={styles.subText}>
+              <strong>Categorias</strong>
+            </label>
+            <select
+              multiple
+              value={productForm.category_ids}
+              onChange={(e) => {
+                const sel = Array.from(e.target.selectedOptions).map((o) => o.value);
+                updateProductField("category_ids", sel);
+              }}
+            >
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
             </select>
 
             {/* Uploads */}
-            <label className={styles.subText}><strong>Imagem</strong></label>
-            <input type="file" accept="image/*" onChange={e => updateProductField('image', e.target.files?.[0] ?? null)} />
-            <label className={styles.subText}><strong>PDF (opcional)</strong></label>
-            <input type="file" accept="application/pdf" onChange={e => updateProductField('pdf', e.target.files?.[0] ?? null)} />
+            <label className={styles.subText}>
+              <strong>Imagem</strong>
+            </label>
+
+            {/* 👉 Botão que abre o cropper 1:1 */}
+            <ImagePickerSquare
+              buttonLabel={productMode === "create" ? "Escolher imagem" : "Trocar imagem"}
+              stageSize={360}
+              outputSize={1024}           // mais definição para produto (ajuste se quiser)
+              outputFileName="product.jpg"
+              outputType="image/jpeg"     // fundo branco garantido
+              onCropped={(file, dataUrl) => {
+                updateProductField("image", file);
+                setProductImagePreview(dataUrl);
+              }}
+            />
+
+            {/* preview do recorte ou imagem já existente */}
+            {productImagePreview && (
+              <div className={styles.preview}>
+                <Image
+                  src={productImagePreview}
+                  alt="Preview do produto"
+                  width={160}
+                  height={160}
+                  className={styles.thumb}
+                  loader={({ src }) => src}
+                  unoptimized
+                />
+              </div>
+            )}
+
+            <label className={styles.subText}>
+              <strong>PDF (opcional)</strong>
+            </label>
+            <input
+              type="file"
+              accept="application/pdf"
+              onChange={(e) => updateProductField("pdf", e.target.files?.[0] ?? null)}
+            />
+
             <div className={styles.fieldGroup}>
               <label className={styles.label}>
                 <input
                   type="checkbox"
                   checked={productForm.active}
-                  onChange={e => updateProductField('active', e.target.checked)}
-                />{' '}
+                  onChange={(e) => updateProductField("active", e.target.checked)}
+                />{" "}
                 Ativo
               </label>
             </div>
+
             <div className={styles.formActions}>
-              {productMode === 'edit' && (
-                <Button bgColor="#ef4444" type="button" onClick={handleDeleteProduct}>Excluir</Button>
+              {productMode === "edit" && (
+                <Button bgColor="#ef4444" type="button" onClick={handleDeleteProduct}>
+                  Excluir
+                </Button>
               )}
-              <Button bgColor="#3b82f6" type="submit">Salvar</Button>
+              <Button bgColor="#3b82f6" type="submit">
+                Salvar
+              </Button>
             </div>
           </form>
         </div>
@@ -808,37 +815,62 @@ export default function AdminRewardsPage() {
         <header className={styles.header}>
           <h2>Pedidos</h2>
           <div className={styles.actionsHeader}>
-            <select value={orderStatusFilter} onChange={e => setOrderStatusFilter(e.target.value)}>
+            <select value={orderStatusFilter} onChange={(e) => setOrderStatusFilter(e.target.value)}>
               <option value="">Todos</option>
               <option value="PENDING">Pendente</option>
               <option value="APPROVED">Aprovado</option>
               <option value="REFUSED">Recusado</option>
             </select>
             <div className={styles.viewToggle}>
-              <button className={orderViewMode === 'table' ? styles.activeToggle : ''} onClick={() => setOrderViewMode('table')}>Tabela</button>
-              <button className={orderViewMode === 'cards' ? styles.activeToggle : ''} onClick={() => setOrderViewMode('cards')}>Cards</button>
+              <button
+                className={orderViewMode === "table" ? styles.activeToggle : ""}
+                onClick={() => setOrderViewMode("table")}
+              >
+                Tabela
+              </button>
+              <button
+                className={orderViewMode === "cards" ? styles.activeToggle : ""}
+                onClick={() => setOrderViewMode("cards")}
+              >
+                Cards
+              </button>
             </div>
           </div>
         </header>
         {loadingOrders ? (
           <p>Carregando...</p>
-        ) : orderViewMode === 'table' ? (
+        ) : orderViewMode === "table" ? (
           <div className={styles.tableContainer}>
             <table className={styles.table}>
               <thead>
-                <tr><th>ID</th><th>Destinatário</th><th>Endereço</th><th>Status</th><th>Criado</th><th>Ações</th></tr>
+                <tr>
+                  <th>ID</th>
+                  <th>Destinatário</th>
+                  <th>Endereço</th>
+                  <th>Status</th>
+                  <th>Criado</th>
+                  <th>Ações</th>
+                </tr>
               </thead>
               <tbody>
-                {orders.map(o => (
+                {orders.map((o) => (
                   <tr key={o.id}>
-                    <td data-label="ID">{o.id.slice(0,8)}…</td>
+                    <td data-label="ID">{o.id.slice(0, 8)}…</td>
                     <td data-label="Destinatário">{o.recipient}</td>
                     <td data-label="Endereço">
-                      {`${o.street}, ${o.number}${o.complement ? `, ${o.complement}` : ''} – ${o.neighborhood}, ${o.city}/${o.state}`}
+                      {`${o.street}, ${o.number}${o.complement ? `, ${o.complement}` : ""} – ${
+                        o.neighborhood
+                      }, ${o.city}/${o.state}`}
                     </td>
-                    <td data-label="Status"><span className={badgeClass(o.status)}>{o.status}</span></td>
-                    <td data-label="Criado">{new Date(o.created_at).toLocaleDateString('pt-BR')}</td>
-                    <td data-label="Ações" className={styles.actions}><button className={styles.btnDetail} onClick={() => openOrderDetails(o)}>Detalhes</button></td>
+                    <td data-label="Status">
+                      <span className={badgeClass(o.status)}>{o.status}</span>
+                    </td>
+                    <td data-label="Criado">{new Date(o.created_at).toLocaleDateString("pt-BR")}</td>
+                    <td data-label="Ações" className={styles.actions}>
+                      <button className={styles.btnDetail} onClick={() => openOrderDetails(o)}>
+                        Detalhes
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -846,106 +878,121 @@ export default function AdminRewardsPage() {
           </div>
         ) : (
           <div className={styles.cardsGrid}>
-            {orders.map(o => (
+            {orders.map((o) => (
               <div key={o.id} className={styles.card}>
                 <div className={styles.cardBody}>
                   <h3>{o.recipient}</h3>
-                  <p>{`${o.street}, ${o.number}${o.complement ? `, ${o.complement}` : ''} – ${o.neighborhood}, ${o.city}/${o.state}`}</p>
-                  <p><span className={badgeClass(o.status)}>{o.status}</span></p>
-                  <p className={styles.subText}>{new Date(o.created_at).toLocaleDateString('pt-BR')}</p>
-                  <button className={styles.btnDetail} onClick={() => openOrderDetails(o)}>Detalhes</button>
+                  <p>
+                    {`${o.street}, ${o.number}${o.complement ? `, ${o.complement}` : ""} – ${
+                      o.neighborhood
+                    }, ${o.city}/${o.state}`}
+                  </p>
+                  <p>
+                    <span className={badgeClass(o.status)}>{o.status}</span>
+                  </p>
+                  <p className={styles.subText}>{new Date(o.created_at).toLocaleDateString("pt-BR")}</p>
+                  <button className={styles.btnDetail} onClick={() => openOrderDetails(o)}>
+                    Detalhes
+                  </button>
                 </div>
               </div>
             ))}
           </div>
         )}
         <div className={styles.pagination}>
-          <button onClick={() => setOrderPage(p => Math.max(1, p - 1))} disabled={orderPage === 1}>←</button>
-          <span>{orderPage} / {lastOrderPage}</span>
-          <button onClick={() => setOrderPage(p => Math.min(lastOrderPage, p + 1))} disabled={orderPage === lastOrderPage}>→</button>
+          <button onClick={() => setOrderPage((p) => Math.max(1, p - 1))} disabled={orderPage === 1}>
+            ←
+          </button>
+          <span>
+            {orderPage} / {lastOrderPage}
+          </span>
+          <button
+            onClick={() => setOrderPage((p) => Math.min(lastOrderPage, p + 1))}
+            disabled={orderPage === lastOrderPage}
+          >
+            →
+          </button>
         </div>
       </section>
 
       {/* Modal Pedido */}
-<Modal open={orderModalOpen} onClose={closeOrderModal} width={600}>
-  {currentOrder && (
-    <div className={styles.detail}>
-      <h2>Pedido {currentOrder.id.slice(0, 8)}…</h2>
+      <Modal open={orderModalOpen} onClose={closeOrderModal} width={600}>
+        {currentOrder && (
+          <div className={styles.detail}>
+            <h2>Pedido {currentOrder.id.slice(0, 8)}…</h2>
 
-      <section>
-        <h3>Produtos</h3>
-        <ul className={styles.orderItems}>
-          {currentOrder.items.map((it, idx) => (
-            <li key={idx} className={styles.orderItem}>
-              {/* Imagem do produto */}
-              {it.product.image_url && (
-               <Image
-                  loader={({ src }) => src}
-                  src={`${baseUrl}${it.product.image_url}`}
-                  alt={it.product.name}
-                  width={80}
-                  height={80}
-                  className={styles.productImage}
-                />
-              )}
-              <div className={styles.productInfo}>
-                <p>
-                  <strong>Nome:</strong> {it.product.name}
-                </p>
-                <p>
-                  <strong>SKU:</strong> {it.product.sku}
-                </p>
-                <p>
-                  <strong>Quantidade:</strong> {it.quantity}
-                </p>
+            <section>
+              <h3>Produtos</h3>
+              <ul className={styles.orderItems}>
+                {currentOrder.items.map((it, idx) => (
+                  <li key={idx} className={styles.orderItem}>
+                    {/* Imagem do produto */}
+                    {it.product.image_url && (
+                      <Image
+                        loader={({ src }) => src}
+                        src={`${baseUrl}${it.product.image_url}`}
+                        alt={it.product.name}
+                        width={80}
+                        height={80}
+                        className={styles.productImage}
+                        unoptimized
+                      />
+                    )}
+                    <div className={styles.productInfo}>
+                      <p>
+                        <strong>Nome:</strong> {it.product.name}
+                      </p>
+                      <p>
+                        <strong>SKU:</strong> {it.product.sku}
+                      </p>
+                      <p>
+                        <strong>Quantidade:</strong> {it.quantity}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            <section>
+              <h3>Destinatário & Endereço</h3>
+              <p>
+                <strong>Destinatário:</strong> {currentOrder.recipient}
+              </p>
+              <p>
+                <strong>Endereço:</strong>{" "}
+                {`${currentOrder.street}, ${currentOrder.number}${
+                  currentOrder.complement ? `, ${currentOrder.complement}` : ""
+                }`}
+                <br />
+                {`${currentOrder.neighborhood}, ${currentOrder.city}/${currentOrder.state} – CEP ${currentOrder.postal_code}`}
+              </p>
+            </section>
+
+            <section>
+              <h3>Status</h3>
+              <p>
+                <span className={badgeClass(currentOrder.status)}>{currentOrder.status}</span>
+              </p>
+              <p>
+                <strong>Criado em:</strong>{" "}
+                {new Date(currentOrder.created_at).toLocaleString("pt-BR")}
+              </p>
+            </section>
+
+            {String(currentOrder.status).toUpperCase() === 'PENDING' && (
+              <div className={styles.formActions}>
+                <Button bgColor="#10b981" type="button" onClick={approveOrder}>
+                  Aprovar
+                </Button>
+                <Button bgColor="#ef4444" type="button" onClick={refuseOrder}>
+                  Recusar
+                </Button>
               </div>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section>
-        <h3>Destinatário & Endereço</h3>
-        <p>
-          <strong>Destinatário:</strong> {currentOrder.recipient}
-        </p>
-        <p>
-          <strong>Endereço:</strong>{' '}
-          {`${currentOrder.street}, ${currentOrder.number}${
-            currentOrder.complement ? `, ${currentOrder.complement}` : ''
-          }`}
-          <br />
-          {`${currentOrder.neighborhood}, ${currentOrder.city}/${currentOrder.state} – CEP ${currentOrder.postal_code}`}
-        </p>
-      </section>
-
-      <section>
-        <h3>Status</h3>
-        <p>
-          <span className={badgeClass(currentOrder.status)}>
-            {currentOrder.status}
-          </span>
-        </p>
-        <p>
-          <strong>Criado em:</strong>{' '}
-          {new Date(currentOrder.created_at).toLocaleString('pt-BR')}
-        </p>
-      </section>
-
-      {currentOrder.status === 'pending' && (
-        <div className={styles.formActions}>
-          <Button bgColor="#10b981" type="button" onClick={approveOrder}>
-            Aprov​ar
-          </Button>
-          <Button bgColor="#ef4444" type="button" onClick={refuseOrder}>
-            Recusar
-          </Button>
-        </div>
-      )}
-    </div>
-  )}
-</Modal>
-
+            )}
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

@@ -17,15 +17,20 @@ import Modal from '@/components/Modal/Modal';
 import FloatingLabelInput from '@/components/FloatingLabelInput/FloatingLabelInput';
 import styles from './page.module.css';
 
+// 👇 novo: picker/cropper 1:1
+import ImagePickerSquare from '@/components/ImagePickerSquare/ImagePickerSquare';
+
 type ViewMode = 'table' | 'cards';
 
 export default function CategoriesListPage() {
   const [cats, setCats] = useState<CategoryRead[]>([]);
   const [loading, setLoading] = useState(true);
+
   const baseUrl = process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL ?? '';
   const myLoader = ({ src }: { src: string }) => {
     return `${process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL}${src}`;
   };
+
   // view mode
   const [viewMode, setViewMode] = useState<ViewMode>('table');
 
@@ -41,6 +46,7 @@ export default function CategoriesListPage() {
   // form state for create/edit
   const [name, setName] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null); // 👈 preview do crop
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -69,6 +75,7 @@ export default function CategoriesListPage() {
   function openCreate() {
     setName('');
     setImageFile(null);
+    setPreviewUrl(null);
     setError('');
     setCreateOpen(true);
   }
@@ -80,6 +87,8 @@ export default function CategoriesListPage() {
     setSelectedCat(cat);
     setName(cat.name);
     setImageFile(null);
+    // mostra preview da existente (pode ser trocada pelo cropper)
+    setPreviewUrl(cat.image_url ? `${baseUrl}${cat.image_url}` : null);
     setError('');
     setEditOpen(true);
   }
@@ -163,7 +172,7 @@ export default function CategoriesListPage() {
               </tr>
             </thead>
             <tbody>
-              {cats.map(cat => (
+              {cats.map((cat) => (
                 <tr key={cat.id}>
                   <td data-label="Nome">{cat.name}</td>
                   <td data-label="Imagem">
@@ -197,7 +206,7 @@ export default function CategoriesListPage() {
         </div>
       ) : (
         <div className={styles.cardsGrid}>
-          {cats.map(cat => (
+          {cats.map((cat) => (
             <div key={cat.id} className={styles.card}>
               {cat.image_url && (
                 <Image
@@ -260,34 +269,44 @@ export default function CategoriesListPage() {
           <h2>Nova Categoria</h2>
           <form onSubmit={handleCreate} className={styles.form}>
             {error && <p className={styles.error}>{error}</p>}
+
             <FloatingLabelInput
               id="create-name"
               label="Nome"
               value={name}
-              onChange={e => setName(e.target.value)}
+              onChange={(e) => setName(e.target.value)}
               required
             />
-            <label className={styles.fileLabel}>
-              Imagem
-              <input
-                type="file"
-                accept="image/*"
-                onChange={e => setImageFile(e.target.files?.[0] ?? null)}
-                required
-              />
-            </label>
-            {imageFile && (
+
+            {/* 👇 Botão que abre o cropper 1:1 */}
+            <ImagePickerSquare
+              buttonLabel="Escolher imagem"
+              stageSize={360}
+              outputSize={512}
+              outputFileName="category.jpg"
+              outputType="image/jpeg" // fundo branco garantido
+              onCropped={(file, dataUrl) => {
+                setImageFile(file);
+                setPreviewUrl(dataUrl);
+              }}
+            />
+
+            {/* preview do recorte */}
+            {previewUrl && (
               <div className={styles.preview}>
                 <Image
-                  src={URL.createObjectURL(imageFile)}
+                  src={previewUrl}
                   alt="Preview"
                   width={100}
                   height={100}
                   className={styles.thumb}
+                  // para dataURL usamos loader direto que retorna o src
                   loader={({ src }) => src}
+                  unoptimized
                 />
               </div>
             )}
+
             <div className={styles.formActions}>
               <button type="submit" className={styles.btnPrimary}>
                 Criar
@@ -303,37 +322,47 @@ export default function CategoriesListPage() {
           <h2>Editar Categoria</h2>
           <form onSubmit={handleEdit} className={styles.form}>
             {error && <p className={styles.error}>{error}</p>}
+
             <FloatingLabelInput
               id="edit-name"
               label="Nome"
               value={name}
-              onChange={e => setName(e.target.value)}
+              onChange={(e) => setName(e.target.value)}
               required
             />
-            <label className={styles.fileLabel}>
-              Imagem (opcional)
-              <input
-                type="file"
-                accept="image/*"
-                onChange={e => setImageFile(e.target.files?.[0] ?? null)}
-              />
-            </label>
-            {(imageFile || selectedCat?.image_url) && (
+
+            {/* 👇 Botão que abre o cropper para trocar a imagem (opcional) */}
+            <ImagePickerSquare
+              buttonLabel="Trocar imagem (opcional)"
+              stageSize={360}
+              outputSize={512}
+              outputFileName="category.jpg"
+              outputType="image/jpeg"
+              onCropped={(file, dataUrl) => {
+                setImageFile(file);
+                setPreviewUrl(dataUrl);
+              }}
+            />
+
+            {/* preview: mostra o recorte novo OU a imagem atual */}
+            {(previewUrl || selectedCat?.image_url) && (
               <div className={styles.preview}>
                 <Image
                   src={
-                    imageFile
-                      ? URL.createObjectURL(imageFile)
-                      : `${baseUrl}${selectedCat?.image_url}`
+                    previewUrl
+                      ? previewUrl // dataURL do recorte
+                      : `${baseUrl}${selectedCat?.image_url}` // atual
                   }
                   alt="Preview"
                   width={100}
                   height={100}
                   className={styles.thumb}
                   loader={({ src }) => src}
+                  unoptimized
                 />
               </div>
             )}
+
             <div className={styles.formActions}>
               <button type="submit" className={styles.btnPrimary}>
                 Salvar

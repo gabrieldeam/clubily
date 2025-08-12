@@ -1,0 +1,28 @@
+.picker {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.button {
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  color: #111827;
+  cursor: pointer;
+}
+
+.button:hover {
+  background: #f9fafb;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.error {
+  color: #b91c1c;
+  font-size: 12px;
+}

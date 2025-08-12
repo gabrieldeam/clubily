@@ -1,3 +1,4 @@
+// src/components/LoyaltyTemplateModal/LoyaltyTemplateModal.tsx
 'use client';
 
 import { useState, FormEvent, useEffect, useRef } from 'react';
@@ -6,6 +7,9 @@ import type { TemplateRead, TemplateCreate } from '@/types/loyalty';
 import FloatingLabelInput from '@/components/FloatingLabelInput/FloatingLabelInput';
 import Button from '@/components/Button/Button';
 import styles from './LoyaltyTemplateModal.module.css';
+
+// 👉 novo: cropper 1:1 reutilizável
+import ImagePickerSquare from '@/components/ImagePickerSquare/ImagePickerSquare';
 
 interface Props {
   template: TemplateRead | null;
@@ -22,7 +26,8 @@ export default function LoyaltyTemplateModal({ template, onSave, onCancel }: Pro
   const [perLimit, setPerLimit] = useState(1);
   const [emissionLimit, setEmissionLimit] = useState<number | ''>('');
   const [active, setActive] = useState(true);
-  const [iconFile, setIconFile] = useState<File>();
+  const [iconFile, setIconFile] = useState<File | undefined>(undefined);
+  const [iconPreview, setIconPreview] = useState<string | undefined>(undefined);
   const [emissionStart, setEmissionStart] = useState<string | undefined>();
   const [emissionEnd, setEmissionEnd] = useState<string | undefined>();
 
@@ -41,9 +46,14 @@ export default function LoyaltyTemplateModal({ template, onSave, onCancel }: Pro
       setPerLimit(template.per_user_limit || 1);
       setEmissionLimit(template.emission_limit ?? '');
       setActive(template.active ?? true);
-      setEmissionStart(template.emission_start?.substring(0,16));
-      setEmissionEnd(template.emission_end?.substring(0,16));
+      setEmissionStart(template.emission_start?.substring(0, 16));
+      setEmissionEnd(template.emission_end?.substring(0, 16));
       setIconFile(undefined);
+      setIconPreview(
+        template.stamp_icon_url
+          ? `${process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL}${template.stamp_icon_url}`
+          : undefined
+      );
     } else {
       const draft = localStorage.getItem(DRAFT_KEY);
       if (draft) {
@@ -69,7 +79,6 @@ export default function LoyaltyTemplateModal({ template, onSave, onCancel }: Pro
         setActive(dAct);
         setEmissionStart(dEmitStart);
         setEmissionEnd(dEmitEnd);
-        setIconFile(undefined);
       } else {
         setTitle('');
         setPromo('');
@@ -81,8 +90,9 @@ export default function LoyaltyTemplateModal({ template, onSave, onCancel }: Pro
         setActive(true);
         setEmissionStart(undefined);
         setEmissionEnd(undefined);
-        setIconFile(undefined);
       }
+      setIconFile(undefined);
+      setIconPreview(undefined);
     }
   }, [template, DRAFT_KEY]);
 
@@ -108,34 +118,34 @@ export default function LoyaltyTemplateModal({ template, onSave, onCancel }: Pro
         emissionEnd,
       })
     );
-    }, [
-      title,
-      promo,
-      stampTotal,
-      colorPrimary,
-      colorBg,
-      perLimit,
-      emissionLimit,
-      active,
-      emissionStart,
-      emissionEnd,
-      template,
-    ]);
+  }, [
+    title,
+    promo,
+    stampTotal,
+    colorPrimary,
+    colorBg,
+    perLimit,
+    emissionLimit,
+    active,
+    emissionStart,
+    emissionEnd,
+    template,
+  ]);
 
-    // 3) submit e limpeza de rascunho
-    const handleSubmit = (e: FormEvent) => {
-      e.preventDefault();
-      const payload: TemplateCreate = {
-        title,
-        promo_text: promo || null,
-        stamp_total: stampTotal,
-        color_primary: colorPrimary,
-        color_bg: colorBg,
-        per_user_limit: perLimit,
-        emission_start: emissionStart || null,
-        emission_end: emissionEnd || null,
-        emission_limit: emissionLimit === '' ? null : Number(emissionLimit),
-        active,
+  // 3) submit e limpeza de rascunho
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    const payload: TemplateCreate = {
+      title,
+      promo_text: promo || null,
+      stamp_total: stampTotal,
+      color_primary: colorPrimary,
+      color_bg: colorBg,
+      per_user_limit: perLimit,
+      emission_start: emissionStart || null,
+      emission_end: emissionEnd || null,
+      emission_limit: emissionLimit === '' ? null : Number(emissionLimit),
+      active,
     };
     onSave(payload, iconFile, template?.id);
     if (!template) localStorage.removeItem(DRAFT_KEY);
@@ -148,14 +158,14 @@ export default function LoyaltyTemplateModal({ template, onSave, onCancel }: Pro
       <FloatingLabelInput
         label="Título"
         value={title}
-        onChange={e => setTitle(e.target.value)}
+        onChange={(e) => setTitle(e.target.value)}
         maxLength={50}
       />
 
       <FloatingLabelInput
         label="Texto promocional"
         value={promo}
-        onChange={e => setPromo(e.target.value)}
+        onChange={(e) => setPromo(e.target.value)}
         maxLength={120}
       />
 
@@ -164,13 +174,13 @@ export default function LoyaltyTemplateModal({ template, onSave, onCancel }: Pro
           type="number"
           label="Total de carimbos"
           value={stampTotal}
-          onChange={e => setStampTotal(Number(e.target.value))}
+          onChange={(e) => setStampTotal(Number(e.target.value))}
         />
         <FloatingLabelInput
           type="number"
           label="Limite por usuário"
           value={perLimit}
-          onChange={e => setPerLimit(Number(e.target.value))}
+          onChange={(e) => setPerLimit(Number(e.target.value))}
         />
       </div>
 
@@ -178,7 +188,7 @@ export default function LoyaltyTemplateModal({ template, onSave, onCancel }: Pro
         type="number"
         label="Limite total de emissões (opcional)"
         value={emissionLimit}
-        onChange={e => {
+        onChange={(e) => {
           const val = e.target.value;
           setEmissionLimit(val === '' ? '' : Number(val));
         }}
@@ -192,13 +202,13 @@ export default function LoyaltyTemplateModal({ template, onSave, onCancel }: Pro
               id="colorPrimary"
               type="color"
               value={colorPrimary}
-              onChange={e => setColorPrimary(e.target.value)}
+              onChange={(e) => setColorPrimary(e.target.value)}
               className={styles.colorSwatch}
             />
             <input
               type="text"
               value={colorPrimary}
-              onChange={e => setColorPrimary(e.target.value)}
+              onChange={(e) => setColorPrimary(e.target.value)}
               className={styles.colorText}
             />
           </div>
@@ -210,13 +220,13 @@ export default function LoyaltyTemplateModal({ template, onSave, onCancel }: Pro
               id="colorBg"
               type="color"
               value={colorBg}
-              onChange={e => setColorBg(e.target.value)}
+              onChange={(e) => setColorBg(e.target.value)}
               className={styles.colorSwatch}
             />
             <input
               type="text"
               value={colorBg}
-              onChange={e => setColorBg(e.target.value)}
+              onChange={(e) => setColorBg(e.target.value)}
               className={styles.colorText}
             />
           </div>
@@ -228,46 +238,51 @@ export default function LoyaltyTemplateModal({ template, onSave, onCancel }: Pro
         id="emissionStart"
         type="datetime-local"
         value={emissionStart || ''}
-        onChange={e => setEmissionStart(e.target.value)}
+        onChange={(e) => setEmissionStart(e.target.value)}
       />
       <FloatingLabelInput
         label="Fim da emissão"
         id="emissionEnd"
         type="datetime-local"
         value={emissionEnd || ''}
-        onChange={e => setEmissionEnd(e.target.value)}
+        onChange={(e) => setEmissionEnd(e.target.value)}
       />
 
       <div className={styles.field}>
         <label>Ícone de carimbo</label>
-        <input
-          type="file"
-          accept="image/*"
-          onChange={e => setIconFile(e.target.files?.[0])}
-        />
-        {(iconFile || template?.stamp_icon_url) && (
+
+        {/* preview (template existente ou nova imagem cortada) */}
+        {iconPreview && (
           <div className={styles.previewWrap}>
             <Image
-              src={
-                iconFile
-                  ? URL.createObjectURL(iconFile)
-                  : `${process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL}${template!.stamp_icon_url}`
-              }
-              alt="Ícone de carimbo atual"
+              src={iconPreview}
+              alt="Ícone de carimbo"
               fill
               sizes="60px"
               className={styles.previewImg}
-        />
+            />
           </div>
         )}
 
+        {/* botão que abre a modal de recorte 1:1 */}
+        <ImagePickerSquare
+          buttonLabel={template ? 'Trocar ícone' : 'Escolher ícone'}
+          stageSize={320}
+          outputSize={256}           // ícone fica leve e nítido
+          outputFileName="stamp-icon.jpg"
+          outputType="image/jpeg"    // fundo branco garantido
+          onCropped={(file, dataUrl) => {
+            setIconFile(file);
+            setIconPreview(dataUrl);
+          }}
+        />
       </div>
 
       <label className={styles.switch}>
         <input
           type="checkbox"
           checked={active}
-          onChange={e => setActive(e.target.checked)}
+          onChange={(e) => setActive(e.target.checked)}
         />
         Ativo
       </label>
