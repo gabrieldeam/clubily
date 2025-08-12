@@ -3,6 +3,7 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { isAxiosError } from 'axios';
+import { useSearchParams } from 'next/navigation';
 import styles from './RegisterForm.module.css';
 import FloatingLabelInput from '@/components/FloatingLabelInput/FloatingLabelInput';
 import Notification from '@/components/Notification/Notification';
@@ -12,7 +13,6 @@ import { registerCompany, redeemReferral } from '@/services/companyService';
 import type { CompanyCreate, ReferralRedeem } from '@/types/company';
 
 // Tipos
-
 type NotificationType = 'success' | 'error' | 'info';
 interface NotificationData {
   type: NotificationType;
@@ -24,9 +24,14 @@ type Stage = 'register' | 'referral';
 
 interface RegisterFormProps {
   onSuccess: () => void;
+  /** Opcional: se você quiser injetar o código por prop.
+   *  Se não for passado, o componente tenta ler da URL (?code=XYZ). */
+  initialReferralCode?: string;
 }
 
-export default function RegisterForm({ onSuccess }: RegisterFormProps) {
+export default function RegisterForm({ onSuccess, initialReferralCode }: RegisterFormProps) {
+  const searchParams = useSearchParams();
+
   const [form, setForm] = useState<LocalForm>({
     name: '',
     email: '',
@@ -59,6 +64,12 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
   const [referralNotification, setReferralNotification] = useState<NotificationData | null>(null);
 
   const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
+
+  useEffect(() => {
+    const codeFromUrl = searchParams.get('code') ?? '';
+    const value = (initialReferralCode && initialReferralCode.trim()) || codeFromUrl;
+    if (value) setReferralCode(value);
+  }, [initialReferralCode, searchParams]);
 
   // ViaCEP
   useEffect(() => {
@@ -187,8 +198,21 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
     return (
       <div className={styles.form}>
         <h2 className={styles.title}>Código de indicação</h2>
-        {referralNotification && <Notification type={referralNotification.type} message={referralNotification.message} onClose={() => setReferralNotification(null)} />}
-        <FloatingLabelInput id="referral_code" name="referral_code" label="Código de indicação" type="text" value={referralCode} onChange={e => setReferralCode(e.target.value)} />
+        {referralNotification && (
+          <Notification
+            type={referralNotification.type}
+            message={referralNotification.message}
+            onClose={() => setReferralNotification(null)}
+          />
+        )}
+        <FloatingLabelInput
+          id="referral_code"
+          name="referral_code"
+          label="Código de indicação"
+          type="text"
+          value={referralCode}
+          onChange={e => setReferralCode(e.target.value)}
+        />
         <div className={styles.actions}>
           <Button onClick={handleRedeem}>Registrar indicação</Button>
           <Button bgColor="#AAA" onClick={handleSkipReferral}>Não tenho código</Button>
@@ -200,30 +224,97 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
   return (
     <form onSubmit={handleSubmit} className={styles.form}>
       <h2 className={styles.title}>Cadastro</h2>
-      {notification && <Notification type={notification.type} message={notification.message} onClose={() => setNotification(null)} />}
+      {notification && (
+        <Notification
+          type={notification.type}
+          message={notification.message}
+          onClose={() => setNotification(null)}
+        />
+      )}
 
       {/* ETAPA 1 */}
       {!showAddress && (
-        <>          
-          <FloatingLabelInput id="register-name" name="name" label="Nome da empresa" type="text" value={form.name} onChange={handleChange} />
-          <FloatingLabelInput id="register-email" name="email" label="E-mail" type="email" value={form.email} onChange={handleChange} />
+        <>
+          <FloatingLabelInput
+            id="register-name"
+            name="name"
+            label="Nome da empresa"
+            type="text"
+            value={form.name}
+            onChange={handleChange}
+          />
+          <FloatingLabelInput
+            id="register-email"
+            name="email"
+            label="E-mail"
+            type="email"
+            value={form.email}
+            onChange={handleChange}
+          />
           <div className={styles.flex}>
-            <FloatingLabelInput id="register-phone" name="phone" label="Telefone" type="text" value={form.phone} onChange={handleChange} />
-            <FloatingLabelInput id="register-cnpj" name="cnpj" label="CNPJ" type="text" value={form.cnpj} onChange={handleChange} />
+            <FloatingLabelInput
+              id="register-phone"
+              name="phone"
+              label="Telefone"
+              type="text"
+              value={form.phone}
+              onChange={handleChange}
+            />
+            <FloatingLabelInput
+              id="register-cnpj"
+              name="cnpj"
+              label="CNPJ"
+              type="text"
+              value={form.cnpj}
+              onChange={handleChange}
+            />
           </div>
-          <button type="button" className={styles.addressButton} onClick={() => setShowAddress(true)}>Adicionar Endereço</button>
+          <button
+            type="button"
+            className={styles.addressButton}
+            onClick={() => setShowAddress(true)}
+          >
+            Adicionar Endereço
+          </button>
 
           <div className={styles.flex}>
-            <FloatingLabelInput id="register-password" name="password" label="Senha" type="password" value={form.password} onChange={handleChange} showPassword={showPasswords} />
-            <FloatingLabelInput id="register-confirm-password" name="confirm_password" label="Confirme a senha" type="password" value={form.confirm_password} onChange={handleChange} showPassword={showPasswords} />
+            <FloatingLabelInput
+              id="register-password"
+              name="password"
+              label="Senha"
+              type="password"
+              value={form.password}
+              onChange={handleChange}
+              showPassword={showPasswords}
+            />
+            <FloatingLabelInput
+              id="register-confirm-password"
+              name="confirm_password"
+              label="Confirme a senha"
+              type="password"
+              value={form.confirm_password}
+              onChange={handleChange}
+              showPassword={showPasswords}
+            />
             {/* botão externo de visibilidade */}
-            <button type="button" className={styles.eyeToggle} onClick={() => setShowPasswords(prev => !prev)}>
+            <button
+              type="button"
+              className={styles.eyeToggle}
+              onClick={() => setShowPasswords(prev => !prev)}
+              aria-label={showPasswords ? 'Ocultar senhas' : 'Mostrar senhas'}
+            >
               {showPasswords ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
-          </div>       
+          </div>
 
           <div className={styles.termsContainer}>
-            <input type="checkbox" id="accepted_terms" name="accepted_terms" checked={form.accepted_terms} onChange={handleChange} />
+            <input
+              type="checkbox"
+              id="accepted_terms"
+              name="accepted_terms"
+              checked={form.accepted_terms}
+              onChange={handleChange}
+            />
             <label htmlFor="accepted_terms">Aceito os termos de uso</label>
           </div>
           <Button type="submit">Cadastrar</Button>

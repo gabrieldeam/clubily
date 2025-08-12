@@ -17,6 +17,15 @@ class InventoryItem(Base):
     created_at  = Column(DateTime(timezone=True), server_default=func.now())
 
     company     = relationship("Company", back_populates="inventory_items")
-    categories  = relationship("ProductCategory", secondary="inventory_item_categories", back_populates="items")
+    categories = relationship(
+        "ProductCategory",
+        secondary="inventory_item_categories",
+        back_populates="items",
+        lazy="selectin"  # evita N+1 e já carrega as categorias dos itens listados
+    )
+
+    @property
+    def category_ids(self) -> list[UUID]:
+        return [c.id for c in (self.categories or [])]
 
 

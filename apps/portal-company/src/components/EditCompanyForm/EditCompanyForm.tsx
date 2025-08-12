@@ -50,30 +50,53 @@ export default function CompanySettings({
 
 
   
-  function formatErrorDetail(detail: unknown): string {
+  type FastAPIErrorItem = {
+  loc?: string | (string | number)[];
+  msg?: string;
+  message?: string;
+  detail?: unknown;
+  [key: string]: unknown;
+};
+
+function formatErrorDetail(detail: unknown): string {
   if (!detail) return 'Erro inesperado.';
   if (typeof detail === 'string') return detail;
 
-  // Padrão FastAPI/Pydantic: array de erros [{loc, msg, type, ...}]
+  // Array no padrão FastAPI/Pydantic
   if (Array.isArray(detail)) {
-    const parts = detail.map((d: any) => {
-      const loc = Array.isArray(d?.loc) ? d.loc.join('.') : d?.loc;
-      const msg = d?.msg ?? d?.message ?? JSON.stringify(d);
-      return loc ? `${loc}: ${msg}` : `${msg}`;
+    const items = detail as FastAPIErrorItem[];
+    const parts = items.map((d) => {
+      const loc =
+        Array.isArray(d.loc)
+          ? d.loc.join('.')
+          : typeof d.loc === 'string'
+          ? d.loc
+          : undefined;
+
+      const msg =
+        typeof d.msg === 'string'
+          ? d.msg
+          : typeof d.message === 'string'
+          ? d.message
+          : JSON.stringify(d);
+
+      return loc ? `${loc}: ${msg}` : msg;
     });
     return parts.join('\n');
   }
 
-  // Objeto com msg/detail
-  if (typeof detail === 'object') {
-    const anyDetail: any = detail;
-    if (anyDetail.msg) return String(anyDetail.msg);
-    if (anyDetail.detail && anyDetail.detail !== detail) {
-      return formatErrorDetail(anyDetail.detail);
+  // Objeto com campos msg/detail
+  if (typeof detail === 'object' && detail !== null) {
+    const obj = detail as FastAPIErrorItem;
+
+    if (typeof obj.msg === 'string') return obj.msg;
+
+    if (obj.detail && obj.detail !== detail) {
+      return formatErrorDetail(obj.detail);
     }
-    // fallback: chave: valor
+
     try {
-      return Object.entries(anyDetail)
+      return Object.entries(obj)
         .map(([k, v]) => `${k}: ${typeof v === 'string' ? v : JSON.stringify(v)}`)
         .join('\n');
     } catch {

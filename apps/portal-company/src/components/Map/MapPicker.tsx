@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import styles from './MapPicker.module.css';
 
-// React-Leaflet + Leaflet (somente cliente)
 import 'leaflet/dist/leaflet.css';
 import { MapContainer, TileLayer, useMap, useMapEvents, CircleMarker, Popup } from 'react-leaflet';
 
@@ -15,12 +14,11 @@ type Props = {
 
 type SearchResult = {
   display_name: string;
-  lat: string; // vem string do Nominatim
-  lon: string; // vem string do Nominatim
+  lat: string;
+  lon: string;
 };
 
 export default function MapPicker({ lat, lng, onChange }: Props) {
-  // centro inicial (São Paulo como fallback)
   const defaultCenter: [number, number] = [-23.55052, -46.633308];
   const [center, setCenter] = useState<[number, number]>(
     lat != null && lng != null ? [lat, lng] : defaultCenter
@@ -35,7 +33,6 @@ export default function MapPicker({ lat, lng, onChange }: Props) {
   const [searching, setSearching] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
 
-  // atualiza center se props mudarem
   useEffect(() => {
     if (lat != null && lng != null) {
       setCenter([lat, lng]);
@@ -43,7 +40,6 @@ export default function MapPicker({ lat, lng, onChange }: Props) {
     }
   }, [lat, lng]);
 
-  // Click handler via hook do Leaflet (sem atribuir a variável não usada)
   function ClickHandler() {
     useMapEvents({
       click: async (e) => {
@@ -51,7 +47,6 @@ export default function MapPicker({ lat, lng, onChange }: Props) {
         setMarker([latlng.lat, latlng.lng]);
         onChange(latlng.lat, latlng.lng);
 
-        // reverse geocode para nome amigável
         try {
           const url = new URL('https://nominatim.openstreetmap.org/reverse');
           url.searchParams.set('format', 'jsonv2');
@@ -70,17 +65,15 @@ export default function MapPicker({ lat, lng, onChange }: Props) {
             }
           }
         } catch {
-          // silenciosamente ignora
+          /* ignore */
         }
       },
     });
     return null;
   }
 
-  // mover programaticamente o mapa quando center mudar
   function CenterSetter() {
     const map = useMap();
-    // Deriva valores primitivos para agradar o eslint
     const [latC, lngC] = center;
     useEffect(() => {
       map.setView([latC, lngC]);
@@ -88,7 +81,6 @@ export default function MapPicker({ lat, lng, onChange }: Props) {
     return null;
   }
 
-  // Busca (forward geocoding)
   const doSearch = async () => {
     const q = query.trim();
     if (!q) return;
@@ -107,11 +99,7 @@ export default function MapPicker({ lat, lng, onChange }: Props) {
       if (!res.ok) throw new Error('Search failed');
       const data = (await res.json()) as SearchResult[];
       setResults(data);
-      // scroll to list
-      setTimeout(
-        () => listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }),
-        0
-      );
+      setTimeout(() => listRef.current?.scrollIntoView({ behavior: 'smooth' }), 0);
     } catch {
       setResults([]);
     } finally {
@@ -137,9 +125,7 @@ export default function MapPicker({ lat, lng, onChange }: Props) {
         setMarker([latNum, lngNum]);
         onChange(latNum, lngNum);
       },
-      () => {
-        // ignore erro
-      },
+      () => {},
       { enableHighAccuracy: true, timeout: 10000 }
     );
   };
@@ -154,14 +140,21 @@ export default function MapPicker({ lat, lng, onChange }: Props) {
           placeholder="Busque um local (rua, cidade, ponto de interesse)"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') doSearch();
-          }}
+          onKeyDown={(e) => { if (e.key === 'Enter') doSearch(); }}
         />
-        <button className={styles.btn} onClick={doSearch} disabled={searching}>
+        <button
+          type="button"
+          className={styles.btn}
+          onClick={doSearch}
+          disabled={searching}
+        >
           {searching ? 'Buscando...' : 'Buscar'}
         </button>
-        <button className={styles.btnSecondary} onClick={useMyLocation} type="button">
+        <button
+          type="button"
+          className={styles.btnSecondary}
+          onClick={useMyLocation}
+        >
           Minha localização
         </button>
       </div>
@@ -172,10 +165,8 @@ export default function MapPicker({ lat, lng, onChange }: Props) {
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-
           <ClickHandler />
           <CenterSetter />
-
           {hasMarker && marker && (
             <CircleMarker center={marker} radius={10}>
               <Popup>

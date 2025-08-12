@@ -123,11 +123,11 @@ export default function PointsRuleModal({ rule, onSave, onCancel }: Props) {
         break;
       case RuleType.first_purchase:
         if (!has(cfg.bonus_points))
-          return { ok: false, msg: 'Informe o bônus de pontos.' };
+          return { ok: false, msg: 'Informe os pontos.' };
         break;
       case RuleType.frequency:
         if (!has(cfg.window_days) || !has(cfg.threshold) || !has(cfg.bonus_points))
-          return { ok: false, msg: 'Preencha janela, meta e bônus.' };
+          return { ok: false, msg: 'Preencha janela, meta e pontos.' };
         break;
       case RuleType.recurrence:
         if (!has(cfg.period_days) || !has(cfg.threshold_per_period) || !has(cfg.consecutive_periods) || !has(cfg.bonus_points))
@@ -431,12 +431,14 @@ useEffect(() => {
             <FloatingLabelInput
               label="R$ por passo"
               type="number"
+              min={0}
               value={num(config.step)}
               onChange={e => setConfig({ ...config, step: Number(e.target.value) })}
             />
             <FloatingLabelInput
               label="Pontos por passo"
               type="number"
+              min={0}
               value={num(config.points)}
               onChange={e => setConfig({ ...config, points: Number(e.target.value) })}
             />
@@ -455,6 +457,7 @@ useEffect(() => {
             <FloatingLabelInput
               label="Pontos"
               type="number"
+              min={0}
               value={num(config.points)}
               onChange={e => setConfig({ ...config, points: Number(e.target.value) })}
             />
@@ -591,6 +594,7 @@ useEffect(() => {
                     <FloatingLabelInput
                       label="Multiplicador"
                       type="number"
+                      min={0}
                       value={num(config.multiplier)}
                       onChange={e =>
                         setConfig({ ...config, multiplier: Number(e.target.value) })
@@ -735,6 +739,7 @@ useEffect(() => {
                     <FloatingLabelInput
                       label="Multiplicador"
                       type="number"
+                      min={0}
                       value={num(config.multiplier)}
                       onChange={e =>
                         setConfig({ ...config, multiplier: Number(e.target.value) })
@@ -774,6 +779,7 @@ useEffect(() => {
             <FloatingLabelInput
               label="Pontos"
               type="number"
+              min={0}
               value={num(config.points)}
               onChange={e => setConfig({ ...config, points: Number(e.target.value) })}
             />
@@ -825,6 +831,7 @@ useEffect(() => {
             <FloatingLabelInput
               label="Pontos a atribuir"
               type="number"
+              min={0}
               value={num(config.points)}
               onChange={e => setConfig({ ...config, points: Number(e.target.value) })}
             />
@@ -843,6 +850,7 @@ useEffect(() => {
             <FloatingLabelInput
               label="Máximo de usos por usuário"
               type="number"
+              min={0}
               value={num(config.max_attributions)}
               onChange={e =>
                 setConfig({ ...config, max_attributions: Number(e.target.value) })
@@ -855,16 +863,18 @@ useEffect(() => {
         return (
           <>
             <FloatingLabelInput
-              label="Bônus de pontos (primeira compra)"
+              label="Pontos (primeira compra)"
               type="number"
+              min={0}
               value={num(config.bonus_points)}
               onChange={e =>
                 setConfig({ ...config, bonus_points: Number(e.target.value) })
               }
             />
             <FloatingLabelInput
-              label="Cooldown (dias) — opcional"
+              label="Período de espera (dias) — opcional"
               type="number"
+              min={0}
               value={num(config.cooldown_days)}
               onChange={e =>
                 setConfig({ ...config, cooldown_days: Number(e.target.value) })
@@ -879,6 +889,7 @@ useEffect(() => {
             <FloatingLabelInput
               label="Janela (dias)"
               type="number"
+              min={0}
               value={num(config.window_days)}
               onChange={e =>
                 setConfig({ ...config, window_days: Number(e.target.value) })
@@ -887,22 +898,25 @@ useEffect(() => {
             <FloatingLabelInput
               label="Meta de compras na janela"
               type="number"
+              min={0}
               value={num(config.threshold)}
               onChange={e =>
                 setConfig({ ...config, threshold: Number(e.target.value) })
               }
             />
             <FloatingLabelInput
-              label="Bônus de pontos ao atingir a meta"
+              label="Pontos ao atingir a meta"
               type="number"
+              min={0}
               value={num(config.bonus_points)}
               onChange={e =>
                 setConfig({ ...config, bonus_points: Number(e.target.value) })
               }
             />
             <FloatingLabelInput
-              label="Cooldown (dias) — opcional"
+              label="Período de espera (dias) — opcional"
               type="number"
+              min={0}
               value={num(config.cooldown_days)}
               onChange={e =>
                 setConfig({ ...config, cooldown_days: Number(e.target.value) })
@@ -917,6 +931,7 @@ useEffect(() => {
             <FloatingLabelInput
               label="Tamanho do período (dias)"
               type="number"
+              min={0}
               value={num(config.period_days)}
               onChange={e =>
                 setConfig({ ...config, period_days: Number(e.target.value) })
@@ -925,6 +940,7 @@ useEffect(() => {
             <FloatingLabelInput
               label="Compras mínimas por período"
               type="number"
+              min={0}
               value={num(config.threshold_per_period)}
               onChange={e =>
                 setConfig({
@@ -936,6 +952,7 @@ useEffect(() => {
             <FloatingLabelInput
               label="Períodos consecutivos necessários"
               type="number"
+              min={0}
               value={num(config.consecutive_periods)}
               onChange={e =>
                 setConfig({
@@ -945,16 +962,18 @@ useEffect(() => {
               }
             />
             <FloatingLabelInput
-              label="Bônus de pontos ao completar a sequência"
+              label="Pontos ao completar a sequência"
               type="number"
+              min={0}
               value={num(config.bonus_points)}
               onChange={e =>
                 setConfig({ ...config, bonus_points: Number(e.target.value) })
               }
             />
             <FloatingLabelInput
-              label="Cooldown (dias) — opcional"
+              label="Período de espera (dias) — opcional"
               type="number"
+              min={0}
               value={num(config.cooldown_days)}
               onChange={e =>
                 setConfig({ ...config, cooldown_days: Number(e.target.value) })
@@ -976,15 +995,16 @@ useEffect(() => {
               value={str(config.date)}
               onChange={e => setConfig({ ...config, date: e.target.value })}
             />
+            <p>Intervalo</p>
             <div className={styles.inline}>
               <FloatingLabelInput
-                label="Início do intervalo (YYYY-MM-DD)"
+                label="Início (YYYY-MM-DD)"
                 type="date"
                 value={str(config.start)}
                 onChange={e => setConfig({ ...config, start: e.target.value })}
               />
               <FloatingLabelInput
-                label="Fim do intervalo (YYYY-MM-DD)"
+                label="Fim (YYYY-MM-DD)"
                 type="date"
                 value={str(config.end)}
                 onChange={e => setConfig({ ...config, end: e.target.value })}
@@ -993,14 +1013,16 @@ useEffect(() => {
             <FloatingLabelInput
               label="Multiplicador (ex.: 2 = dobra)"
               type="number"
+              min={0}
               value={num(config.multiplier)}
               onChange={e =>
                 setConfig({ ...config, multiplier: Number(e.target.value) })
               }
             />
             <FloatingLabelInput
-              label="Cooldown (dias) — opcional"
+              label="Período de espera (dias) — opcional"
               type="number"
+              min={0}
               value={num(config.cooldown_days)}
               onChange={e =>
                 setConfig({ ...config, cooldown_days: Number(e.target.value) })

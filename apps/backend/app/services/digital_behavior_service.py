@@ -97,6 +97,18 @@ def process_digital_behavior_event(
 
     # reserva e crédito dos pontos (robusto a None)
     pts_to_award = int((cfg.get("points") or 0))
+
+    # rótulo amigável da regra (ordem de prioridade de onde tirar o nome)
+    rule_title = (cfg.get("public_name")
+                  or cfg.get("name")
+                  or rule.name
+                  or slug)
+
+    # descrição para o usuário na listagem de transações
+    # Ex.: "Loja XPTO — pontos via link “Promo de Agosto”"
+    company_name = getattr(rule.company, "name", None) or "Empresa"
+    user_tx_desc = f"{company_name} — pontos via link “{rule_title}”"
+
     try:
         debit_points(
             db,
@@ -115,7 +127,7 @@ def process_digital_behavior_event(
         str(rule.company_id),
         str(rule.id),
         pts_to_award,
-        description=cfg.get("description")
+        description=user_tx_desc
     )
 
     return pts_to_award

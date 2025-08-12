@@ -39,7 +39,7 @@ export default function DigitalRulePage() {
   const [triggerError, setTriggerError] = useState<string | null>(null);
   const [awardedPoints, setAwardedPoints] = useState<number | null>(null);
 
-  // 1) monitorar tamanho da janela
+  // controla tamanho da janela para o Confetti
   const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
   useEffect(() => {
     const handleResize = () => {
@@ -63,39 +63,39 @@ export default function DigitalRulePage() {
       .finally(() => setLoading(false));
   }, [slug]);
 
-  // loading inicial
   if (loading) {
     return (
-      <div className={styles.container}>
+      <div className={styles.page}>
         <Loading />
       </div>
     );
   }
   if (error) {
-    return <div className={styles.container}>{error}</div>;
+    return <div className={styles.page}>{error}</div>;
   }
   if (!rule) {
-    return <div className={styles.container}>Regra não encontrada.</div>;
+    return <div className={styles.page}>Regra não encontrada.</div>;
   }
 
-  // se já ganhou pontos, renderiza só sucesso com confetti full-screen
+  // tela de sucesso
   if (awardedPoints !== null) {
     return (
-      <div className={styles.container}>
+      <div className={styles.page}>
         <Confetti
           width={windowSize.width}
           height={windowSize.height}
-          numberOfPieces={200}
+          numberOfPieces={240}
           recycle={false}
         />
-        <div className={styles.success}>
-          <p>🎉 Parabéns! Você ganhou {awardedPoints} pontos! 🎉</p>
+        <div className={styles.successCard}>
+          <p className={styles.successEmoji}>🎉</p>
+          <p className={styles.successTitle}>Parabéns!</p>
+          <p className={styles.successText}>Você ganhou <b>{awardedPoints}</b> pontos.</p>
         </div>
       </div>
     );
   }
 
-  // resto do conteúdo
   const today = new Date();
   const startDate = rule.valid_from ? new Date(rule.valid_from) : null;
   const showStartDate = startDate ? startDate > today : false;
@@ -133,92 +133,113 @@ export default function DigitalRulePage() {
   };
 
   return (
-    <div className={styles.container}>
-      <h1 className={styles.title}>{rule.name}</h1>
+    <div className={styles.page}>
+      <div className={styles.card}>
+        <div className={styles.header}>
+          <h1 className={styles.title}>{rule.name}</h1>
 
-      <div className={styles.logoSection}>
-        {rule.company.logo_url && (
-          <div className={styles.logoCircle}>
+          <div className={styles.logoSection}>
+            {rule.company.logo_url && (
+              <div className={styles.logoCircle}>
+                <Image
+                  src={`${baseUrl}${rule.company.logo_url}`}
+                  alt={`${rule.company.name} logo`}
+                  width={80}
+                  height={80}
+                  className={styles.logoImg}
+                  style={{ objectFit: 'cover' }}
+                />
+              </div>
+            )}
+            <span className={styles.multiplier}>×</span>
             <Image
-              src={`${baseUrl}${rule.company.logo_url}`}
-              alt={`${rule.company.name} logo`}
+              src="/logoClubily.svg"
+              alt="Logo Clubily"
               width={80}
               height={80}
-              className={styles.logoImg}
-              style={{ objectFit: 'cover' }}
+              className={styles.clubilyLogo}
             />
           </div>
+        </div>
+
+        <div className={styles.badges}>
+          <span className={`${styles.badge} ${styles.badgePrimary}`}>
+            +{rule.points} pontos
+          </span>
+          <span className={styles.badge}>
+            Máx. {rule.max_attributions} {plural}
+          </span>
+          <span className={styles.badge}>
+            Até {formatDate(rule.valid_to)}
+          </span>
+        </div>
+
+        {rule.description && (
+          <p className={styles.description}>{rule.description}</p>
         )}
-        <span className={styles.multiplier}>×</span>
-        <Image
-          src="/logoClubily.svg"
-          alt="Logo Clubily"
-          width={80}
-          height={80}
-          className={styles.clubilyLogo}
-        />
+
+        {showStartDate && (
+          <p className={styles.ruleInfo}>
+            A distribuição começa em {formatDate(rule.valid_from)}.
+          </p>
+        )}
+
+        <div className={styles.ctaRow}>
+          <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={openModal}>
+            Quero os pontos
+          </button>
+        </div>
+
+        <div className={styles.companySection}>
+          <h2 className={styles.subtitle}>Dados da empresa</h2>
+          <ul className={styles.companyList}>
+            <li><span>Nome</span><span>{rule.company.name}</span></li>
+            <li><span>Telefone</span><span>{rule.company.phone}</span></li>
+            {rule.company.cnpj && (
+              <li><span>CNPJ</span><span>{rule.company.cnpj}</span></li>
+            )}
+          </ul>
+        </div>
       </div>
 
-      <p className={styles.ruleInfo}>
-        Ganhe {rule.points} pontos, no máximo {rule.max_attributions} {plural}, até {formatDate(rule.valid_to)}.
-      </p>
-
-      <button className={styles.primaryButton} onClick={openModal}>
-        Quero os pontos
-      </button>
-
-      {rule.description && (
-        <p className={styles.description}>
-          {rule.description}
-        </p>
-      )}
-
-      {showStartDate && (
-        <p className={styles.ruleInfo}>
-          A distribuição começa dia {formatDate(rule.valid_from)}.
-        </p>
-      )}
-
-      <div className={styles.companySection}>
-        <h2 className={styles.subtitle}>Dados da empresa</h2>
-        <ul className={styles.companyList}>
-          <li><span>Nome:</span><span>{rule.company.name}</span></li>
-          <li><span>E-mail:</span><span>{rule.company.email}</span></li>
-          <li><span>Telefone:</span><span>{rule.company.phone}</span></li>
-          {rule.company.cnpj && (
-            <li><span>CNPJ:</span><span>{rule.company.cnpj}</span></li>
-          )}
-        </ul>
-      </div>
-
-      <Modal open={showModal} onClose={closeModal} width={360}>
+      <Modal open={showModal} onClose={closeModal} width={420}>
         {!method ? (
-          <div className={styles.methodButtons}>
-            <button onClick={() => setMethod('phone')} className={styles.modalButton}>
-              Telefone
-            </button>
-            <button onClick={() => setMethod('cpf')} className={styles.modalButton}>
-              CPF
-            </button>
+          <div className={styles.modalContent}>
+            <h3 className={styles.modalTitle}>Como você quer se identificar?</h3>
+            <div className={styles.methodButtons}>
+              <button onClick={() => setMethod('phone')} className={`${styles.btn} ${styles.btnSecondary} ${styles.btnBlock}`}>
+                Telefone
+              </button>
+              <button onClick={() => setMethod('cpf')} className={`${styles.btn} ${styles.btnPrimary} ${styles.btnBlock}`}>
+                CPF
+              </button>
+            </div>
           </div>
         ) : (
           <div className={styles.modalContent}>
-            <FloatingLabelInput
-              id={method}
-              label={method === 'cpf' ? 'CPF' : 'Telefone'}
-              value={inputValue}
-              onChange={e => setInputValue(e.target.value)}
-              disabled={triggerLoading}
-            />
+            <h3 className={styles.modalTitle}>
+              Informe seu {method === 'cpf' ? 'CPF' : 'Telefone'}
+            </h3>
+            <div className={styles.inputWrap}>
+              <FloatingLabelInput
+                id={method}
+                label={method === 'cpf' ? 'CPF' : 'Telefone'}
+                value={inputValue}
+                onChange={e => setInputValue(e.target.value)}
+                disabled={triggerLoading}
+              />
+            </div>
+
             {triggerError && <p className={styles.error}>{triggerError}</p>}
+
             <div className={styles.modalActions}>
-              <button onClick={closeModal} className={styles.modalButton}>
+              <button onClick={closeModal} className={`${styles.btn} ${styles.btnGhost}`}>
                 Cancelar
               </button>
               <button
                 onClick={handleModalSubmit}
                 disabled={triggerLoading}
-                className={styles.modalButton}
+                className={`${styles.btn} ${styles.btnPrimary}`}
               >
                 {triggerLoading ? 'Enviando...' : 'Enviar'}
               </button>

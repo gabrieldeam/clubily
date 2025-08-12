@@ -16,6 +16,12 @@ import type { CouponRead, CouponCreate } from '@/types/coupon';
 import CouponModal from '@/components/CouponsMain/CouponModal/CouponModal';
 import styles from './CouponsMain.module.css';
 
+function fmtBRL(n: number) {
+  return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+const VIEW_MODE_KEY = 'couponsViewMode';
+
 export default function CouponsMain() {
   /* ---------- state ---------- */
   const [coupons, setCoupons] = useState<CouponRead[]>([]);
@@ -34,16 +40,27 @@ export default function CouponsMain() {
   const [limit, setLimit] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
 
-  /* ---------- responsive ---------- */
+  /* ---------- responsive / persist view mode ---------- */
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     handleResize();
     window.addEventListener('resize', handleResize);
+
+    // recupera modo salvo (apenas desktop)
+    const saved = localStorage.getItem(VIEW_MODE_KEY) as 'list' | 'card' | null;
+    if (saved) setViewMode(saved);
+
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
   useEffect(() => {
-    if (isMobile) setViewMode('card');
-  }, [isMobile]);
+    if (isMobile) {
+      setViewMode('card');
+    } else {
+      // salva preferência do usuário no desktop
+      localStorage.setItem(VIEW_MODE_KEY, viewMode);
+    }
+  }, [isMobile, viewMode]);
 
   /* ---------- fetch ---------- */
   const fetchCoupons = async (opts?: { skip?: number; limit?: number }) => {
@@ -68,12 +85,13 @@ export default function CouponsMain() {
       setLoading(false);
     }
   };
+
   useEffect(() => {
     fetchCoupons();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /* ---------- derived (da página atual) ---------- */
+  /* ---------- derived ---------- */
   const pageCount = useMemo(
     () => Math.max(1, Math.ceil(totalCount / Math.max(1, limit))),
     [totalCount, limit]
@@ -97,10 +115,10 @@ export default function CouponsMain() {
     setSelected(null);
     setModalOpen(true);
   };
+
   const openEdit = async (c: CouponRead) => {
     setError(null);
     try {
-      // opcional: garantir dados mais atualizados
       const res = await getCoupon(c.id);
       setSelected(res.data);
     } catch {
@@ -108,6 +126,7 @@ export default function CouponsMain() {
     }
     setModalOpen(true);
   };
+
   const handleDelete = async (id: string) => {
     if (!confirm('Deseja realmente excluir este cupom?')) return;
     setError(null);
@@ -122,33 +141,35 @@ export default function CouponsMain() {
       }
     }
   };
-  const handleSave = async (data: CouponCreate, id?: string) => {
-    setError(null);
-    try {
-      if (id) {
-        await updateCoupon(id, data);
-      } else {
-        await createCoupon(data);
-      }
-      setModalOpen(false);
-      await fetchCoupons();
-    } catch (err) {
-      if (isAxiosError(err)) {
-        setError(err.response?.data?.detail ?? 'Erro ao salvar cupom');
-      } else {
-        setError('Erro ao salvar cupom');
-      }
+
+const handleSave = async (data: CouponCreate, id?: string) => {
+  setError(null);
+  try {
+    if (id) {
+      await updateCoupon(id, data);
+    } else {
+      await createCoupon(data);
     }
-  };
+    setModalOpen(false);
+    await fetchCoupons();
+  } catch (err) {
+    // pegue a mensagem do backend
+    let msg = 'Erro ao salvar cupom';
+    if (isAxiosError(err)) {
+      msg = err.response?.data?.detail ?? msg;
+    } else if (err instanceof Error) {
+      msg = err.message || msg;
+    }
+    setError(msg);      // opcional (banner na lista)
+    throw new Error(msg); // <-- IMPORTANTE para o modal exibir Notification
+  }
+};
 
-  const showHeaderNotification = !isMobile;
-  const showMobileNotification = isMobile;
 
-  /* ---------- utils ---------- */
   const fmtDiscount = (c: CouponRead) => {
     if (!c.discount_type || c.discount_value == null) return '—';
     if (c.discount_type === 'percent') return `${c.discount_value}%`;
-    return `R$ ${Number(c.discount_value).toFixed(2)}`;
+    return fmtBRL(Number(c.discount_value));
   };
 
   /* ---------- render ---------- */
@@ -172,7 +193,7 @@ export default function CouponsMain() {
           )}
         </div>
 
-        {error && showHeaderNotification && (
+        {error && !isMobile && (
           <Notification
             type="error"
             message={error}
@@ -188,6 +209,7 @@ export default function CouponsMain() {
             <button
               className={styles.viewToggleBtn}
               onClick={() => setViewModalOpen(true)}
+              title="Modo de visualização"
             >
               ⋮
             </button>
@@ -195,7 +217,7 @@ export default function CouponsMain() {
         </div>
       </div>
 
-      {error && showMobileNotification && (
+      {error && isMobile && (
         <Notification
           type="error"
           message={error}
@@ -238,9 +260,7 @@ export default function CouponsMain() {
                     {fmtDiscount(c)}
                   </div>
                   <div className={styles.colMinOrder} data-label="Min. Pedido:">
-                    {c.min_order_amount != null
-                      ? `R$ ${Number(c.min_order_amount).toFixed(2)}`
-                      : '—'}
+                    {c.min_order_amount != null ? fmtBRL(Number(c.min_order_amount)) : '—'}
                   </div>
                   <div className={styles.colStatus} data-label="Status:">
                     {c.is_active ? 'Ativo' : 'Inativo'}
@@ -249,18 +269,24 @@ export default function CouponsMain() {
                     {c.is_visible ? 'Sim' : 'Não'}
                   </div>
                   <div className={styles.colActions}>
-                    <Link href={`/coupons/${c.id}`} className={styles.view}>
+                    <Link
+                      href={`/programs/coupons/${c.id}`}
+                      className={styles.view}
+                      title="Ver detalhes"
+                    >
                       🔍
                     </Link>
                     <button
                       className={styles.edit}
                       onClick={() => openEdit(c)}
+                      title="Editar"
                     >
                       ✏️
                     </button>
                     <button
                       className={styles.delete}
                       onClick={() => handleDelete(c.id)}
+                      title="Excluir"
                     >
                       🗑️
                     </button>
@@ -306,7 +332,13 @@ export default function CouponsMain() {
       ) : (
         <div className={styles.cardGrid}>
           {coupons.map(c => (
-            <div key={c.id} className={styles.card} onClick={() => openEdit(c)}>
+            <div
+              key={c.id}
+              className={styles.card}
+              onClick={() => openEdit(c)}
+              role="button"
+              tabIndex={0}
+            >
               <div className={styles.cardHeader}>
                 <h3>{c.name}</h3>
                 <span className={styles.cardBadge}>{fmtDiscount(c)}</span>
@@ -324,22 +356,35 @@ export default function CouponsMain() {
                 </p>
                 <p>
                   <strong>Min. Pedido:</strong>{' '}
-                  {c.min_order_amount != null
-                    ? `R$ ${Number(c.min_order_amount).toFixed(2)}`
-                    : '—'}
+                  {c.min_order_amount != null ? fmtBRL(Number(c.min_order_amount)) : '—'}
                 </p>
               </div>
               <div className={styles.cardActions}>
-                <Link href={`/coupons/${c.id}`} className={styles.view}>
+                <Link
+                  href={`/coupons/${c.id}`}
+                  className={styles.view}
+                  onClick={e => e.stopPropagation()}
+                  title="Ver detalhes"
+                >
                   🔍 Ver
                 </Link>
-                <button className={styles.edit}>✏️ Editar</button>
+                <button
+                  className={styles.edit}
+                  onClick={e => {
+                    e.stopPropagation();
+                    openEdit(c);
+                  }}
+                  title="Editar"
+                >
+                  ✏️ Editar
+                </button>
                 <button
                   className={styles.delete}
                   onClick={e => {
                     e.stopPropagation();
                     handleDelete(c.id);
                   }}
+                  title="Excluir"
                 >
                   🗑️ Excluir
                 </button>

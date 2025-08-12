@@ -23,3 +23,8 @@ export interface PaginatedProductCategories {
   limit: number;
   items: ProductCategoryRead[];
 }
+
+export interface ProductCategoryBasic {
+  id: string;
+  name: string;
+}

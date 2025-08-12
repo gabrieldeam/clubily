@@ -1,78 +1,133 @@
-/* /app/registros/page.module.css */
-.layout {
-  display: flex;
-  margin-top: 10px;
-  align-items: flex-start;
-}
+/* src/app/page.module.css */
 
-/* sidebar fixa à esquerda */
-.sidebar {
-  width: 200px;
-  background: #fff;
-  padding: 20px;
+.container {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  border-radius: 20px;
-  /* opcional: garante que não tente esticar */
-  height: auto;
+  height: 100dvh;
+  margin: 0;
+  gap: 10px;
+  overflow: hidden;
 }
 
-/* botões da sidebar */
-.sidebar button {
+.header {
+  background-color: #FFA600;
+  padding: 1rem 0;
   display: flex;
+  justify-content: center;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: none;
-  border: none;
-  border-radius: 50px;
-  cursor: pointer;
-  font-size: 0.95rem;
-  transition: background 0.2s, color 0.2s;
+  border-radius: 0 0 20px 20px;
 }
 
-.sidebar button:hover {
-  background: #000000;
-  color: #ffffff;
+.main {
+  flex: 1;
+  display: flex;
+  gap: 10px;
 }
 
-.sidebar .active {
-  background: #000000;
-  font-weight: 600;
-  color: #ffffff;
+.leftPanel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 30%;
+  padding: 2rem;
+  background: #fff;
+  border-radius: 20px;
+  height: calc(100dvh - 106.91px);
 }
 
-/* área de conteúdo que expande */
 .content {
   flex: 1;
-  padding: 0 0 0 10px;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center; 
+  width: 100%;
+}
+
+.footer {
+  margin-top: 1rem;
+  font-size: 0.75rem;
+  text-align: center;
+  color: #555;
+}
+
+.footer a {
+  text-decoration: none;
+  color: #FF4C00;
+  margin: 0 0.5rem;
+}
+
+.footer a:hover {
+  text-decoration: underline;
+}
+
+.separator {
+  color: #999;
+}
+
+.rightPanel {
+  width: 70%;
+  background-color: #FFA600;
+  background-image: url('/bgauthpage.svg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border-radius: 20px;
+  height: calc(100dvh - 106.91px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px); /* sobe 20px no meio da animação */
+  }
+}
+
+.rightPanel img{  
+  margin-top: 100px;
+  animation: float 3s ease-in-out infinite;
+}
+
+.toggleText {
+  margin-top: 2rem;
+  font-size: 0.9rem;
+}
+
+.toggleLink {
+  margin-left: 0.25rem;
+  font-weight: bold;
+  cursor: pointer;
+  color: #FF4C00;
+}
+
+.toggleLink:hover {
+  text-decoration: underline;
 }
 
 
-@media (min-width: 768px) and (max-width: 1024px) {
-  .layout {
-    flex-direction: column;
-    gap: 10px;
-}
+@media (min-width: 781px) and (max-width: 1200px) {
+  .leftPanel {
+    width: 40%;
+  }
+
+  .rightPanel {
+    width: 60%;
+  }
 }
 
-@media (max-width: 767px) {
-  .layout {
-    flex-direction: column;
-    gap: 10px;
-  }
-  .sidebar {
-    width: 100%;
-    flex-direction: row;
-    flex-wrap: wrap;        /* 🔑 permite quebrar */
-    gap: 8px;
-    padding: 12px;
-    justify-content: space-between;
-  }
-  .content {
-    padding: 0;
-    width: 100%;
-  }
+
+@media (max-width:780px) {
+    .rightPanel {
+      display: none;
+    }
+
+    .leftPanel {
+      width: 100%;
+    }
 }

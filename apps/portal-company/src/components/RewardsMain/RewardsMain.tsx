@@ -55,7 +55,10 @@ export default function RewardsMain() {
   return (
     <main className={styles.main}>
       <div className={styles.topBar}>
-        <h2>Recompensas</h2>
+        <div>
+          <h2>Recompensas</h2>
+          <p>Recompensa dada no cartão fidelidade</p>
+        </div>
         <button className={styles.addBtn} onClick={openCreate}>
           + Nova Recompensa
         </button>
@@ -74,17 +77,13 @@ export default function RewardsMain() {
         <div className={styles.tableWrapper}>
           <div className={styles.tableHeader}>
             <div className={styles.colName}>Nome</div>
-            <div className={styles.colSecret}>Secreto</div>
             <div className={styles.colStock}>Estoque</div>
             <div className={styles.colActions}>Ações</div>
           </div>
           <div className={styles.tableBody}>
             {items.map(it => (
               <div key={it.id} className={styles.tableRow}>
-                <div className={styles.colName} data-label="Nome:">{it.name}</div>
-                <div className={styles.colSecret} data-label="Secreto:">
-                  {it.secret ? '✅' : '—'}
-                </div>
+                <div className={styles.colName} data-label="Nome:">{it.name}</div>                
                 <div className={styles.colStock} data-label="Estoque:">
                   {it.stock_qty ?? '∞'}
                 </div>

@@ -23,9 +23,9 @@ export default function Dashboard() {
         <WelcomeSlider onClose={() => setShowWelcome(false)} />
       )}
       <div className={styles.container}>
+        <MetricsPurchase />
         <CashbackOverview />
         <MetricsPoints />
-        <MetricsPurchase />
         <MetricsLoyalty/>
       </div>
     </>

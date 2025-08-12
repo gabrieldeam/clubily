@@ -1,34 +1,30 @@
-// src/types/inventoryItem.ts
+import type { ProductCategoryBasic } from './productCategory';
 
-/**
- * Resposta paginada de itens de inventário.
- */
+/** Resposta paginada de itens de inventário. */
 export interface PaginatedInventoryItems {
-  total: number;              // total de registros disponíveis
-  skip: number;               // quantos foram pulados
-  limit: number;              // quantos foram retornados
-  items: InventoryItemRead[]; // lista de itens na página
+  total: number;
+  skip: number;
+  limit: number;
+  items: InventoryItemRead[];
 }
 
-/**
- * Campos compartilhados para criar/atualizar um item de inventário.
- */
+/** Campos compartilhados para criar/atualizar um item de inventário. */
 export interface InventoryItemBase {
   sku: string;
   name: string;
-  price: number;        // valor em reais (decimal)
-  category_ids: string[]; // lista de UUIDs de categorias
+  price: number;          // decimal
+  category_ids: string[]; // UUIDs de categorias
 }
 
-/** Payload para criação de item. */
+/** Payloads */
 export type InventoryItemCreate = InventoryItemBase;
-
-/** Payload para atualização de item. */
 export type InventoryItemUpdate = InventoryItemBase;
 
-/** Representação completa de um item retornado pela API. */
+/** Item completo retornado pela API. */
 export interface InventoryItemRead extends InventoryItemBase {
-  id: string;         // UUID do item
-  company_id: string; // UUID da empresa
-  created_at: string; // ISO datetime de criação
+  id: string;
+  company_id: string;
+  created_at: string;
+  /** vindo do backend agora */
+  categories?: ProductCategoryBasic[];
 }

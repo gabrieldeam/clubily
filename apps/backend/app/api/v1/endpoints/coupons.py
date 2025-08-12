@@ -6,7 +6,7 @@ from sqlalchemy import func
 from app.api.deps import get_db, get_current_company
 from app.schemas.coupon import CouponCreate, CouponUpdate, CouponRead, PaginatedCoupons
 from app.services.coupon_service import (
-    create_coupon, get_coupon, list_coupons_by_company, update_coupon, delete_coupon
+    create_coupon, get_coupon, list_coupons_by_company, update_coupon, delete_coupon, serialize_coupon
 )
 from app.models.coupon import Coupon
 from app.schemas.coupon_redeem import CouponValidateRequest, CouponValidateResponse
@@ -28,12 +28,7 @@ def create_coupon_endpoint(
 ):
     return create_coupon(db, str(current_company.id), payload)
 
-
-@router.get(
-    "/",
-    response_model=PaginatedCoupons,
-    summary="Lista cupons da empresa logada (paginado)",
-)
+@router.get("/", response_model=PaginatedCoupons)
 def list_coupons_endpoint(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
@@ -41,14 +36,15 @@ def list_coupons_endpoint(
     current_company=Depends(get_current_company),
 ):
     total, items = list_coupons_by_company(db, str(current_company.id), skip, limit)
-    return PaginatedCoupons(total=total, skip=skip, limit=limit, items=items)
+    # ⬇️ serialize itens
+    return PaginatedCoupons(
+        total=total,
+        skip=skip,
+        limit=limit,
+        items=[serialize_coupon(db, c) for c in items],
+    )
 
-
-@router.get(
-    "/{coupon_id}",
-    response_model=CouponRead,
-    summary="Detalha um cupom da empresa logada",
-)
+@router.get("/{coupon_id}", response_model=CouponRead)
 def read_coupon_endpoint(
     coupon_id: str = Path(..., description="UUID do cupom"),
     db: Session = Depends(get_db),
@@ -57,13 +53,10 @@ def read_coupon_endpoint(
     c = get_coupon(db, coupon_id)
     if not c or str(c.company_id) != str(current_company.id):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Cupom não encontrado")
-    return c
+    return serialize_coupon(db, c)   # ⬅️ aqui
 
-@router.get(
-    "/by-code/{code}",
-    response_model=CouponRead,
-    summary="Busca cupom da empresa logada pelo código"
-)
+
+@router.get("/by-code/{code}", response_model=CouponRead)
 def get_by_code(
     code: str = Path(..., description="Código do cupom (case-insensitive)"),
     db: Session = Depends(get_db),
@@ -76,7 +69,8 @@ def get_by_code(
     )
     if not c:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Cupom não encontrado")
-    return c
+    return serialize_coupon(db, c)   # ⬅️ aqui
+
 
 @router.post(
     "/redeem",
@@ -114,11 +108,7 @@ def redeem_coupon(
         redemption_id=str(redemption.id) if redemption else None,
     )
 
-@router.put(
-    "/{coupon_id}",
-    response_model=CouponRead,
-    summary="Atualiza (parcial) um cupom da empresa logada",
-)
+@router.put("/{coupon_id}", response_model=CouponRead)
 def update_coupon_endpoint(
     coupon_id: str,
     payload: CouponUpdate,
@@ -128,8 +118,7 @@ def update_coupon_endpoint(
     c = get_coupon(db, coupon_id)
     if not c or str(c.company_id) != str(current_company.id):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Cupom não encontrado")
-    return update_coupon(db, c, payload)
-
+    return update_coupon(db, c, payload) 
 
 @router.delete(
     "/{coupon_id}",

@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
+import { isAxiosError } from 'axios';
 import styles from './CouponModal.module.css';
 import FloatingLabelInput from '@/components/FloatingLabelInput/FloatingLabelInput';
 import Button from '@/components/Button/Button';
@@ -13,22 +14,35 @@ import type { InventoryItemRead } from '@/types/inventoryItem';
 import { listProductCategories } from '@/services/productCategoryService';
 import { listInventoryItems } from '@/services/inventoryItemService';
 
-// Carrega o mapa apenas no cliente (evita erro no SSR)
+// Mapa somente no cliente
 const MapPicker = dynamic(() => import('@/components/Map/MapPicker'), { ssr: false });
 
 type DiscountMode = 'none' | 'percent' | 'fixed';
 type OriginType = 'name' | 'map';
 
+type ApiErrorData = { detail?: string; message?: string; error?: string };
+
+function extractErrMsg(data: unknown): string | undefined {
+  if (!data || typeof data !== 'object') return undefined;
+  const d = data as Record<string, unknown>;
+  for (const k of ['detail', 'message', 'error'] as const) {
+    const v = d[k];
+    if (typeof v === 'string') return v;
+  }
+  return undefined;
+}
+
 interface Props {
   coupon: CouponRead | null;
-  onSave: (data: CouponCreate, id?: string) => void;
+  // IMPORTANTE: permitir Promise para podermos await e capturar erros do backend
+  onSave: (data: CouponCreate, id?: string) => Promise<void> | void;
   onCancel: () => void;
 }
 
 export default function CouponModal({ coupon, onSave, onCancel }: Props) {
   const router = useRouter();
 
-  /* ---------- form state básicos ---------- */
+  /* ---------- form state ---------- */
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
   const [description, setDescription] = useState('');
@@ -48,7 +62,8 @@ export default function CouponModal({ coupon, onSave, onCancel }: Props) {
   const [sourceLng, setSourceLng] = useState<number | ''>('');
 
   const [descCount, setDescCount] = useState(0);
-  const [notification, setNotification] = useState<{ type: string; message: string } | null>(null);
+  const [notification, setNotification] = useState<{ type: 'error'; message: string } | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   /* ---------- categorias (paginadas) ---------- */
   const [categories, setCategories] = useState<ProductCategoryRead[]>([]);
@@ -58,10 +73,9 @@ export default function CouponModal({ coupon, onSave, onCancel }: Props) {
   const [catLoading, setCatLoading] = useState(false);
   const [catQuery, setCatQuery] = useState('');
   const [catShowSelectedOnly, setCatShowSelectedOnly] = useState(false);
-  // index para mostrar nomes nas “chips”
   const [catIndex, setCatIndex] = useState<Record<string, string>>({});
 
-  /* ---------- itens (paginados) ---------- */
+  /* ---------- itens (paginadas) ---------- */
   const [items, setItems] = useState<InventoryItemRead[]>([]);
   const [itemSkip, setItemSkip] = useState(0);
   const [itemLimit, setItemLimit] = useState(10);
@@ -217,7 +231,7 @@ export default function CouponModal({ coupon, onSave, onCancel }: Props) {
     selectedCategories, selectedItems
   ]);
 
-  /* ---------- filtros (client-side na página atual) ---------- */
+  /* ---------- filtros (client-side) ---------- */
   const filteredCats = useMemo<ProductCategoryRead[]>(() => {
     const q = normalize(catQuery);
     const list = catShowSelectedOnly
@@ -234,14 +248,15 @@ export default function CouponModal({ coupon, onSave, onCancel }: Props) {
     return q ? list.filter(i => normalize(i.name).includes(q)) : list;
   }, [items, itemQuery, itemShowSelectedOnly, selectedItems]);
 
-  /* ---------- submit ---------- */
+  /* ---------- handlers ---------- */
   const handleDescChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const v = e.target.value;
     if (v.length <= 200) { setDescription(v); setDescCount(v.length); }
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    setNotification(null);
 
     if (!name || !code) {
       setNotification({ type: 'error', message: 'Preencha Nome e Código do cupom.' });
@@ -293,8 +308,23 @@ export default function CouponModal({ coupon, onSave, onCancel }: Props) {
       source_lng: originType === 'map' ? Number(sourceLng) : undefined,
     };
 
-    onSave(payload, coupon?.id);
-    localStorage.removeItem(DRAFT_KEY);
+    setSubmitting(true);
+    try {
+      // IMPORTANTE: aguardamos o onSave e capturamos mensagens do backend
+      await Promise.resolve(onSave(payload, coupon?.id));
+      localStorage.removeItem(DRAFT_KEY);
+      // o pai fecha o modal em caso de sucesso
+    } catch (err: unknown) {
+      let msg = 'Erro ao salvar cupom.';
+      if (isAxiosError<ApiErrorData>(err)) {
+        msg = extractErrMsg(err.response?.data) ?? msg;
+      } else if (err instanceof Error && err.message) {
+        msg = err.message;
+      }
+      setNotification({ type: 'error', message: msg });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const discountLabel = useMemo(() => {
@@ -303,7 +333,6 @@ export default function CouponModal({ coupon, onSave, onCancel }: Props) {
     return 'Valor fixo (R$)';
   }, [discountMode]);
 
-  /* ---------- UI actions (seleção) ---------- */
   const toggleCat = (id: string) => {
     setSelectedCategories(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
@@ -330,7 +359,7 @@ export default function CouponModal({ coupon, onSave, onCancel }: Props) {
 
       {notification && (
         <Notification
-          type={notification.type as 'error'}
+          type="error"
           message={notification.message}
           onClose={() => setNotification(null)}
         />
@@ -392,7 +421,7 @@ export default function CouponModal({ coupon, onSave, onCancel }: Props) {
         {!catLoading && !categories.length ? (
           <div className={styles.emptyBlock}>
             <p>Você ainda não cadastrou nenhuma categoria.</p>
-            <Button onClick={() => router.push('/register?section=categories')}>Cadastrar categoria</Button>
+            <Button type="button" onClick={() => router.push('/register?section=categories')}>Cadastrar categoria</Button>
           </div>
         ) : (
           <>
@@ -465,7 +494,7 @@ export default function CouponModal({ coupon, onSave, onCancel }: Props) {
         {!itemLoading && !items.length ? (
           <div className={styles.emptyBlock}>
             <p>Você ainda não cadastrou nenhum item de inventário.</p>
-            <Button onClick={() => router.push('/register?section=inventory')}>Cadastrar item de inventário</Button>
+            <Button type="button" onClick={() => router.push('/register?section=inventory')}>Cadastrar item de inventário</Button>
           </div>
         ) : (
           <>
@@ -550,8 +579,8 @@ export default function CouponModal({ coupon, onSave, onCancel }: Props) {
       )}
 
       <div className={styles.actions}>
-        <Button type="submit">Salvar</Button>
-        <Button bgColor="#AAA" onClick={onCancel}>Cancelar</Button>
+        <Button type="submit" disabled={submitting}>{submitting ? 'Salvando...' : 'Salvar'}</Button>
+        <Button type="button" bgColor="#AAA" onClick={onCancel} disabled={submitting}>Cancelar</Button>
       </div>
     </form>
   );

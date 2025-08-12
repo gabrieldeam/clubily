@@ -2,14 +2,15 @@
 from uuid import UUID
 from datetime import datetime
 from decimal import Decimal
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from typing import List
+from app.schemas.product_category import ProductCategoryBasic
 
 class InventoryItemBase(BaseModel):
     sku: str
     name: str
     price: Decimal
-    category_ids: list[UUID] = []
+    category_ids: list[UUID] = Field(default_factory=list)
 
 class InventoryItemCreate(InventoryItemBase):
     pass
@@ -18,6 +19,7 @@ class InventoryItemRead(InventoryItemBase):
     id: UUID
     company_id: UUID
     created_at: datetime
+    categories: List[ProductCategoryBasic] = Field(default_factory=list)
     model_config = ConfigDict(from_attributes=True)
 
 class PaginatedInventoryItems(BaseModel):

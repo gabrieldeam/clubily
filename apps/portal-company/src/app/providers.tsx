@@ -6,7 +6,7 @@ import { AuthProvider } from '@/context/AuthContext'
 import { WalletProvider } from '@/context/WalletContext'
 import FloatingMenu from '@/components/FloatingMenu/FloatingMenu'
 
-const HIDE_MENU_ON = ['/points', '/credits']
+const HIDE_MENU_ON = ['/points', '/credits', '/register']
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()

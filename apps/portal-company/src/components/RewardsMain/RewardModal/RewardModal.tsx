@@ -148,17 +148,7 @@ export default function RewardModal({ reward, onSave, onCancel }: Props) {
           value={description}
           onChange={e => setDescription(e.target.value)}
         />
-      </div>
-      <div className={styles.switches}>
-        <label>
-          <input
-            type="checkbox"
-            checked={secret}
-            onChange={e => setSecret(e.target.checked)}
-          />{' '}
-          Secreto
-        </label>
-      </div>
+      </div>      
       <FloatingLabelInput
         id="reward-stock"
         label="Estoque (opcional)"

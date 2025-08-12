@@ -1,8 +1,6 @@
-// src/components/InventoryItemsMain/InventoryItemModal/InventoryItemModal.tsx
-
 'use client';
 
-import { FormEvent, useState, useEffect, useRef } from 'react';
+import { FormEvent, useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './InventoryItemModal.module.css';
 import FloatingLabelInput from '@/components/FloatingLabelInput/FloatingLabelInput';
@@ -30,6 +28,8 @@ export default function InventoryItemModal({ item, onSave, onCancel }: Props) {
   const [name, setName] = useState('');
   const [price, setPrice] = useState<number>(0);
   const [selectedCats, setSelectedCats] = useState<string[]>([]);
+  const selectedSet = useMemo(() => new Set(selectedCats), [selectedCats]);
+
   const router = useRouter();
   const [categories, setCategories] = useState<ProductCategoryRead[]>([]);
   const [loadingCats, setLoadingCats] = useState(true);
@@ -58,54 +58,40 @@ export default function InventoryItemModal({ item, onSave, onCancel }: Props) {
       setSku(item.sku);
       setName(item.name);
       setPrice(item.price);
-      setSelectedCats(item.category_ids);
+      setSelectedCats(item.category_ids ?? []);
     } else {
       const draft = localStorage.getItem(DRAFT_KEY);
       if (draft) {
-        const { sku: s, name: n, price: p, selectedCats: sc } = JSON.parse(draft);
-        setSku(s);
-        setName(n);
-        setPrice(p);
-        setSelectedCats(sc);
+        try {
+          const { sku: s, name: n, price: p, selectedCats: sc } = JSON.parse(draft);
+          setSku(s ?? '');
+          setName(n ?? '');
+          setPrice(typeof p === 'number' ? p : 0);
+          setSelectedCats(Array.isArray(sc) ? sc : []);
+        } catch {
+          setSku(''); setName(''); setPrice(0); setSelectedCats([]);
+        }
       } else {
-        setSku('');
-        setName('');
-        setPrice(0);
-        setSelectedCats([]);
+        setSku(''); setName(''); setPrice(0); setSelectedCats([]);
       }
       setNotification(null);
     }
   }, [item]);
 
-  // 3) salvamento automático do rascunho (não salva vazio na montagem)
+  // 3) salvamento automático do rascunho
   useEffect(() => {
     if (item) return;
-    if (isFirstRun.current) {
-      isFirstRun.current = false;
-      return;
-    }
-    if (
-      sku.trim() !== '' ||
-      name.trim() !== '' ||
-      price !== 0 ||
-      selectedCats.length > 0
-    ) {
+    if (isFirstRun.current) { isFirstRun.current = false; return; }
+    if (sku.trim() || name.trim() || price !== 0 || selectedCats.length > 0) {
       localStorage.setItem(
         DRAFT_KEY,
-        JSON.stringify({
-          sku: sku.trim(),
-          name: name.trim(),
-          price,
-          selectedCats,
-        })
+        JSON.stringify({ sku: sku.trim(), name: name.trim(), price, selectedCats })
       );
     }
   }, [sku, name, price, selectedCats, item]);
 
   const toggleCategory = (id: string) => {
-    setSelectedCats(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-    );
+    setSelectedCats(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
 
   const handleSubmit = (e: FormEvent) => {
@@ -118,11 +104,9 @@ export default function InventoryItemModal({ item, onSave, onCancel }: Props) {
       { sku: sku.trim(), name: name.trim(), price, category_ids: selectedCats },
       item?.id
     );
-    // 4) limpa draft
     if (!item) localStorage.removeItem(DRAFT_KEY);
   };
 
-  // 5) limpa draft ao cancelar
   const handleCancel = () => {
     if (!item) localStorage.removeItem(DRAFT_KEY);
     onCancel();
@@ -133,9 +117,7 @@ export default function InventoryItemModal({ item, onSave, onCancel }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className={styles.form}>
-      <h2 className={styles.title}>
-        {item ? 'Editar Item' : 'Novo Item'}
-      </h2>
+      <h2 className={styles.title}>{item ? 'Editar Item' : 'Novo Item'}</h2>
 
       {notification && (
         <Notification
@@ -164,11 +146,11 @@ export default function InventoryItemModal({ item, onSave, onCancel }: Props) {
         label="Preço"
         type="number"
         value={price.toString()}
-        onChange={e => setPrice(parseFloat(e.target.value))}
+        onChange={e => setPrice(e.target.value === '' ? 0 : parseFloat(e.target.value))}
       />
 
       <div className={styles.catSection}>
-        <label className={styles.catLabel}>Categorias:</label>
+        <label className={styles.catLabel}>Categorias</label>
 
         {loadingCats ? (
           <p>Carregando categorias...</p>
@@ -179,7 +161,7 @@ export default function InventoryItemModal({ item, onSave, onCancel }: Props) {
                 <label key={cat.id} className={styles.catItem}>
                   <input
                     type="checkbox"
-                    checked={selectedCats.includes(cat.id)}
+                    checked={selectedSet.has(cat.id)}
                     onChange={() => toggleCategory(cat.id)}
                   />
                   <span>{cat.name}</span>
@@ -206,6 +188,17 @@ export default function InventoryItemModal({ item, onSave, onCancel }: Props) {
                 Próxima
               </button>
             </div>
+
+            
+            {/* {selectedCats.length > 0 && (
+              <div className={styles.selectedChips}>
+                {selectedCats.map(id => (
+                  <span key={id} className={styles.chip}>
+                    {categories.find(c => c.id === id)?.name ?? id}
+                  </span>
+                ))}
+              </div>
+            )} */}
           </>
         ) : (
           <div className={styles.noCategories}>
@@ -216,7 +209,6 @@ export default function InventoryItemModal({ item, onSave, onCancel }: Props) {
           </div>
         )}
       </div>
-
 
       <div className={styles.actions}>
         <Button type="submit">{item ? 'Salvar' : 'Criar'}</Button>

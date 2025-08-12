@@ -1,4 +1,3 @@
-// /components/InventoryItemsMain/InventoryItemsMain.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -25,11 +24,11 @@ export default function InventoryItemsMain() {
   const [isMobile, setIsMobile] = useState(false);
 
   /* paginação */
-  const [skip, setSkip]   = useState(0);   // deslocamento atual
-  const limit             = 10;            // itens por página (fixo ou configurável)
-  const [total, setTotal] = useState(0);   // total de itens no banco
+  const [skip, setSkip]   = useState(0);
+  const limit             = 10;
+  const [total, setTotal] = useState(0);
 
-
+  // Carrega itens
   const fetchItems = () => {
     setLoading(true);
     listInventoryItems(skip, limit)
@@ -39,9 +38,7 @@ export default function InventoryItemsMain() {
       })
       .finally(() => setLoading(false));
   };
-
   useEffect(fetchItems, [skip]);
-
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -54,14 +51,8 @@ export default function InventoryItemsMain() {
     if (isMobile) setViewMode('card');
   }, [isMobile]);
 
-  const openCreate = () => {
-    setSelected(null);
-    setModalOpen(true);
-  };
-  const openEdit = (it: InventoryItemRead) => {
-    setSelected(it);
-    setModalOpen(true);
-  };
+  const openCreate = () => { setSelected(null); setModalOpen(true); };
+  const openEdit = (it: InventoryItemRead) => { setSelected(it); setModalOpen(true); };
   const handleDelete = async (id: string) => {
     if (confirm('Deseja realmente excluir este item?')) {
       await deleteInventoryItem(id);
@@ -81,22 +72,21 @@ export default function InventoryItemsMain() {
   const goPrev = () => { if (canPrev) setSkip(prev => Math.max(prev - limit, 0)); };
   const goNext = () => { if (canNext) setSkip(prev => prev + limit); };
 
+  // agora usamos direto item.categories
+  const renderCategoryNames = (it: InventoryItemRead) => {
+    const cats = it.categories ?? [];
+    if (!cats.length) return '—';
+    return cats.map(c => c.name).join(', ');
+  };
 
   return (
     <main className={styles.main}>
       <div className={styles.topBar}>
         <h2>Inventário</h2>
-        <div className={styles.actionsHeader}>          
-          <button className={styles.addBtn} onClick={openCreate}>
-            + Novo Item
-          </button>
+        <div className={styles.actionsHeader}>
+          <button className={styles.addBtn} onClick={openCreate}>+ Novo Item</button>
           {!isMobile && (
-            <button
-              className={styles.viewToggleBtn}
-              onClick={() => setViewModalOpen(true)}
-            >
-              ⋮
-            </button>
+            <button className={styles.viewToggleBtn} onClick={() => setViewModalOpen(true)}>⋮</button>
           )}
         </div>
       </div>
@@ -126,7 +116,7 @@ export default function InventoryItemsMain() {
                 <div className={styles.colName} data-label="Nome:">{it.name}</div>
                 <div className={styles.colPrice} data-label="Preço:">R$ {Number(it.price).toFixed(2)}</div>
                 <div className={styles.colCategories} data-label="Categorias:">
-                  {it.category_ids.join(', ')}
+                  {renderCategoryNames(it)}
                 </div>
                 <div className={styles.colActions}>
                   <button className={styles.edit} onClick={() => openEdit(it)}>✏️</button>
@@ -138,9 +128,7 @@ export default function InventoryItemsMain() {
           {total > limit && (
             <div className={styles.pagination}>
               <button onClick={goPrev} disabled={!canPrev}>← Anterior</button>
-              <span>
-                {Math.floor(skip / limit) + 1} / {Math.ceil(total / limit)}
-              </span>
+              <span>{Math.floor(skip / limit) + 1} / {Math.ceil(total / limit)}</span>
               <button onClick={goNext} disabled={!canNext}>Próxima →</button>
             </div>
           )}
@@ -155,7 +143,7 @@ export default function InventoryItemsMain() {
               </div>
               <p className={styles.cardPrice}>R$ {Number(it.price).toFixed(2)}</p>
               <p className={styles.cardCategories}>
-                {it.category_ids.join(', ')}
+                {renderCategoryNames(it)}
               </p>
               <div className={styles.cardActions}>
                 <button className={styles.edit}>✏️ Editar</button>
@@ -171,9 +159,7 @@ export default function InventoryItemsMain() {
           {total > limit && (
             <div className={styles.pagination}>
               <button onClick={goPrev} disabled={!canPrev}>← Anterior</button>
-              <span>
-                {Math.floor(skip / limit) + 1} / {Math.ceil(total / limit)}
-              </span>
+              <span>{Math.floor(skip / limit) + 1} / {Math.ceil(total / limit)}</span>
               <button onClick={goNext} disabled={!canNext}>Próxima →</button>
             </div>
           )}

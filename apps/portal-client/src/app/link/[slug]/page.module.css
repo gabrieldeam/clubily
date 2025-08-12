@@ -1,29 +1,46 @@
 /* src/app/link/[slug]/page.module.css */
 
-.container {
+.page {
   width: 100%;
   min-height: 100vh;
-  background-color: #fff;
+  background: radial-gradient(1200px 600px at 50% -200px, #fff 0%, #fff 50%, #f9fafb 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.card {
+  width: 100%;
+  max-width: 760px;
+  background: #ffffff;
+  border: 1px solid #EAEAEA;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+  padding: 28px;
+}
+
+.header {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 2rem;
-  margin: 0;
-  box-sizing: border-box;
-  justify-content: center;
+  gap: 14px;
+  margin-bottom: 8px;
 }
 
 .title {
-  font-size: 2rem;
-  margin-bottom: 1rem;
-  color: #333;
+  font-size: 1.75rem;
+  line-height: 1.2;
+  margin: 0;
+  color: #1F2328;
   text-align: center;
 }
 
 .logoSection {
   display: flex;
   align-items: center;
-  margin-bottom: 1.5rem;
+  gap: 14px;
 }
 
 .logoCircle {
@@ -35,6 +52,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  border: 2px solid #fff;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
 }
 
 .logoImg {
@@ -45,9 +64,9 @@
 }
 
 .multiplier {
-  margin: 0 1rem;
   font-size: 1.5rem;
-  color: #666;
+  color: #9aa1ab;
+  user-select: none;
 }
 
 .clubilyLogo {
@@ -55,129 +74,210 @@
   height: auto;
 }
 
-.primaryButton {
-  background-color: #0070f3;
-  color: #fff;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  font-size: 1rem;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-bottom: 1.5rem;
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin: 10px 0 14px;
 }
 
-.primaryButton:hover {
-  opacity: 0.9;
+.badge {
+  font-size: 0.9rem;
+  color: #4A5568;
+  background: #fafafa;
+  border: 1px dashed #EAEAEA;
+  border-radius: 999px;
+  padding: 6px 12px;
+}
+
+.badgePrimary {
+  background: rgba(255, 76, 0, 0.08);
+  color: #FF4C00;
+  border-color: rgba(255, 76, 0, 0.25);
 }
 
 .description {
   font-size: 1rem;
-  color: #555;
+  color: #4A5568;
   text-align: center;
-  margin-bottom: 1rem;
-  max-width: 600px;
+  margin: 0 0 10px;
 }
 
 .ruleInfo {
-  font-size: 1rem;
-  color: #444;
+  font-size: 0.95rem;
+  color: #6B7280;
   text-align: center;
-  margin-bottom: 1rem;
-  line-height: 1.4;
+  margin: 0 0 18px;
 }
 
+.ctaRow {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+
+/* Botões base */
+.btn {
+  --_bg: #111;
+  --_fg: #fff;
+  appearance: none;
+  border: 1px solid transparent;
+  background: var(--_bg);
+  color: var(--_fg);
+  padding: 0.75rem 1.2rem;
+  font-size: 1rem;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: transform .06s ease, filter .15s ease, box-shadow .15s ease, background .15s ease;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn:hover { filter: brightness(0.98); }
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: .6; cursor: not-allowed; }
+
+.btnBlock { width: 100%; }
+
+/* Variações de marca */
+.btnPrimary {
+  --_bg: #FF4C00;
+  --_fg: #ffffff;
+}
+
+.btnSecondary {
+  --_bg: #FFA600;
+  --_fg: #1F2328;
+}
+
+.btnGhost {
+  --_bg: #ffffff;
+  --_fg: #1F2328;
+  border: 1px solid #EAEAEA;
+  box-shadow: none;
+}
+.btnGhost:hover { background: #f8f9fa; }
+
+/* Seções da empresa */
 .companySection {
   width: 100%;
-  max-width: 600px;
-  margin-bottom: 2rem;
+  margin-top: 6px;
 }
 
 .subtitle {
-  font-size: 1.25rem;
-  margin-bottom: 0.5rem;
-  color: #333;
+  font-size: 1.1rem;
+  color: #1F2328;
   text-align: center;
+  margin: 10px 0 8px;
 }
 
 .companyList {
   list-style: none;
   padding: 0;
+  margin: 0;
+  background: #fafafa;
+  border: 1px solid #EAEAEA;
+  border-radius: 12px;
+  overflow: hidden;
 }
 
 .companyList li {
-  display: flex;
-  justify-content: space-between;
-  padding: 0.5rem 0;
-  border-bottom: 1px solid #eee;
-}
-
-.companyList li:last-child {
-  border-bottom: none;
-}
-
-.modalOverlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.5);
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #EAEAEA;
   align-items: center;
-  justify-content: center;
-  z-index: 1000;
+  font-size: 0.95rem;
+  color: #4A5568;
 }
 
-.modal {
-  background: #fff;
-  padding: 1.5rem;
-  border-radius: 8px;
-  width: 90%;
-  max-width: 400px;
+.companyList li span:first-child {
+  color: #6B7280;
+}
+
+.companyList li:last-child { border-bottom: none; }
+
+/* Modal */
+.modalContent {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 20px;
+}
+
+.modalTitle {
+  font-size: 1.05rem;
+  color: #1F2328;
+  margin: 0 0 2px;
+  text-align: center;
 }
 
 .methodButtons {
-  display: flex;
-  justify-content: space-around;
-  background-color: white;
-  padding: 20px;
-  border-radius: 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
 }
 
-.modalButton {
-  background-color: #0070f3;
-  color: #fff;
-  border: none;
-  padding: 0.75rem 1rem;
-  border-radius: 4px;
-  cursor: pointer;
+.inputWrap :global(input),
+.inputWrap :global(textarea) {
+  width: 100%;
 }
 
-.modalButton:hover {
-  opacity: 0.9;
-}
-
-.modalContent {
-  background-color: white;
-  padding: 20px;
-  border-radius: 20px;
-}
-
-
+/* Ações do modal */
 .modalActions {
   display: flex;
   justify-content: flex-end;
+  gap: 10px;
 }
 
+/* Estados de erro */
 .error {
-  color: #e00;
-  font-size: 0.875rem;
+  color: #c1121f;
+  font-size: 0.9rem;
   text-align: center;
-  margin-bottom: 0.5rem;
+  margin: -4px 0 4px;
 }
 
-.success {
+/* Tela de sucesso */
+.successCard {
+  background: #ffffff;
+  border: 1px solid #EAEAEA;
+  border-radius: 16px;
+  padding: 28px 24px;
+  max-width: 520px;
+  width: 100%;
   text-align: center;
-  margin-top: 2rem;
-  position: relative;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+}
+
+.successEmoji {
+  font-size: 2rem;
+  margin: 0;
+}
+
+.successTitle {
+  font-size: 1.5rem;
+  color: #1F2328;
+  margin: 6px 0 2px;
+}
+
+.successText {
+  font-size: 1.05rem;
+  color: #4A5568;
+  margin: 0;
+}
+
+/* Responsivo */
+@media (max-width: 520px) {
+  .card { padding: 22px; }
+  .logoSection { gap: 10px; }
+  .clubilyLogo, .logoCircle { width: 68px; height: 68px; }
+  .methodButtons { grid-template-columns: 1fr; }
 }
