@@ -6,6 +6,10 @@ import type {
   InstanceDetail,
   CodeResponse,
   RewardCodeResponse,
+  CompletedCardAdmin,
+  CompletedCardsParams,
+  TemplateStatsAdmin, 
+  TemplateStatsParams
 } from '@/types/loyalty';
 import type { CompanyBasic } from '@/types/company';
 
@@ -110,3 +114,24 @@ export function generateRewardCode(
  */
 export const listCompaniesWithCards = () =>
   api.get<CompanyBasic[]>('/loyalty/user/companies-with-cards');
+
+
+/**
+ * Lista cartões de fidelidade CONCLUÍDOS na plataforma inteira.
+ * Requer token de usuário com papel admin (usa `require_admin` no backend).
+ *
+ * GET /loyalty/platform/admin/loyalty/completed-cards
+ */
+export const listPlatformCompletedCards = (params: CompletedCardsParams = {}) =>
+  api.get<CompletedCardAdmin[]>(
+    '/loyalty/platform/admin/loyalty/completed-cards',
+    { params }
+  );
+
+
+/** GET /loyalty/platform/admin/loyalty/templates-stats */
+export const listPlatformTemplateStats = (params: TemplateStatsParams = {}) =>
+  api.get<TemplateStatsAdmin[]>(
+    '/loyalty/platform/admin/loyalty/templates-stats',
+    { params }
+  );

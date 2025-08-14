@@ -2,7 +2,7 @@
 from uuid import UUID
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
-from sqlalchemy import or_, func
+from sqlalchemy import or_, func, case 
 from fastapi import (
     APIRouter, Depends, UploadFile, File, Form,
     Query, Path, status, HTTPException, Body, Response
@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import or_
 
 from app.api.deps import (
-    get_db, get_current_company, get_current_user, get_redis
+    get_db, get_current_company, get_current_user, get_redis, require_admin
 )
 from app.services.file_service import save_upload, delete_file_from_url
 from app.services.loyalty_service import (
@@ -26,7 +26,7 @@ from app.schemas.loyalty_card import (
     RuleCreate, RuleRead,
     InstanceRead, InstanceDetail,
     CodeResponse, StampPayload, InstanceAdminDetail, 
-    IssueForUserPayload, StampData
+    IssueForUserPayload, StampData, CompletedCardAdmin, TemplateStatsAdmin
 
 )
 from app.models.loyalty_card import (
@@ -973,3 +973,244 @@ def admin_get_template(
     if not tpl:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Template não encontrado")
     return tpl
+
+
+@router.get(
+    "/platform/admin/loyalty/completed-cards",
+    response_model=List[CompletedCardAdmin],
+    summary="Plataforma (admin): listar todos os cartões COMPLETOS",
+)
+def platform_list_completed_cards(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=200),
+    company_id: Optional[UUID] = Query(None, description="Filtra por empresa dona do template"),
+    template_id: Optional[UUID] = Query(None, description="Filtra por template"),
+    user_id: Optional[UUID] = Query(None, description="Filtra por usuário dono do cartão"),
+    completed_from: Optional[datetime] = Query(None, description="Concluídos a partir desta data"),
+    completed_to: Optional[datetime] = Query(None, description="Concluídos até esta data"),
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),   # <-- RESTRIÇÃO DE ADMIN DE PLATAFORMA
+    response: Response = None,
+):
+    """
+    Lista cartões (LoyaltyCardInstance) que foram concluídos (completed_at != NULL),
+    em toda a plataforma. Inclui informações do template, empresa, usuário, carimbos e
+    métricas úteis para acompanhamento do programa.
+    """
+    q = (
+        db.query(LoyaltyCardInstance)
+          .join(LoyaltyCardTemplate, LoyaltyCardTemplate.id == LoyaltyCardInstance.template_id)
+          .join(Company, Company.id == LoyaltyCardTemplate.company_id)
+          .filter(LoyaltyCardInstance.completed_at.isnot(None))
+          .options(
+              # carregamentos necessários p/ montar o payload completo
+              selectinload(LoyaltyCardInstance.template)
+                .selectinload(LoyaltyCardTemplate.rewards_map),
+              selectinload(LoyaltyCardInstance.template)
+                .selectinload(LoyaltyCardTemplate.company),
+              selectinload(LoyaltyCardInstance.redemptions),
+              selectinload(LoyaltyCardInstance.stamps),
+              selectinload(LoyaltyCardInstance.user),
+          )
+    )
+
+    # filtros opcionais
+    if company_id is not None:
+        q = q.filter(LoyaltyCardTemplate.company_id == company_id)
+
+    if template_id is not None:
+        q = q.filter(LoyaltyCardInstance.template_id == template_id)
+
+    if user_id is not None:
+        q = q.filter(LoyaltyCardInstance.user_id == str(user_id))
+
+    if completed_from is not None:
+        q = q.filter(LoyaltyCardInstance.completed_at >= completed_from)
+
+    if completed_to is not None:
+        q = q.filter(LoyaltyCardInstance.completed_at <= completed_to)
+
+    total = q.count()
+    instances: List[LoyaltyCardInstance] = (
+        q.order_by(LoyaltyCardInstance.completed_at.desc())
+         .offset((page - 1) * page_size)
+         .limit(page_size)
+         .all()
+    )
+
+    # paginação em headers
+    if response is not None:
+        response.headers["X-Total-Count"] = str(total)
+        response.headers["X-Page"] = str(page)
+        response.headers["X-Page-Size"] = str(page_size)
+
+    # monta resposta
+    result: List[CompletedCardAdmin] = []
+    for inst in instances:
+        tpl = inst.template
+        comp = tpl.company if tpl else None
+        usr = inst.user
+
+        # contagens de recompensas
+        total_rewards = len(tpl.rewards_map) if tpl else 0
+        redeemed = sum(1 for r in inst.redemptions if r.used)
+        pending = max(total_rewards - redeemed, 0)
+
+        # último carimbo (se houver)
+        last_stamp_at = max((s.given_at for s in inst.stamps), default=None)
+
+        # tempo p/ completar (segundos)
+        if inst.issued_at and inst.completed_at:
+            time_to_complete_seconds = int((inst.completed_at - inst.issued_at).total_seconds())
+        else:
+            time_to_complete_seconds = 0
+
+        result.append(
+            CompletedCardAdmin(
+                id=inst.id,
+                template_id=inst.template_id,
+                template_title=(tpl.title if tpl else ""),
+                stamp_total=(tpl.stamp_total if tpl else inst.stamps_given),
+                user_id=inst.user_id,
+                user_name=(usr.name if usr else None),
+                user_email=(usr.email if usr else None),
+                company_id=(comp.id if comp else None),
+                company_name=(comp.name if comp else ""),
+                issued_at=inst.issued_at,
+                completed_at=inst.completed_at,   # guaranteed not None by filter
+                expires_at=inst.expires_at,
+                stamps_given=inst.stamps_given,
+                total_rewards=total_rewards,
+                redeemed_count=redeemed,
+                pending_count=pending,
+                last_stamp_at=last_stamp_at,
+                time_to_complete_seconds=time_to_complete_seconds,
+            )
+        )
+
+    return result
+
+
+@router.get(
+    "/platform/admin/loyalty/templates-stats",
+    response_model=List[TemplateStatsAdmin],
+    summary="Plataforma (admin): estatísticas de templates (emissões por cartão)"
+)
+def platform_list_template_stats(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=200),
+    company_id: Optional[UUID] = Query(None, description="Filtra por empresa"),
+    active: Optional[bool] = Query(None, description="Filtra por status do template"),
+    created_from: Optional[datetime] = Query(None, description="Templates criados a partir de"),
+    created_to: Optional[datetime] = Query(None, description="Templates criados até"),
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),   # <-- restrição de admin de plataforma
+    response: Response = None,
+):
+    """
+    Agrega por template:
+      - issued_total, active_instances, completed_instances, unique_users, last_issued_at
+    Inclui também metadados do template e da empresa.
+    """
+    issued_total = func.count(LoyaltyCardInstance.id).label("issued_total")
+    active_instances = func.coalesce(
+        func.sum(case((LoyaltyCardInstance.completed_at.is_(None), 1), else_=0)), 0
+    ).label("active_instances")
+    completed_instances = func.coalesce(
+        func.sum(case((LoyaltyCardInstance.completed_at.isnot(None), 1), else_=0)), 0
+    ).label("completed_instances")
+    unique_users = func.count(func.distinct(LoyaltyCardInstance.user_id)).label("unique_users")
+    last_issued_at = func.max(LoyaltyCardInstance.issued_at).label("last_issued_at")
+
+    q = (
+        db.query(
+            LoyaltyCardTemplate.id.label("template_id"),
+            LoyaltyCardTemplate.title.label("template_title"),
+            LoyaltyCardTemplate.company_id.label("company_id"),
+            Company.name.label("company_name"),
+            LoyaltyCardTemplate.active.label("active"),
+            LoyaltyCardTemplate.created_at.label("created_at"),
+            LoyaltyCardTemplate.updated_at.label("updated_at"),
+            LoyaltyCardTemplate.stamp_total.label("stamp_total"),
+            LoyaltyCardTemplate.per_user_limit.label("per_user_limit"),
+            LoyaltyCardTemplate.emission_start.label("emission_start"),
+            LoyaltyCardTemplate.emission_end.label("emission_end"),
+            LoyaltyCardTemplate.emission_limit.label("emission_limit"),
+            issued_total,
+            active_instances,
+            completed_instances,
+            unique_users,
+            last_issued_at,
+        )
+        .join(Company, Company.id == LoyaltyCardTemplate.company_id)
+        .outerjoin(
+            LoyaltyCardInstance,
+            LoyaltyCardInstance.template_id == LoyaltyCardTemplate.id
+        )
+    )
+
+    # filtros
+    if company_id is not None:
+        q = q.filter(LoyaltyCardTemplate.company_id == company_id)
+    if active is not None:
+        q = q.filter(LoyaltyCardTemplate.active.is_(active))
+    if created_from is not None:
+        q = q.filter(LoyaltyCardTemplate.created_at >= created_from)
+    if created_to is not None:
+        q = q.filter(LoyaltyCardTemplate.created_at <= created_to)
+
+    # group by por todas as colunas do template/empresa usadas no SELECT
+    q = q.group_by(
+        LoyaltyCardTemplate.id,
+        LoyaltyCardTemplate.title,
+        LoyaltyCardTemplate.company_id,
+        Company.name,
+        LoyaltyCardTemplate.active,
+        LoyaltyCardTemplate.created_at,
+        LoyaltyCardTemplate.updated_at,
+        LoyaltyCardTemplate.stamp_total,
+        LoyaltyCardTemplate.per_user_limit,
+        LoyaltyCardTemplate.emission_start,
+        LoyaltyCardTemplate.emission_end,
+        LoyaltyCardTemplate.emission_limit,
+    ).order_by(LoyaltyCardTemplate.created_at.desc())
+
+    total = q.count()  # número de templates após os filtros
+    rows = (
+        q.offset((page - 1) * page_size)
+         .limit(page_size)
+         .all()
+    )
+
+    # paginação em headers
+    if response is not None:
+        response.headers["X-Total-Count"] = str(total)
+        response.headers["X-Page"] = str(page)
+        response.headers["X-Page-Size"] = str(page_size)
+
+    # montar resposta
+    result: List[TemplateStatsAdmin] = []
+    for r in rows:
+        result.append(
+            TemplateStatsAdmin(
+                template_id=r.template_id,
+                template_title=r.template_title,
+                company_id=r.company_id,
+                company_name=r.company_name,
+                active=r.active,
+                created_at=r.created_at,
+                updated_at=r.updated_at,
+                stamp_total=r.stamp_total,
+                per_user_limit=r.per_user_limit,
+                emission_start=r.emission_start,
+                emission_end=r.emission_end,
+                emission_limit=r.emission_limit,
+                issued_total=r.issued_total or 0,
+                active_instances=r.active_instances or 0,
+                completed_instances=r.completed_instances or 0,
+                unique_users=r.unique_users or 0,
+                last_issued_at=r.last_issued_at,
+            )
+        )
+
+    return result

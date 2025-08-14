@@ -96,3 +96,77 @@ export interface RewardCodeResponse {
   expires_at: string;
   reused: boolean;
 }
+
+
+/* ---------- platform admin: completed cards ------------------------------ */
+export interface CompletedCardAdmin {
+  id: string;
+  template_id: string;
+  template_title: string;
+  stamp_total: number;
+
+  user_id: string;
+  user_name?: string | null;
+  user_email?: string | null;
+
+  company_id: string;
+  company_name: string;
+
+  issued_at: string;                 // ISO
+  completed_at: string;              // ISO
+  expires_at?: string | null;
+  stamps_given: number;
+
+  total_rewards: number;
+  redeemed_count: number;
+  pending_count: number;
+
+  last_stamp_at?: string | null;     // ISO
+  time_to_complete_seconds: number;
+}
+
+/** Filtros/params aceitos pelo endpoint */
+export interface CompletedCardsParams {
+  page?: number;                     // default 1
+  page_size?: number;                // default 20 (no backend novo usei page_size)
+  company_id?: string;
+  template_id?: string;
+  user_id?: string;
+  completed_from?: string;           // ISO date/time
+  completed_to?: string;             // ISO date/time
+}
+
+
+/* ---------- platform admin: templates stats -------------------------------- */
+export interface TemplateStatsAdmin {
+  template_id: string;
+  template_title: string;
+
+  company_id: string;
+  company_name: string;
+
+  active: boolean;
+  created_at: string;          // ISO
+  updated_at: string;          // ISO
+
+  stamp_total: number;
+  per_user_limit: number;
+  emission_start?: string | null;
+  emission_end?: string | null;
+  emission_limit?: number | null;
+
+  issued_total: number;        // total de emissões (instances)
+  active_instances: number;    // instances não concluídas
+  completed_instances: number; // instances concluídas
+  unique_users: number;        // usuários únicos com instance
+  last_issued_at?: string | null;
+}
+
+export interface TemplateStatsParams {
+  page?: number;               // default 1
+  page_size?: number;          // default 20
+  company_id?: string;         // filtrar por empresa
+  active?: boolean;            // true/false
+  created_from?: string;       // ISO
+  created_to?: string;         // ISO
+}

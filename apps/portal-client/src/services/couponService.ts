@@ -3,6 +3,13 @@ import api from './api';
 import type {
   PaginatedCoupons,
   PublicVisibleCouponsQuery,
+  // ⬇️ novos types admin:
+  CouponStatsAdmin,
+  CouponUserAggregateAdmin,
+  CouponRedemptionUserAdmin,
+  AdminCouponStatsParams,
+  AdminCouponUsersParams,
+  AdminCouponRedemptionsParams,
 } from '@/types/coupon';
 
 /**
@@ -25,3 +32,46 @@ export async function listPublicVisibleCoupons(
 
   return data;
 }
+
+
+/* ======================================================================= */
+/*  PLATFORM ADMIN (Coupons)                                               */
+/* ======================================================================= */
+
+/** GET /coupons/platform/admin/coupons/stats
+ *  Retorna array de stats por cupom; paginação nos headers.
+ */
+export const listPlatformCouponStats = (
+  params: AdminCouponStatsParams = {},
+  signal?: AbortSignal
+) =>
+  api.get<CouponStatsAdmin[]>(
+    '/coupons/platform/admin/coupons/stats',
+    { params, signal }
+  );
+
+/** GET /coupons/platform/admin/coupons/{coupon_id}/users
+ *  Retorna agregado por usuário para um cupom; paginação nos headers.
+ */
+export const listPlatformCouponUsersAggregate = (
+  couponId: string,
+  params: AdminCouponUsersParams = {},
+  signal?: AbortSignal
+) =>
+  api.get<CouponUserAggregateAdmin[]>(
+    `/coupons/platform/admin/coupons/${couponId}/users`,
+    { params, signal }
+  );
+
+/** GET /coupons/platform/admin/coupons/{coupon_id}/redemptions
+ *  Retorna lista detalhada de resgates; paginação nos headers.
+ */
+export const listPlatformCouponRedemptions = (
+  couponId: string,
+  params: AdminCouponRedemptionsParams = {},
+  signal?: AbortSignal
+) =>
+  api.get<CouponRedemptionUserAdmin[]>(
+    `/coupons/platform/admin/coupons/${couponId}/redemptions`,
+    { params, signal }
+  );

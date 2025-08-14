@@ -22,7 +22,8 @@ import {
   ShoppingCart,
   GalleryThumbnails,
   Flag,
-  Rss
+  Rss,
+  BadgePercent
 } from 'lucide-react';
 import styles from './Sidebar.module.css';
 
@@ -35,7 +36,9 @@ const navItems = [
   { label: 'Cashback', href: '/admin/cashback-programs', icon: CreditCard },
   { label: 'Pontos', href: '/admin/points', icon: Award },
   { label: 'Planos de Pontos', href: '/admin/point-plans', icon: SquareChartGantt },
-  { label: 'Cartão Fidelidade', href: '/admin/programas/cartao-fidelidade', icon: Gift },
+  { label: 'Cartão Fidelidade', href: '/admin/loyalty-templates', icon: Gift },
+  { label: 'Cartão Fidelidade Completos', href: '/admin/loyalty-completed', icon: Gift },
+  { label: 'Cupons', href: '/admin/coupons', icon: BadgePercent },
   { label: 'Representantes', href: '/admin/referrals', icon: UserCheck },
   { label: 'Comissões', href: '/admin/commissions', icon: DollarSign },
   { label: 'Loja de Recompensas', href: '/admin/rewards', icon: ShoppingCart },

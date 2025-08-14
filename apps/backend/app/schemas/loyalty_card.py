@@ -127,3 +127,59 @@ class StampData(BaseModel):
 
 class StampWithCode(StampData):
     code: str
+
+
+# ─── Plataforma (admin): visão de cartões concluídos ─────────────────────────────
+class CompletedCardAdmin(BaseModel):
+    id: UUID
+    template_id: UUID
+    template_title: str
+    stamp_total: int
+
+    user_id: UUID
+    user_name: Optional[str] = None
+    user_email: Optional[str] = None
+
+    company_id: UUID
+    company_name: str
+
+    issued_at: datetime
+    completed_at: datetime
+    expires_at: Optional[datetime] = None
+    stamps_given: int
+
+    total_rewards: int
+    redeemed_count: int
+    pending_count: int
+
+    last_stamp_at: Optional[datetime] = None
+    time_to_complete_seconds: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ─── Plataforma (admin): estatísticas por template ─────────────────────────────
+class TemplateStatsAdmin(BaseModel):
+    template_id: UUID
+    template_title: str
+
+    company_id: UUID
+    company_name: str
+
+    active: bool
+    created_at: datetime
+    updated_at: datetime
+
+    stamp_total: int
+    per_user_limit: int
+    emission_start: Optional[datetime] = None
+    emission_end: Optional[datetime] = None
+    emission_limit: Optional[int] = None
+
+    issued_total: int              # total de emissões (instances)
+    active_instances: int          # instances não concluídas
+    completed_instances: int       # instances concluídas
+    unique_users: int              # usuários únicos com instance
+    last_issued_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
