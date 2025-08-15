@@ -35,7 +35,6 @@ type FastApiErrorBody =
   | string
   | Record<string, unknown>;
 
-
 interface ClientModalProps {
   onClose: () => void;
 }
@@ -84,7 +83,8 @@ export default function ClientModal({ onClose }: ClientModalProps) {
   const [withdrawError, setWithdrawError] = useState<string | null>(null);
 
   /* ---------- compra ---------- */
-  const [purchaseAmount, setPurchaseAmount] = useState('');
+  const [purchaseAmount, setPurchaseAmount] = useState(''); // valor que vai para o checkout (digitado ou calculado)
+  const [isManualAmount, setIsManualAmount] = useState(false); // <— NOVO: alterna modo manual
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [itemCounts, setItemCounts] = useState<Record<string, number>>({});
   const [selectedIndex, setSelectedIndex] = useState<Record<string, number>>({});
@@ -125,32 +125,32 @@ export default function ClientModal({ onClose }: ClientModalProps) {
 
   // código de carimbo (opcional)
   const [stampCode, setStampCode] = useState('');
+
   function extractAxiosDetail(err: unknown): string {
-  if (isAxiosError(err)) {
-    const d = err.response?.data as FastApiErrorBody | undefined;
-    if (!d) return err.message;
+    if (isAxiosError(err)) {
+      const d = err.response?.data as FastApiErrorBody | undefined;
+      if (!d) return err.message;
 
-    if (typeof d === 'string') return d;
+      if (typeof d === 'string') return d;
 
-    const detail = (d as { detail?: unknown }).detail;
+      const detail = (d as { detail?: unknown }).detail;
 
-    if (typeof detail === 'string') return detail;
+      if (typeof detail === 'string') return detail;
 
-    if (Array.isArray(detail)) {
-      try {
-        return (detail as FastApiValidationItem[])
-          .map((x) => x.msg ?? x.detail ?? JSON.stringify(x))
-          .join(' | ');
-      } catch {
-        return JSON.stringify(detail);
+      if (Array.isArray(detail)) {
+        try {
+          return (detail as FastApiValidationItem[])
+            .map((x) => x.msg ?? x.detail ?? JSON.stringify(x))
+            .join(' | ');
+        } catch {
+          return JSON.stringify(detail);
+        }
       }
+
+      return JSON.stringify(d);
     }
-
-    return JSON.stringify(d);
+    return err instanceof Error ? err.message : 'Erro desconhecido';
   }
-  return err instanceof Error ? err.message : 'Erro desconhecido';
-}
-
 
   function buildStampData(amountNumber: number, items: string[], eventName: string) {
     return {
@@ -161,7 +161,6 @@ export default function ClientModal({ onClose }: ClientModalProps) {
       visit_count: 1,
     } as const;
   }
-
 
   /* ----------------------------- reset modal ---------------------------- */
   const handleReset = () => {
@@ -187,6 +186,7 @@ export default function ClientModal({ onClose }: ClientModalProps) {
 
     /* compra */
     setPurchaseAmount('');
+    setIsManualAmount(false); // <— volta para automático
     setStampCode('');
     setSelectedCardForStamp(null);
     setBranchId('');
@@ -210,30 +210,30 @@ export default function ClientModal({ onClose }: ClientModalProps) {
 
   // +1 no contador e marca item
   const incrementItem = (id: string) => {
-    setItemCounts(prev => {
+    setItemCounts((prev) => {
       const next = { ...prev, [id]: (prev[id] || 0) + 1 };
-      setSelectedItems(s => (s.includes(id) ? s : [...s, id]));
-      const price = items.find(i => i.id === id)?.price;
-      setSelectedIndex(prevIdx =>
+      setSelectedItems((s) => (s.includes(id) ? s : [...s, id]));
+      const price = items.find((i) => i.id === id)?.price;
+      setSelectedIndex((prevIdx) =>
         prevIdx[id] === undefined ? { ...prevIdx, [id]: Number(price ?? 0) } : prevIdx
       );
-      const name = items.find(i => i.id === id)?.name;
-      if (name) setItemNameIndex(prevNames => (prevNames[id] ? prevNames : { ...prevNames, [id]: name }));
+      const name = items.find((i) => i.id === id)?.name;
+      if (name) setItemNameIndex((prevNames) => (prevNames[id] ? prevNames : { ...prevNames, [id]: name }));
       return next;
     });
   };
 
   // –1 no contador e desmarca quando zera
   const decrementItem = (id: string) => {
-    setItemCounts(prev => {
+    setItemCounts((prev) => {
       const current = prev[id] || 0;
       const nextCount = current - 1;
       const next = { ...prev };
 
       if (nextCount <= 0) {
         delete next[id];
-        setSelectedItems(s => s.filter(x => x !== id));
-        setSelectedIndex(prevIndex => {
+        setSelectedItems((s) => s.filter((x) => x !== id));
+        setSelectedIndex((prevIndex) => {
           const nextIndex = { ...prevIndex };
           delete nextIndex[id];
           return nextIndex;
@@ -295,7 +295,7 @@ export default function ClientModal({ onClose }: ClientModalProps) {
     /* programas */
     setProgLoading(true);
     getCashbackPrograms()
-      .then(r => setPrograms(r.data))
+      .then((r) => setPrograms(r.data))
       .catch(console.error)
       .finally(() => setProgLoading(false));
 
@@ -310,7 +310,7 @@ export default function ClientModal({ onClose }: ClientModalProps) {
         setItems(data.items);
         setTotalPages(Math.ceil(data.total / perPage));
         // index de nomes (para chips)
-        setItemNameIndex(prev => {
+        setItemNameIndex((prev) => {
           const next = { ...prev };
           data.items.forEach((it: InventoryItemRead) => {
             if (!next[it.id]) next[it.id] = it.name;
@@ -324,14 +324,14 @@ export default function ClientModal({ onClose }: ClientModalProps) {
     /* carteira */
     setWalletLoading(true);
     getUserWallet(client.id)
-      .then(r => setUserWallet(r.data))
+      .then((r) => setUserWallet(r.data))
       .catch(console.error)
       .finally(() => setWalletLoading(false));
 
     /* filiais */
     setBranchesLoading(true);
     listBranches()
-      .then(r => setBranches(r.data))
+      .then((r) => setBranches(r.data))
       .catch(console.error)
       .finally(() => setBranchesLoading(false));
   }, [client, page, searchTerm]);
@@ -341,15 +341,22 @@ export default function ClientModal({ onClose }: ClientModalProps) {
     if (programs.length === 1) setSelectedProg(programs[0].id);
   }, [programs]);
 
-  // Recalcula total (quantidade × preço)
-  useEffect(() => {
+  // Total calculado pelos itens (sempre atualizado)
+  const computedAmount = useMemo(() => {
     const sum = Object.entries(itemCounts).reduce((total, [id, count]) => {
-      const priceInPage = items.find(i => i.id === id)?.price;
+      const priceInPage = items.find((i) => i.id === id)?.price;
       const price = Number(priceInPage ?? selectedIndex[id] ?? 0);
       return total + price * (count ?? 0);
     }, 0);
-    setPurchaseAmount(sum.toFixed(2));
+    return sum;
   }, [itemCounts, items, selectedIndex]);
+
+  // Se NÃO estiver em modo manual, sincroniza o campo com o total calculado
+  useEffect(() => {
+    if (!isManualAmount) {
+      setPurchaseAmount(computedAmount.toFixed(2));
+    }
+  }, [computedAmount, isManualAmount]);
 
   /* ---------------------- Pré-visualizar cupom ------------------------ */
   const handlePreviewCoupon = async () => {
@@ -436,12 +443,10 @@ export default function ClientModal({ onClose }: ClientModalProps) {
         }
       }
 
-
-
       // Atualiza carteira
       setWalletLoading(true);
       getUserWallet(client.id)
-        .then(r => setUserWallet(r.data))
+        .then((r) => setUserWallet(r.data))
         .catch(console.error)
         .finally(() => setWalletLoading(false));
 
@@ -454,6 +459,7 @@ export default function ClientModal({ onClose }: ClientModalProps) {
 
       // Limpa campos de compra (mas mantém cliente)
       setPurchaseAmount('');
+      setIsManualAmount(false); // volta para automático após compra
       setStampCode('');
       setSelectedCardForStamp(null);
       setSelectedItems([]);
@@ -501,7 +507,7 @@ export default function ClientModal({ onClose }: ClientModalProps) {
 
   /* -------------------- MEMOs -------------------- */
   const filteredPageItems = useMemo(() => {
-    return itemShowSelectedOnly ? items.filter(i => selectedItems.includes(i.id)) : items;
+    return itemShowSelectedOnly ? items.filter((i) => selectedItems.includes(i.id)) : items;
   }, [items, itemShowSelectedOnly, selectedItems]);
 
   /* -------------------------------- UI -------------------------------- */
@@ -526,7 +532,7 @@ export default function ClientModal({ onClose }: ClientModalProps) {
           label="Telefone"
           type="text"
           value={phone}
-          onChange={e => setPhone(e.target.value)}
+          onChange={(e) => setPhone(e.target.value)}
         />
 
         <div className={styles.separator}>e/ou</div>
@@ -537,7 +543,7 @@ export default function ClientModal({ onClose }: ClientModalProps) {
           label="CPF"
           type="text"
           value={cpf}
-          onChange={e => setCpf(e.target.value)}
+          onChange={(e) => setCpf(e.target.value)}
         />
 
         <div className={styles.actions}>
@@ -554,24 +560,26 @@ export default function ClientModal({ onClose }: ClientModalProps) {
 
   // selecionar todos da página (coloca quantidade 1 para os que ainda não estavam)
   const selectAllItemsPage = () => {
-    setItemCounts(prev => {
+    setItemCounts((prev) => {
       const next = { ...prev };
-      filteredPageItems.forEach(i => {
+      filteredPageItems.forEach((i) => {
         if (!next[i.id] || next[i.id] < 1) next[i.id] = 1;
       });
       return next;
     });
-    setSelectedItems(prev => Array.from(new Set([...prev, ...filteredPageItems.map(i => i.id)])));
-    setSelectedIndex(prev => {
+    setSelectedItems((prev) => Array.from(new Set([...prev, ...filteredPageItems.map((i) => i.id)])));
+    setSelectedIndex((prev) => {
       const next = { ...prev };
-      filteredPageItems.forEach(i => {
+      filteredPageItems.forEach((i) => {
         if (next[i.id] === undefined) next[i.id] = Number(i.price ?? 0);
       });
       return next;
     });
-    setItemNameIndex(prev => {
+    setItemNameIndex((prev) => {
       const next = { ...prev };
-      filteredPageItems.forEach(i => { if (!next[i.id]) next[i.id] = i.name; });
+      filteredPageItems.forEach((i) => {
+        if (!next[i.id]) next[i.id] = i.name;
+      });
       return next;
     });
   };
@@ -590,9 +598,15 @@ export default function ClientModal({ onClose }: ClientModalProps) {
 
       {/* informações básicas */}
       <div className={styles.userInfo}>
-        <p><strong>Nome:</strong> {client.name || '—'}</p>
-        <p><strong>Telefone:</strong> {client.phone || '—'}</p>
-        <p><strong>CPF:</strong> {client.cpf || '—'}</p>
+        <p>
+          <strong>Nome:</strong> {client.name || '—'}
+        </p>
+        <p>
+          <strong>Telefone:</strong> {client.phone || '—'}
+        </p>
+        <p>
+          <strong>CPF:</strong> {client.cpf || '—'}
+        </p>
 
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flexDirection: 'row' }}>
           <Button
@@ -619,7 +633,10 @@ export default function ClientModal({ onClose }: ClientModalProps) {
         {selectedCardForStamp && (
           <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center', width: '100%' }}>
             <span style={{ background: '#F3F4F6', padding: '6px 10px', borderRadius: 12, width: '100%' }}>
-              Cartão selecionado: <br/> <strong style={{ background: '#F3F4F6', padding: '6px 10px', borderRadius: 12, width: '100%' }}>{selectedCardForStamp.title}</strong>
+              Cartão selecionado: <br />{' '}
+              <strong style={{ background: '#F3F4F6', padding: '6px 10px', borderRadius: 12, width: '100%' }}>
+                {selectedCardForStamp.title}
+              </strong>
             </span>
             <button
               onClick={() => setSelectedCardForStamp(null)}
@@ -671,9 +688,45 @@ export default function ClientModal({ onClose }: ClientModalProps) {
           name="purchaseAmount"
           label="Valor da compra (R$)"
           type="number"
+          step="0.01"
           value={purchaseAmount}
-          readOnly
+          onChange={(e) => {
+            setPurchaseAmount(e.target.value);
+          }}
+          readOnly={!isManualAmount} // <— editável somente no modo manual
         />
+
+        <div className={styles.checkboxRow} style={{ marginTop: 6 }}>
+          <input
+            id="toggle-manual-amount"
+            type="checkbox"
+            checked={isManualAmount}
+            onChange={(e) => {
+              const manual = e.target.checked;
+              setIsManualAmount(manual);
+              if (!manual) {
+                // voltando para automático, sincroniza imediatamente
+                setPurchaseAmount(computedAmount.toFixed(2));
+              }
+            }}
+          />
+          <label htmlFor="toggle-manual-amount">Editar valor manualmente</label>
+        </div>
+
+        {isManualAmount && (
+          <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <small style={{ color: '#6B7280' }}>
+              Total calculado pelos itens: <strong>R$ {computedAmount.toFixed(2)}</strong>
+            </small>
+            <button
+              type="button"
+              className={styles.miniBtn}
+              onClick={() => setPurchaseAmount(computedAmount.toFixed(2))}
+            >
+              Usar total dos itens
+            </button>
+          </div>
+        )}
 
         {/* Se um cartão foi selecionado, desabilitamos o código para não duplicar */}
         <FloatingLabelInput
@@ -682,7 +735,7 @@ export default function ClientModal({ onClose }: ClientModalProps) {
           label="Código do cartão (opcional)"
           type="text"
           value={stampCode}
-          onChange={e => setStampCode(e.target.value)}
+          onChange={(e) => setStampCode(e.target.value)}
           disabled={!!selectedCardForStamp}
         />
         {selectedCardForStamp && (
@@ -699,7 +752,7 @@ export default function ClientModal({ onClose }: ClientModalProps) {
             label="Cupom (opcional)"
             type="text"
             value={couponCode}
-            onChange={e => setCouponCode(e.target.value)}
+            onChange={(e) => setCouponCode(e.target.value)}
           />
           <Button onClick={handlePreviewCoupon} disabled={validatingCoupon || !couponCode.trim()}>
             {validatingCoupon ? 'Validando…' : 'Validar'}
@@ -709,7 +762,9 @@ export default function ClientModal({ onClose }: ClientModalProps) {
           <div className={styles.couponPreview}>
             {couponPreview.valid ? (
               <>
-                <p>Desconto: <strong>R$ {couponPreview.discount.toFixed(2)}</strong></p>
+                <p>
+                  Desconto: <strong>R$ {couponPreview.discount.toFixed(2)}</strong>
+                </p>
                 <p>
                   Total com cupom:{' '}
                   <strong>
@@ -740,7 +795,7 @@ export default function ClientModal({ onClose }: ClientModalProps) {
                 className={styles.searchInput}
                 placeholder="Buscar por nome ou SKU…"
                 value={searchTerm}
-                onChange={e => {
+                onChange={(e) => {
                   setSearchTerm(e.target.value);
                   setPage(0);
                 }}
@@ -749,7 +804,7 @@ export default function ClientModal({ onClose }: ClientModalProps) {
                 <input
                   type="checkbox"
                   checked={itemShowSelectedOnly}
-                  onChange={e => setItemShowSelectedOnly(e.target.checked)}
+                  onChange={(e) => setItemShowSelectedOnly(e.target.checked)}
                 />
                 Mostrar só selecionados
               </label>
@@ -785,7 +840,7 @@ export default function ClientModal({ onClose }: ClientModalProps) {
                     <div className={`${styles.skeleton} ${styles.cardStub}`} key={i} />
                   ))
                 ) : (
-                  filteredPageItems.map(item => {
+                  filteredPageItems.map((item) => {
                     const count = itemCounts[item.id] || 0;
                     const checked = count > 0;
                     return (
@@ -800,26 +855,26 @@ export default function ClientModal({ onClose }: ClientModalProps) {
                             onChange={() => {
                               if (checked) {
                                 // desmarca e zera contagem
-                                setItemCounts(prev => {
+                                setItemCounts((prev) => {
                                   const next = { ...prev };
                                   delete next[item.id];
                                   return next;
                                 });
-                                setSelectedItems(s => s.filter(x => x !== item.id));
-                                setSelectedIndex(prevIndex => {
+                                setSelectedItems((s) => s.filter((x) => x !== item.id));
+                                setSelectedIndex((prevIndex) => {
                                   const nextIndex = { ...prevIndex };
                                   delete nextIndex[item.id];
                                   return nextIndex;
                                 });
                               } else {
-                                setItemCounts(prev => ({ ...prev, [item.id]: 1 }));
-                                setSelectedItems(s => (s.includes(item.id) ? s : [...s, item.id]));
-                                setSelectedIndex(prev =>
+                                setItemCounts((prev) => ({ ...prev, [item.id]: 1 }));
+                                setSelectedItems((s) => (s.includes(item.id) ? s : [...s, item.id]));
+                                setSelectedIndex((prev) =>
                                   prev[item.id] === undefined
                                     ? { ...prev, [item.id]: Number(item.price) }
                                     : prev
                                 );
-                                setItemNameIndex(prev =>
+                                setItemNameIndex((prev) =>
                                   prev[item.id] ? prev : { ...prev, [item.id]: item.name }
                                 );
                               }
@@ -829,9 +884,13 @@ export default function ClientModal({ onClose }: ClientModalProps) {
                         </label>
 
                         <div className={styles.qtyControls}>
-                          <button type="button" onClick={() => decrementItem(item.id)} disabled={count === 0}>–</button>
+                          <button type="button" onClick={() => decrementItem(item.id)} disabled={count === 0}>
+                            –
+                          </button>
                           <span>{count}</span>
-                          <button type="button" onClick={() => incrementItem(item.id)}>+</button>
+                          <button type="button" onClick={() => incrementItem(item.id)}>
+                            +
+                          </button>
                         </div>
                       </div>
                     );
@@ -840,22 +899,20 @@ export default function ClientModal({ onClose }: ClientModalProps) {
               </div>
 
               {!itemsLoading && filteredPageItems.length === 0 && items.length > 0 && (
-                <div className={styles.helperText}>
-                  Nenhum item nesta página corresponde ao filtro/seleção.
-                </div>
+                <div className={styles.helperText}>Nenhum item nesta página corresponde ao filtro/seleção.</div>
               )}
 
               <footer className={styles.selectFooter}>
                 {totalPages > 1 && (
                   <div className={styles.paginationControls}>
-                    <button onClick={() => setPage(p => Math.max(p - 1, 0))} disabled={page === 0 || itemsLoading}>
+                    <button onClick={() => setPage((p) => Math.max(p - 1, 0))} disabled={page === 0 || itemsLoading}>
                       Anterior
                     </button>
                     <span>
                       Página {page + 1} de {Math.max(1, totalPages)}
                     </span>
                     <button
-                      onClick={() => setPage(p => Math.min(p + 1, totalPages - 1))}
+                      onClick={() => setPage((p) => Math.min(p + 1, totalPages - 1))}
                       disabled={page + 1 >= totalPages || itemsLoading}
                     >
                       Próxima
@@ -865,20 +922,20 @@ export default function ClientModal({ onClose }: ClientModalProps) {
 
                 {selectedItems.length > 0 && (
                   <div className={styles.chips}>
-                    {Array.from(new Set(selectedItems)).map(id => (
+                    {Array.from(new Set(selectedItems)).map((id) => (
                       <span key={id} className={styles.chip}>
                         {itemNameIndex[id] || `${id.slice(0, 8)}…`} × {itemCounts[id] ?? 0}
                         <button
                           type="button"
                           aria-label="Remover"
                           onClick={() => {
-                            setItemCounts(prev => {
+                            setItemCounts((prev) => {
                               const next = { ...prev };
                               delete next[id];
                               return next;
                             });
-                            setSelectedItems(s => s.filter(x => x !== id));
-                            setSelectedIndex(prev => {
+                            setSelectedItems((s) => s.filter((x) => x !== id));
+                            setSelectedIndex((prev) => {
                               const next = { ...prev };
                               delete next[id];
                               return next;
@@ -900,10 +957,12 @@ export default function ClientModal({ onClose }: ClientModalProps) {
         {branchesLoading ? (
           <p>Carregando filiais…</p>
         ) : branches.length > 0 ? (
-          <select className={styles.select} value={branchId} onChange={e => setBranchId(e.target.value)}>
+          <select className={styles.select} value={branchId} onChange={(e) => setBranchId(e.target.value)}>
             <option value="">Selecione a filial (Opcional)</option>
-            {branches.map(b => (
-              <option key={b.id} value={b.id}>{b.name}</option>
+            {branches.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
             ))}
           </select>
         ) : null}
@@ -915,7 +974,7 @@ export default function ClientModal({ onClose }: ClientModalProps) {
               id="associate-cb"
               type="checkbox"
               checked={associateCb}
-              onChange={e => setAssociateCb(e.target.checked)}
+              onChange={(e) => setAssociateCb(e.target.checked)}
             />
             <label htmlFor="associate-cb">Associar Cashback</label>
           </div>
@@ -928,10 +987,10 @@ export default function ClientModal({ onClose }: ClientModalProps) {
             <select
               className={styles.select}
               value={selectedProg}
-              onChange={e => setSelectedProg(e.target.value)}
+              onChange={(e) => setSelectedProg(e.target.value)}
             >
               <option value="">— selecione —</option>
-              {programs.map(p => (
+              {programs.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name} ({p.percent}%)
                 </option>
@@ -976,7 +1035,7 @@ export default function ClientModal({ onClose }: ClientModalProps) {
                 label="Valor a debitar"
                 type="number"
                 value={withdrawAmount}
-                onChange={e => setWithdrawAmount(e.target.value)}
+                onChange={(e) => setWithdrawAmount(e.target.value)}
                 disabled={withdrawLoading}
               />
 
@@ -988,11 +1047,7 @@ export default function ClientModal({ onClose }: ClientModalProps) {
             </div>
 
             {withdrawError && (
-              <Notification
-                type="error"
-                message={withdrawError}
-                onClose={() => setWithdrawError(null)}
-              />
+              <Notification type="error" message={withdrawError} onClose={() => setWithdrawError(null)} />
             )}
           </>
         ) : null}

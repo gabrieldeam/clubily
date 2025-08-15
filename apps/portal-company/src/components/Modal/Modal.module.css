@@ -6,19 +6,24 @@
   justify-content: center;
   align-items: center;
   z-index: 11100000;
-  
+
+  /* a página pode rolar se a modal for alta */
   overflow-y: auto;
-  overflow-x: hidden; 
+  overflow-x: hidden;
 }
 
 .content {
   position: relative;
-  padding: 2rem 2.5rem;
+  /* espaço padrão interno vai para a área rolável */
   border-radius: 0.75rem;
   width: 100%;
-  max-height: 100vh;
+  max-height: 100svh;
+
+  /* variável para reservar espaço do botão fechar */
+  --close-gutter: 40px; /* ajuste se quiser mais/menos espaço */
 }
 
+/* botão fechar fixo no topo-direita da modal */
 .closeBtn {
   position: absolute;
   top: 0.75rem;
@@ -26,10 +31,43 @@
   background: transparent;
   border: none;
   font-size: 1.5rem;
-  cursor: pointer;  
+  cursor: pointer;
   background-color: white;
   padding: 5px;
   border-radius: 100px;
 }
 
+/* wrapper que realmente rola */
+.scrollArea {
+  max-height: 100svh;
+  overflow: auto;
 
+  /* padding visual do conteúdo da modal */
+  padding: 2rem 0.5rem;
+
+  /* move a BORDA direita (logo, o scrollbar) para a esquerda do botão close */
+  margin-right: var(--close-gutter);
+
+  /* deixa o conteúdo não colar nas bordas em telas pequenas */
+  box-sizing: border-box;
+
+  /* Scrollbar só aqui na modal: menor e com trilho transparente */
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(17, 24, 39, 0.35) transparent;
+
+  /* WebKit (Chrome/Edge/Safari) */
+}
+.scrollArea::-webkit-scrollbar {
+  width: 8px;
+}
+.scrollArea::-webkit-scrollbar-track {
+  background: transparent; /* trilho transparente */
+}
+.scrollArea::-webkit-scrollbar-thumb {
+  background-color: rgba(17, 24, 39, 0.35); /* cinza escuro translúcido */
+  border-radius: 8px;
+}
+.scrollArea::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(17, 24, 39, 0.5);
+}

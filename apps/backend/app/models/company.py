@@ -1,7 +1,7 @@
 # backend/app/models/company.py
 
 from uuid import uuid4
-from sqlalchemy import Column, String, Boolean, DateTime, UniqueConstraint, Text
+from sqlalchemy import Column, String, Boolean, DateTime, UniqueConstraint, Text, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
@@ -125,4 +125,18 @@ class Company(Base):
         back_populates="company",
         cascade="all, delete-orphan",
         lazy="selectin",
+    )
+
+    primary_category_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("categories.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    # Relacionamento para acesso direto
+    primary_category = relationship(
+        "Category",
+        foreign_keys=[primary_category_id],
+        lazy="joined",
     )

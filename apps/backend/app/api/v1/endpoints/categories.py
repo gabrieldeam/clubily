@@ -183,3 +183,34 @@ def read_category_by_id(
     if not cat:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Categoria não encontrada")
     return cat
+
+
+@router.post("/{category_id}/primary", status_code=status.HTTP_204_NO_CONTENT,
+             summary="Marca uma categoria como principal para a empresa atual")
+def set_primary_category_for_current_company(
+    category_id: str,
+    current_company: Company = Depends(get_current_company),
+    db: Session = Depends(get_db),
+):
+    cat = db.get(Category, category_id)
+    if not cat:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Categoria não encontrada")
+
+    # Se a empresa ainda não possui essa categoria associada, associe
+    if cat not in current_company.categories:
+        current_company.categories.append(cat)
+
+    current_company.primary_category = cat
+    db.commit()
+    return
+
+
+@router.delete("/primary", status_code=status.HTTP_204_NO_CONTENT,
+               summary="Remove a categoria principal da empresa atual")
+def unset_primary_category_for_current_company(
+    current_company: Company = Depends(get_current_company),
+    db: Session = Depends(get_db),
+):
+    current_company.primary_category = None
+    db.commit()
+    return

@@ -31,6 +31,8 @@ class CompanyBase(BaseModel):
     description: Optional[str] = None
     online_url: Optional[HttpUrl] = None
     only_online: bool = False
+    primary_category_id: UUID | None = None
+    primary_category: CategoryRead | None = None
 
     @field_validator("online_url", mode="before")
     @classmethod

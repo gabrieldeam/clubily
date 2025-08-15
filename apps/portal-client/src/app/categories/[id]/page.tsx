@@ -111,7 +111,7 @@ useEffect(() => {
             <h2 className={styles.name}>{cat.name}</h2>
           </div>
           <Link href="/categories" className={styles.categories}>
-            <button>← Voltar a Categorias</button>
+            <button>Voltar a Categorias</button>
           </Link>
         </div>
 

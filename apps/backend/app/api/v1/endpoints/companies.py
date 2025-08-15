@@ -1,6 +1,6 @@
 # backend/app/api/v1/endpoints/companies.py
 
-from typing import List, Optional
+from typing import List, Optional, Tuple
 import os, uuid
 from fastapi import APIRouter, Depends, Response, BackgroundTasks, HTTPException, status, UploadFile, File, Query
 from fastapi_pagination import Page, Params
@@ -31,6 +31,16 @@ from redis import Redis
 
 router = APIRouter(tags=["companies"])
 
+def _addr_tuple(c) -> Tuple[str, str, str, str, str, str]:
+    return (
+        c.street or "",
+        c.number or "",
+        c.neighborhood or "",
+        c.city or "",
+        c.state or "",
+        c.postal_code or "",
+    )
+
 @router.post(
     "/register",
     response_model=Token,
@@ -43,52 +53,47 @@ def register_company(
     db: Session = Depends(get_db),
 ):
     """
-    Registra uma nova empresa e, logo após,
-    - Agenda geocoding do CEP em background (AwesomeAPI → Nominatim → Google)
+    Registra uma nova empresa e, logo após:
+    - Agenda geocoding do endereço completo em background
     - Gera e devolve um JWT no cookie e no JSON
-    - Envia e‑mail de boas‑vindas com verificação de e‑mail
+    - Envia e-mail de boas-vindas com verificação de e-mail
     """
 
-    # 1) Aceitação dos termos
     if not payload.accepted_terms:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Você precisa aceitar os termos de uso para se registrar.",
         )
 
-    # 2) Unicidade de e‑mail
     if db.query(Company).filter(Company.email == payload.email.lower()).first():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Já existe uma empresa cadastrada com esse e-mail.",
         )
 
-    # 3) Unicidade de telefone
-    # if db.query(Company).filter(Company.phone == payload.phone).first():
-    #     raise HTTPException(
-    #         status_code=status.HTTP_400_BAD_REQUEST,
-    #         detail="Já existe uma empresa cadastrada com esse telefone.",
-    #     )
-
-    # 4) Unicidade de CNPJ
     if db.query(Company).filter(Company.cnpj == payload.cnpj).first():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Já existe uma empresa cadastrada com esse CNPJ.",
         )
 
-    # 5) Cria a empresa (sem location ainda)
+    # 1) Cria a empresa (sem location ainda)
     company = create(db, payload)
 
-    # 6) Agenda geocoding em background
+    # 2) Agenda geocoding PRECISO (endereço completo)
     background.add_task(
         geocode_and_save,
-        company.id,
-        payload.postal_code,
-        settings.REDIS_URL,
+        company_id=str(company.id),
+        redis_url=settings.REDIS_URL,
+        street=payload.street,
+        number=payload.number,
+        neighborhood=payload.neighborhood,
+        city=payload.city,
+        state=payload.state,
+        postal_code=payload.postal_code,
     )
 
-    # 7) Gera o JWT de sessão e seta no cookie
+    # 3) Gera o JWT de sessão e seta no cookie
     token = create_access_token(str(company.id))
     response.set_cookie(
         key=settings.COOKIE_NAME,
@@ -99,19 +104,19 @@ def register_company(
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
 
-    # 8) Envia e‑mail de boas‑vindas + verificação
+    # 4) Envia e-mail de boas-vindas + verificação
     verify_url = f"{settings.FRONTEND_ORIGINS[0]}/verify-email?token={token}"
     background.add_task(
         send_templated_email,
         to=company.email,
-        subject="Bem-vindo ao Clubily – Confirme seu e‑mail",
+        subject="Bem-vindo ao Clubily – Confirme seu e-mail",
         template_name="welcome_company.html",
         company_name=company.name,
         verify_url=verify_url,
         logo_url=f"{settings.BACKEND_ORIGINS}/static/logo.png",
     )
 
-    # 9) Retorna o token no JSON
+    # 5) Retorna o token no JSON
     return {"access_token": token}
 
 
@@ -571,6 +576,7 @@ def update_company(
     if not company:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Empresa não encontrada")
 
+    old_addr = _addr_tuple(company)
     data = payload.model_dump(exclude_unset=True)
 
     # e-mail: reset verificação + envia link
@@ -594,18 +600,40 @@ def update_company(
         cats = db.scalars(select(Category).where(Category.id.in_(ids))).unique().all()
         company.categories = cats
 
-    # online_url: aceita None, "" (já convertido no schema), ou HttpUrl
+    # online_url
     if "online_url" in data:
         raw_url = data.pop("online_url")
-        # se vier None ou "", zera; senão, salva como string
         company.online_url = None if not raw_url else str(raw_url)
 
-    # demais campos
-    for field, value in data.items():
+    # demais campos diretos
+    for field, value in list(data.items()):
         setattr(company, field, value)
 
     db.commit()
     db.refresh(company)
+
+    # Se marcou only_online=True, opcionalmente zere location
+    if company.only_online and company.location is not None:
+        company.location = None
+        db.commit()
+        db.refresh(company)
+        return company
+
+    # Se endereço mudou, re-geocodifique com endereço COMPLETO
+    new_addr = _addr_tuple(company)
+    if new_addr != old_addr:
+        background.add_task(
+            geocode_and_save,
+            company_id=str(company.id),
+            redis_url=settings.REDIS_URL,
+            street=company.street,
+            number=company.number,
+            neighborhood=company.neighborhood,
+            city=company.city,
+            state=company.state,
+            postal_code=company.postal_code,
+        )
+
     return company
 
 

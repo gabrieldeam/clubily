@@ -1,7 +1,7 @@
 // src/components/EditCompanyForm/EditCompanyForm.tsx
 'use client';
 
-import { useEffect, useState, FormEvent } from 'react';
+import { useEffect, useMemo, useState, FormEvent } from 'react';
 import Image from 'next/image';
 import { isAxiosError } from 'axios';
 import editStyles from './EditCompanyForm.module.css';
@@ -16,11 +16,15 @@ import {
   forgotPasswordCompany,
   resetPasswordCompany,
 } from '@/services/companyService';
-import { listCategories } from '@/services/categoryService';
+import {
+  listCategories,
+  setPrimaryCategory,
+  unsetPrimaryCategory,
+} from '@/services/categoryService';
 import type { CompanyRead, CompanyUpdate } from '@/types/company';
 import type { CategoryRead } from '@/types/category';
 
-// 👉 novo: picker/cropper 1:1
+// 👉 picker/cropper 1:1
 import ImagePickerSquare from '@/components/ImagePickerSquare/ImagePickerSquare';
 
 type NotificationType = 'success' | 'error' | 'info';
@@ -34,6 +38,23 @@ interface CompanySettingsProps {
   onClose: () => void;
   onSaved: () => void;
 }
+
+// nomes dos campos de endereço (e onlines) que podem fazer parte do PATCH
+const addressFieldNames = [
+  'postal_code',
+  'street',
+  'city',
+  'state',
+  'number',
+  'neighborhood',
+  'complement',
+  'online_url',
+  'only_online',
+] as const;
+
+type AddressField = typeof addressFieldNames[number];
+const isAddressField = (n: string): n is AddressField =>
+  (addressFieldNames as readonly string[]).includes(n as AddressField);
 
 export default function CompanySettings({
   companyId,
@@ -53,6 +74,17 @@ export default function CompanySettings({
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
   const [dataDirty, setDataDirty] = useState(false);
+  const [addressDirty, setAddressDirty] = useState(false); // <- novo
+
+  // ---- Categoria principal ----
+  const [primaryCategoryId, setPrimaryCategoryId] = useState<string | null>(null);
+  const [originalPrimaryCategoryId, setOriginalPrimaryCategoryId] = useState<string | null>(null);
+
+  // Derivadas
+  const selectedCategories = useMemo(
+    () => categories.filter(c => (company.category_ids ?? []).includes(c.id)),
+    [categories, company.category_ids]
+  );
 
   type FastAPIErrorItem = {
     loc?: string | (string | number)[];
@@ -65,8 +97,6 @@ export default function CompanySettings({
   function formatErrorDetail(detail: unknown): string {
     if (!detail) return 'Erro inesperado.';
     if (typeof detail === 'string') return detail;
-
-    // Array no padrão FastAPI/Pydantic
     if (Array.isArray(detail)) {
       const items = detail as FastAPIErrorItem[];
       const parts = items.map((d) => {
@@ -88,47 +118,44 @@ export default function CompanySettings({
       });
       return parts.join('\n');
     }
-
-    // Objeto com campos msg/detail
     if (typeof detail === 'object' && detail !== null) {
       const obj = detail as FastAPIErrorItem;
-
       if (typeof obj.msg === 'string') return obj.msg;
-
       if (obj.detail && obj.detail !== detail) {
         return formatErrorDetail(obj.detail);
       }
-
       try {
         return Object.entries(obj)
           .map(([k, v]) => `${k}: ${typeof v === 'string' ? v : JSON.stringify(v)}`)
           .join('\n');
-      } catch {
-        /* ignore */
-      }
+      } catch { /* ignore */ }
     }
-
-    try {
-      return JSON.stringify(detail);
-    } catch {
-      return String(detail);
-    }
+    try { return JSON.stringify(detail); } catch { return String(detail); }
   }
 
   /* --------------------------- carregar dados --------------------------- */
   useEffect(() => {
-    getCompanyInfo(companyId).then((res) => {
-      const { categories: cats, ...rest } = res.data as CompanyRead;
+    (async () => {
+      const res = await getCompanyInfo(companyId);
+      const data = res.data as CompanyRead;
+      const { categories: cats, primary_category_id, ...rest } = data;
+
       setCompany({
         ...rest,
         logo_url: rest.logo_url ?? undefined,
-        category_ids: cats.map((c) => c.id),
+        category_ids: (cats || []).map((c) => c.id),
       });
-      // se já houver logo, mantém preview remoto; se trocar, usamos o dataUrl do crop
+
+      setPrimaryCategoryId(primary_category_id ?? null);
+      setOriginalPrimaryCategoryId(primary_category_id ?? null);
+
       setLogoPreview(null);
       setDataDirty(false);
-    });
-    listCategories().then((res) => setCategories(res.data));
+      setAddressDirty(false); // <- importante: novo carregamento, nada editado ainda
+
+      const catRes = await listCategories();
+      setCategories(catRes.data);
+    })();
   }, [companyId]);
 
   /* --------------------- auto-preencher via CEP (ViaCEP) --------------------- */
@@ -146,6 +173,7 @@ export default function CompanySettings({
               state: data.uf || '',
             }));
             setDataDirty(true);
+            setAddressDirty(true); // <- marcar que houve edição de endereço
           } else {
             setCompanyNotification({
               type: 'error',
@@ -166,23 +194,33 @@ export default function CompanySettings({
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
-    const { name, type, value, checked } = e.target as HTMLInputElement;
+    const target = e.target as HTMLInputElement | HTMLTextAreaElement;
+    const type = (target as HTMLInputElement).type;
+    const name = (target.name || '') as keyof CompanyFormState | string;
+
+    const raw: string | boolean =
+      type === 'checkbox' ? (target as HTMLInputElement).checked : target.value;
+
+    // cast via unknown para evitar 'any'
+    const key = name as keyof CompanyFormState;
+    const value = raw as unknown as CompanyFormState[typeof key];
+
     setCompany((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value,
+      [key]: value,
     }));
     setDataDirty(true);
+
+    if (isAddressField(name)) {
+      setAddressDirty(true);
+    }
   };
 
   const handleCategoryToggle = (id: string) => {
     setCompany((prev) => {
       const current = prev.category_ids ?? [];
-      return {
-        ...prev,
-        category_ids: current.includes(id)
-          ? current.filter((c) => c !== id)
-          : [...current, id],
-      };
+      const next = current.includes(id) ? current.filter(c => c !== id) : [...current, id];
+      return { ...prev, category_ids: next };
     });
     setDataDirty(true);
   };
@@ -194,9 +232,7 @@ export default function CompanySettings({
     if (value.length > maxDescriptionLength) {
       setCompanyNotification({
         type: 'error',
-        message: `Você excedeu o limite em ${
-          value.length - maxDescriptionLength
-        } caracteres.`,
+        message: `Você excedeu o limite em ${value.length - maxDescriptionLength} caracteres.`,
       });
     } else {
       setCompanyNotification(null);
@@ -208,76 +244,100 @@ export default function CompanySettings({
     setDataDirty(true);
   };
 
+  /* ----------------------------- regras da principal ---------------------------- */
+  useEffect(() => {
+    const ids = company.category_ids ?? [];
+    if (ids.length === 1 && !primaryCategoryId) {
+      setPrimaryCategoryId(ids[0]);
+    }
+    if (primaryCategoryId && !ids.includes(primaryCategoryId)) {
+      setPrimaryCategoryId(null);
+    }
+  }, [company.category_ids, primaryCategoryId]);
+
   /* ----------------------------- submit dados ---------------------------- */
   const handleCompanySubmit = async (e: FormEvent) => {
     e.preventDefault();
+
+    const ids = company.category_ids ?? [];
     const hasLogoChange = !!logoFile;
     const hasDataChange = dataDirty;
 
+    const desiredPrimary = primaryCategoryId ?? null;
+    const primaryChanged = desiredPrimary !== originalPrimaryCategoryId;
+
+    if (ids.length > 0 && !desiredPrimary) {
+      setCompanyNotification({
+        type: 'error',
+        message: 'Selecione a categoria principal antes de salvar.',
+      });
+      return;
+    }
+
+    const category_ids = ids.slice();
+    if (desiredPrimary && !category_ids.includes(desiredPrimary)) {
+      category_ids.push(desiredPrimary);
+    }
+
     try {
-      /* ---------- 1) somente logo ---------- */
-      if (hasLogoChange && !hasDataChange) {
+      /* ---------- Logo (se houver) ---------- */
+      if (hasLogoChange) {
         const fd = new FormData();
         fd.append('image', logoFile as File);
         await uploadCompanyLogo(fd);
-        setCompanyNotification({
-          type: 'success',
-          message: 'Logo atualizada com sucesso.',
-        });
       }
 
-      /* ---------- 2) somente dados ---------- */
-      if (!hasLogoChange && hasDataChange) {
-        const payload: Partial<CompanyUpdate> = { ...company };
+      /* ---------- Dados (se houver) ---------- */
+      if (hasDataChange) {
+        const payload: Partial<CompanyUpdate> = { ...company, category_ids };
+        // não envia logo_url no PATCH
         delete (payload as Partial<CompanyUpdate> & { logo_url?: string }).logo_url;
-        if (!showAddress) {
-          delete payload.postal_code;
-          delete payload.street;
-          delete payload.city;
-          delete payload.state;
-          delete payload.number;
-          delete payload.neighborhood;
-          delete payload.complement;
+
+        // Se o endereço NÃO foi mexido, omita campos de endereço/online do PATCH
+        if (!addressDirty) {
+          for (const f of addressFieldNames) {
+            const key = f as keyof CompanyUpdate;
+            if (key in payload) {
+              delete payload[key];
+            }
+          }
         }
-        await updateCompany(companyId, payload);
-        setCompanyNotification({
-          type: 'success',
-          message: 'Dados atualizados com sucesso.',
-        });
+
+        await updateCompany(companyId, payload as CompanyUpdate);
       }
 
-      /* ---------- 3) logo + dados ---------- */
-      if (hasLogoChange && hasDataChange) {
-        const fd = new FormData();
-        fd.append('image', logoFile as File);
-        await uploadCompanyLogo(fd);
-
-        const payload: Partial<CompanyUpdate> = { ...company };
-        delete (payload as Partial<CompanyUpdate> & { logo_url?: string }).logo_url;
-        if (!showAddress) {
-          delete payload.postal_code;
-          delete payload.street;
-          delete payload.city;
-          delete payload.state;
-          delete payload.number;
-          delete payload.neighborhood;
-          delete payload.complement;
+      /* ---------- Principal (se mudou ou se não há categorias) ---------- */
+      if (category_ids.length === 0) {
+        if (originalPrimaryCategoryId !== null) {
+          await unsetPrimaryCategory();
+          setOriginalPrimaryCategoryId(null);
         }
-        await updateCompany(companyId, payload);
-        setCompanyNotification({
-          type: 'success',
-          message: 'Logo e dados atualizados com sucesso.',
-        });
+      } else if (primaryChanged) {
+        if (desiredPrimary) {
+          await setPrimaryCategory(desiredPrimary);
+          setOriginalPrimaryCategoryId(desiredPrimary);
+        } else {
+          await unsetPrimaryCategory();
+          setOriginalPrimaryCategoryId(null);
+        }
       }
 
-      /* ---------- 4) nada para salvar ---------- */
-      if (!hasLogoChange && !hasDataChange) {
-        setCompanyNotification({
-          type: 'info',
-          message: 'Nenhuma alteração para salvar.',
-        });
+      if (!hasLogoChange && !hasDataChange && !primaryChanged) {
+        setCompanyNotification({ type: 'info', message: 'Nenhuma alteração para salvar.' });
         return;
       }
+
+      setCompanyNotification({
+        type: 'success',
+        message:
+          hasLogoChange && hasDataChange
+            ? 'Logo e dados atualizados com sucesso.'
+            : hasLogoChange
+            ? 'Logo atualizada com sucesso.'
+            : hasDataChange
+            ? 'Dados atualizados com sucesso.'
+            : 'Categoria principal atualizada com sucesso.',
+      });
 
       onSaved();
       onClose();
@@ -394,11 +454,11 @@ export default function CompanySettings({
                     stageSize={360}
                     outputSize={512}
                     outputFileName="logo.jpg"
-                    outputType="image/jpeg" // força fundo branco aparecer
+                    outputType="image/jpeg"
                     onCropped={(file, dataUrl) => {
                       setLogoFile(file);
                       setLogoPreview(dataUrl);
-                      // não marca dataDirty; logo é salvo via upload separado
+                      // upload da logo é separado, não marca dataDirty
                     }}
                   />
                 </div>
@@ -449,6 +509,7 @@ export default function CompanySettings({
                   onChange={handleChange}
                 />
 
+                {/* ------ categorias (checkbox) ------ */}
                 <div className={editStyles.catContainer}>
                   {categories.map((cat) => (
                     <label key={cat.id} className={editStyles.catItem}>
@@ -460,6 +521,30 @@ export default function CompanySettings({
                       {cat.name}
                     </label>
                   ))}
+                </div>
+
+                {/* ------ categoria principal (radio nas selecionadas) ------ */}
+                <div className={editStyles.primaryBlock}>
+                  <div className={editStyles.primaryTitle}>Categoria principal</div>
+                  {selectedCategories.length === 0 ? (
+                    <div className={editStyles.primaryHint}>
+                      Selecione uma ou mais categorias acima para escolher a principal.
+                    </div>
+                  ) : (
+                    <div className={editStyles.primaryList}>
+                      {selectedCategories.map((cat) => (
+                        <label key={cat.id} className={editStyles.primaryItem}>
+                          <input
+                            type="radio"
+                            name="primaryCategory"
+                            checked={primaryCategoryId === cat.id}
+                            onChange={() => setPrimaryCategoryId(cat.id)}
+                          />
+                          {cat.name}
+                        </label>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <button
@@ -542,7 +627,7 @@ export default function CompanySettings({
               onChange={handleChange}
             />
 
-            {/* — Adicionado: online_url e only_online — */}
+            {/* — Online — */}
             <FloatingLabelInput
               id="edit-online_url"
               name="online_url"

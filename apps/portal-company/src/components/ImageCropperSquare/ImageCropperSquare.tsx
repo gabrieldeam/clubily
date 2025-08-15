@@ -1,7 +1,16 @@
 // src/components/ImageCropperSquare/ImageCropperSquare.tsx
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type WheelEventHandler, type PointerEventHandler } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useCallback,
+  type CSSProperties,
+  type WheelEventHandler,
+  type PointerEventHandler,
+} from 'react';
 import NextImage from 'next/image';
 import Modal from '@/components/Modal/Modal';
 import styles from './ImageCropperSquare.module.css';
@@ -13,6 +22,7 @@ interface ImageCropperSquareProps {
   onClose: () => void;
   file: File | null;
   onCropped: (file: File, dataUrl: string) => void;
+  /** Tamanho máximo desejado para desktop; no mobile será reduzido automaticamente */
   stageSize?: number;
   outputSize?: number;
   outputType?: OutputType;
@@ -23,6 +33,7 @@ interface ImageCropperSquareProps {
 /**
  * Cropper 1:1 com pan/zoom, limites e export com fundo branco.
  * Compatível com mouse (drag + wheel) e touch (pinch + drag).
+ * Responsivo: o "stage" se adapta ao viewport para não estourar a modal.
  */
 export default function ImageCropperSquare({
   open,
@@ -41,14 +52,23 @@ export default function ImageCropperSquare({
   const [natural, setNatural] = useState<{ w: number; h: number } | null>(null);
 
   // pan/zoom state
-  const [zoom, setZoom] = useState(1); // multiplicador >= 1
+  const [zoom, setZoom] = useState(1); // multiplicador relativo ao minZoom (>= 1)
   const [minZoom, setMinZoom] = useState(1);
   const [offset, setOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  // viewport para responsividade
+  const [viewport, setViewport] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
 
   // pointers para touch/pinch
   const pointers = useRef<Map<number, { x: number; y: number }>>(new Map());
   const pinchStart = useRef<{ dist: number; zoom: number } | null>(null);
   const dragStart = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
+
+  // ref para ler zoom em efeitos sem depender dele
+  const zoomRef = useRef(1);
+  useEffect(() => {
+    zoomRef.current = zoom;
+  }, [zoom]);
 
   // cleanup URL
   useEffect(() => {
@@ -57,7 +77,70 @@ export default function ImageCropperSquare({
     };
   }, [imgUrl]);
 
-  // carregar dimensões naturais e setar minZoom
+  // observar viewport apenas quando a modal estiver aberta
+  useEffect(() => {
+    if (!open) return;
+    const update = () => setViewport({ w: window.innerWidth, h: window.innerHeight });
+    update();
+    window.addEventListener('resize', update);
+    window.addEventListener('orientationchange', update);
+    return () => {
+      window.removeEventListener('resize', update);
+      window.removeEventListener('orientationchange', update);
+    };
+  }, [open]);
+
+  // calcula stage *dinâmico* para caber no viewport (sem estourar a modal)
+  const stageSide = useMemo(() => {
+    // reservas aproximadas para cabeçalho/controles/rodapé da modal
+    const verticalReserve = 320; // título, slider, botões, paddings
+    const horizontalReserve = 48; // paddings da modal
+
+    const vw = viewport.w || stageSize + 160;
+    const vh = viewport.h || stageSize + verticalReserve;
+
+    const availW = Math.max(220, vw - horizontalReserve);
+    const availH = Math.max(220, vh - verticalReserve);
+
+    const candidate = Math.min(stageSize, availW, availH);
+    return Math.max(200, candidate); // nunca menor que 200px para usabilidade
+  }, [viewport.w, viewport.h, stageSize]);
+
+  // largura da modal: não excede viewport
+  const modalWidth = useMemo(() => {
+    const vw = viewport.w || stageSize + 160;
+    const desired = stageSide + 160; // espaço p/ conteúdo ao redor
+    return Math.min(desired, vw - 24); // margem lateral de segurança
+  }, [viewport.w, stageSide, stageSize]);
+
+  const currentScale = useMemo(
+    () => (natural ? minZoom * zoom : 1),
+    [natural, minZoom, zoom]
+  );
+
+  // helper para clamp com um scale específico (útil ao reagir a stageSide/minZoom)
+  const clampOffsetWithScale = useCallback(
+    (ox: number, oy: number, scale: number) => {
+      if (!natural) return { x: 0, y: 0 };
+      const scaledW = natural.w * scale;
+      const scaledH = natural.h * scale;
+      const maxX = Math.max((scaledW - stageSide) / 2, 0);
+      const maxY = Math.max((scaledH - stageSide) / 2, 0);
+      return {
+        x: Math.max(-maxX, Math.min(maxX, ox)),
+        y: Math.max(-maxY, Math.min(maxY, oy)),
+      };
+    },
+    [natural, stageSide]
+  );
+
+  // limites de pan (garante cobertura do quadrado) usando o scale atual
+  const clampOffset = useCallback(
+    (ox: number, oy: number) => clampOffsetWithScale(ox, oy, currentScale),
+    [clampOffsetWithScale, currentScale]
+  );
+
+  // carregar dimensões naturais e setar minZoom/zoom/offset
   useEffect(() => {
     if (!open || !imgUrl) return;
     const img = new window.Image();
@@ -66,29 +149,23 @@ export default function ImageCropperSquare({
       const h = img.naturalHeight || img.height;
       setNatural({ w, h });
 
-      // minZoom cobre o quadrado (cover)
-      const cover = Math.max(stageSize / w, stageSize / h);
+      // minZoom cobre o quadrado (cover) com o stage *dinâmico*
+      const cover = Math.max(stageSide / w, stageSide / h);
       setMinZoom(cover);
       setZoom(1); // zoom relativo ao minZoom
       setOffset({ x: 0, y: 0 }); // centralizado
     };
     img.src = imgUrl;
-  }, [imgUrl, open, stageSize]);
+  }, [imgUrl, open, stageSide]);
 
-  const currentScale = useMemo(() => (natural ? minZoom * zoom : 1), [natural, minZoom, zoom]);
-
-  // limites de pan (garante cobertura do quadrado)
-  const clampOffset = (ox: number, oy: number) => {
-    if (!natural) return { x: 0, y: 0 };
-    const scaledW = natural.w * currentScale;
-    const scaledH = natural.h * currentScale;
-    const maxX = Math.max((scaledW - stageSize) / 2, 0);
-    const maxY = Math.max((scaledH - stageSize) / 2, 0);
-    return {
-      x: Math.max(-maxX, Math.min(maxX, ox)),
-      y: Math.max(-maxY, Math.min(maxY, oy)),
-    };
-  };
+  // quando stageSide mudar (ex.: rotação mobile), revalida minZoom e offset
+  useEffect(() => {
+    if (!natural) return;
+    const cover = Math.max(stageSide / natural.w, stageSide / natural.h);
+    setMinZoom(cover);
+    // Revalida offset pra não “escapar” com o novo scale
+    setOffset((o) => clampOffsetWithScale(o.x, o.y, cover * zoomRef.current));
+  }, [stageSide, natural, clampOffsetWithScale]);
 
   const onWheel: WheelEventHandler<HTMLDivElement> = (e) => {
     e.preventDefault();
@@ -134,13 +211,20 @@ export default function ImageCropperSquare({
     }
   };
 
-  const onPointerUp: PointerEventHandler<HTMLDivElement> = (e) => {
+  const finishPointer: PointerEventHandler<HTMLDivElement> = (e) => {
+    try {
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {}
     if (pointers.current.has(e.pointerId)) {
       pointers.current.delete(e.pointerId);
     }
     if (pointers.current.size < 2) pinchStart.current = null;
     if (pointers.current.size < 1) dragStart.current = null;
   };
+
+  const onPointerUp = finishPointer;
+  const onPointerCancel = finishPointer;
+  const onPointerLeave = finishPointer;
 
   const resetView = () => {
     setZoom(1);
@@ -162,14 +246,14 @@ export default function ImageCropperSquare({
 
     const img = await loadImage(imgUrl);
 
-    // Mapeamento do palco (stageSize) para o canvas (outputSize)
-    const k = outputSize / stageSize;
+    // Mapeamento do palco (stageSide) para o canvas (outputSize)
+    const k = outputSize / stageSide;
     const scaledW = natural.w * currentScale;
     const scaledH = natural.h * currentScale;
 
     // top-left da imagem dentro do palco (ancorada no centro)
-    const topLeftStageX = (stageSize - scaledW) / 2 + offset.x;
-    const topLeftStageY = (stageSize - scaledH) / 2 + offset.y;
+    const topLeftStageX = (stageSide - scaledW) / 2 + offset.x;
+    const topLeftStageY = (stageSide - scaledH) / 2 + offset.y;
 
     const drawX = topLeftStageX * k;
     const drawY = topLeftStageY * k;
@@ -204,18 +288,19 @@ export default function ImageCropperSquare({
   }, [natural, offset.x, offset.y, currentScale]);
 
   return (
-    <Modal open={open} onClose={onClose} width={stageSize + 160}>
+    <Modal open={open} onClose={onClose} width={modalWidth}>
       <div className={styles.wrapper}>
         <h3 className={styles.title}>Ajuste e corte sua imagem (1:1)</h3>
 
         <div
           className={styles.stage}
-          style={{ width: stageSize, height: stageSize }}
+          style={{ width: stageSide, height: stageSide }}
           onWheel={onWheel}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
-          onPointerCancel={onPointerUp}
+          onPointerCancel={onPointerCancel}
+          onPointerLeave={onPointerLeave}
         >
           {/* imagem com next/image dentro de um wrapper transformável */}
           {imgUrl && natural && (
@@ -227,7 +312,7 @@ export default function ImageCropperSquare({
                 unoptimized
                 draggable={false}
                 style={{ pointerEvents: 'none' }}
-                sizes={`${stageSize}px`}
+                sizes={`${stageSide}px`}
                 priority
               />
             </div>
@@ -293,7 +378,8 @@ function canvasToBlob(
       canvas.toBlob((b) => resolve(b), type, quality);
     } else {
       // fallback ultra-raro
-      const dataUrl = type === 'image/jpeg' ? canvas.toDataURL(type, quality) : canvas.toDataURL(type);
+      const dataUrl =
+        type === 'image/jpeg' ? canvas.toDataURL(type, quality) : canvas.toDataURL(type);
       const byteString = atob(dataUrl.split(',')[1]);
       const mimeString = dataUrl.split(',')[0].split(':')[1].split(';')[0];
       const ab = new ArrayBuffer(byteString.length);

@@ -401,6 +401,16 @@ export default function AdminCompaniesPage() {
     setBalancesCompany(null);
   }
 
+  // Helper para mostrar o nome da categoria principal mesmo que venha só o ID
+  const getPrimaryCategoryName = (c: CompanyRead): string | null => {
+    return (
+      c.primary_category?.name ??
+      c.categories.find(cat => cat.id === c.primary_category_id)?.name ??
+      null
+    );
+  };
+
+
   const lastPage = Math.ceil(total / size);
   if (loading) return <p>Carregando empresas...</p>;
 
@@ -439,6 +449,7 @@ export default function AdminCompaniesPage() {
               <tr>
                 <th>Nome</th>
                 <th>CNPJ</th>
+                <th>Categoria principal</th>
                 <th>Status</th>
                 <th>Taxas</th>
                 <th>Saldos</th>
@@ -450,6 +461,13 @@ export default function AdminCompaniesPage() {
                 <tr key={comp.id}>
                   <td data-label="Nome">{comp.name}</td>
                   <td data-label="CNPJ">{comp.cnpj}</td>
+                  <td data-label="Principal">
+                    {getPrimaryCategoryName(comp) ? (
+                      <span className={styles.badgePrimary}>{getPrimaryCategoryName(comp)}</span>
+                    ) : (
+                      <span className={styles.muted}>—</span>
+                    )}
+                  </td>
                   <td data-label="Status">
                     <span
                       className={
@@ -524,6 +542,9 @@ export default function AdminCompaniesPage() {
               <div className={styles.cardBody}>
                 <p><strong>CNPJ:</strong> {comp.cnpj}</p>
                 <p><strong>Telefone:</strong> {comp.phone}</p>
+                <p>
+                  <strong>Principal:</strong> {getPrimaryCategoryName(comp) ?? '-'}
+                </p>
               </div>
               <div className={styles.cardFooter}>
                 <button
@@ -649,9 +670,17 @@ export default function AdminCompaniesPage() {
 
             <section>
               <h3>Categorias</h3>
+              <p className={styles.primaryLine}>
+                <strong>Principal:</strong> {getPrimaryCategoryName(selectedCompany) ?? '-'}
+              </p>
               <ul className={styles.categories}>
                 {selectedCompany.categories.map(cat => (
-                  <li key={cat.id}>{cat.name}</li>
+                  <li key={cat.id}>
+                    {cat.name}{' '}
+                    {selectedCompany.primary_category_id === cat.id && (
+                      <span className={styles.primaryTag}>principal</span>
+                    )}
+                  </li>
                 ))}
               </ul>
             </section>

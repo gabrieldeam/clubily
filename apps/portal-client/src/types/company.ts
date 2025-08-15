@@ -44,6 +44,8 @@ export interface CompanyRead {
   categories: CategoryRead[];
   email_verified: boolean;
   phone_verified: boolean;
+  primary_category_id?: string | null;
+  primary_category?: CategoryRead | null;
 }
 
 export interface CompanyReadWithService extends CompanyRead {

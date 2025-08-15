@@ -1,5 +1,4 @@
 // src/types/company.ts
-
 import type { CategoryRead } from './category';
 
 export interface CompanyBase {
@@ -15,7 +14,7 @@ export interface CompanyBase {
   complement?: string | null;
   postal_code: string;
   description?: string | null;
-  online_url?: string;       // HttpUrl
+  online_url?: string;
   only_online: boolean;
 }
 
@@ -29,11 +28,16 @@ export interface CompanyRead extends CompanyBase {
   created_at: string;        // ISO date
   email_verified_at?: string | null;
   phone_verified_at?: string | null;
-  email_verified: boolean;   // computed (se email_verified_at !== null)
-  phone_verified: boolean;   // computed (se phone_verified_at !== null)
+  email_verified: boolean;
+  phone_verified: boolean;
   is_active: boolean;
   logo_url?: string | null;
   categories: CategoryRead[];
+
+  // NOVO: categoria principal
+  primary_category_id?: string | null;
+  // Se sua API retornar o objeto expandido, pode expor também:
+  primary_category?: CategoryRead | null;
 }
 
 export interface CompanyReadWithService extends CompanyRead {
@@ -66,9 +70,12 @@ export interface CompanyUpdate {
   complement?: string | null;
   postal_code?: string;
   description?: string | null;
-  category_ids?: string[];     // lista de UUIDs como strings
+  category_ids?: string[];     // se você atualizar as associadas em massa
   online_url?: string;
   only_online?: boolean;
+
+  // Opcional: se decidir permitir update direto via PATCH
+  primary_category_id?: string | null;
 }
 
 export interface ReferralRedeem {

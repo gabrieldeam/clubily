@@ -26,11 +26,17 @@ export default function Modal({
         className={styles.content}
         style={{ maxWidth: width }}
         onClick={stop}
+        role="dialog"
+        aria-modal="true"
       >
         <button className={styles.closeBtn} onClick={onClose} aria-label="Fechar">
           ×
         </button>
-        {children}
+
+        {/* Área rolável com “gutter” à direita para o botão */}
+        <div className={styles.scrollArea}>
+          {children}
+        </div>
       </div>
     </div>
   );

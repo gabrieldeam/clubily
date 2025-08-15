@@ -1,49 +1,55 @@
-# app/services/leaderboard_service.py
 from datetime import datetime, timedelta
-from sqlalchemy.orm import Session
-from sqlalchemy import func, desc
+from sqlalchemy import func, desc, and_
 from app.models import User, UserPointsStats, UserPointsTransaction, UserPointsTxType
-from typing import Tuple, List
 
-def leaderboard_overall(db: Session, skip: int, limit: int) -> Tuple[int, list]:
+def leaderboard_overall(db, skip, limit):
     q = (
         db.query(User, UserPointsStats.lifetime_points.label("points"))
           .join(UserPointsStats, User.id == UserPointsStats.user_id)
+          # opcional: só quem tem > 0 pontos
+          # .filter(UserPointsStats.lifetime_points > 0)
           .order_by(desc("points"))
     )
     total = q.count()
     rows  = q.offset(skip).limit(limit).all()
     return total, rows
 
-
-def leaderboard_today(db: Session, skip: int, limit: int) -> Tuple[int, list]:
+def leaderboard_today(db, skip, limit):
+    start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    end   = start + timedelta(days=1)
     q = (
         db.query(User, UserPointsStats.today_points.label("points"))
           .join(UserPointsStats, User.id == UserPointsStats.user_id)
-          .filter(UserPointsStats.today_points > 0)
+          .filter(
+              UserPointsStats.today_points > 0,
+              UserPointsStats.updated_at >= start,
+              UserPointsStats.updated_at <  end
+          )
           .order_by(desc("points"))
     )
     total = q.count()
     rows  = q.offset(skip).limit(limit).all()
     return total, rows
 
-
-def leaderboard_month(db: Session, year: int, month: int,
-                      skip: int, limit: int) -> Tuple[int, list]:
-    # usa month_points se o mês for o corrente; senão agrega transações
+def leaderboard_month(db, year, month, skip, limit):
     now = datetime.utcnow()
     if year == now.year and month == now.month:
+        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        next_month  = (month_start.replace(day=28) + timedelta(days=4)).replace(day=1)
         q = (
             db.query(User, UserPointsStats.month_points.label("points"))
               .join(UserPointsStats, User.id == UserPointsStats.user_id)
-              .filter(UserPointsStats.month_points > 0)
+              .filter(
+                  UserPointsStats.month_points > 0,
+                  UserPointsStats.updated_at >= month_start,
+                  UserPointsStats.updated_at <  next_month
+              )
               .order_by(desc("points"))
         )
         total = q.count()
         rows  = q.offset(skip).limit(limit).all()
         return total, rows
 
-    # mês passado = agrega na hora
     month_start = datetime(year, month, 1)
     next_month  = (month_start.replace(day=28) + timedelta(days=4)).replace(day=1)
     subq = (

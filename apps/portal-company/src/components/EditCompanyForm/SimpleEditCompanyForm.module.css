@@ -95,3 +95,39 @@
   color: #666;
   margin-top: 4px;
 }
+
+
+.primaryBlock {
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+
+.primaryTitle {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.primaryHint {
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.primaryList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.primaryItem {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #ffffff;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.4rem;
+  font-size: 0.9rem;
+}

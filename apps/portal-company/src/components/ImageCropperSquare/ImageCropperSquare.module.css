@@ -1,9 +1,13 @@
+/* src/components/ImageCropperSquare/ImageCropperSquare.module.css */
+
 .wrapper {
   display: grid;
   gap: 12px;
   padding: 20px;
   background-color: white;
   border-radius: 20px;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .title {
@@ -20,16 +24,16 @@
   background: #f5f5f7; /* cor do fundo “quadro” */
   touch-action: none; /* permite pinch/drag custom */
   border: 1px solid #e5e7eb;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
-.image {
+.imageWrap {
   position: absolute;
   top: 50%;
   left: 50%;
   transform-origin: center center;
-  user-select: none;
-  pointer-events: none; /* eventos ficam no container */
-  max-width: none; /* evita o chrome encolher */
+  pointer-events: none;
 }
 
 .mask {
@@ -58,6 +62,7 @@
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 .primaryBtn {
@@ -93,11 +98,26 @@
   font-size: 12px;
 }
 
+/* —— Responsivo —— */
+@media (max-width: 640px) {
+  .wrapper {
+    padding: 14px;
+    border-radius: 16px;
+  }
 
-.imageWrap {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform-origin: center center;
-  pointer-events: none; 
+  .title {
+    font-size: 16px;
+  }
+
+  .controls {
+    gap: 10px;
+  }
+
+  .actions {
+    justify-content: stretch;
+  }
+
+  .primaryBtn, .secondaryBtn {
+    width: 100%;
+  }
 }

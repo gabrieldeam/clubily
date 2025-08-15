@@ -406,3 +406,32 @@
   margin-right: 0.25rem;
   font-weight: bold;
 }
+
+
+.badgePrimary {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.primaryTag {
+  margin-left: 6px;
+  padding: 2px 6px;
+  font-size: 0.75rem;
+  border-radius: 6px;
+  background: #fff7ed; /* laranja bem claro */
+  border: 1px solid #fed7aa;
+  color: #9a3412;
+}
+
+.primaryLine {
+  margin: 6px 0 8px;
+}
+
+.muted {
+  color: #9ca3af;
+}
