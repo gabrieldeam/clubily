@@ -1,7 +1,7 @@
 import Hero from '@/components/Hero/Hero';
 import FeatureCard from '@/components/FeatureCard/FeatureCard';
 import ValueProposition from '@/components/ValueProposition/ValueProposition';
-import Testimonial from '@/components/Testimonial/Testimonial';
+// import Testimonial from '@/components/Testimonial/Testimonial';
 import { DollarSign, Star, Stamp, BarChart, Smartphone, Gift, Users, Zap, CreditCard } from 'lucide-react';
 import styles from './page.module.css';
 
@@ -62,7 +62,7 @@ export default function Home() {
         reverse
       />
 
-      <section className={`${styles.section} ${styles.testimonialsSection}`}>
+      {/* <section className={`${styles.section} ${styles.testimonialsSection}`}>
         <div className={styles.sectionHeader}>
           <h2>Quem usa recomenda</h2>
           <p>Mais de 500 empresas já transformaram sua relação com clientes</p>
@@ -88,7 +88,7 @@ export default function Home() {
             company=""
           />
         </div>
-      </section>
+      </section> */}
 
       <section className={styles.cta}>
         <h2>Comece a fidelizar hoje mesmo</h2>

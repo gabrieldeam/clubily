@@ -26,8 +26,8 @@ export default function Footer() {
           <h5>Empresa</h5>
           <ul>
             <li><Link href="/solutions">Soluções</Link></li>
-            <li><Link href="/pricing">Para Empresas</Link></li>
-            <li><Link href="/faq">Para Clientes</Link></li>
+            <li><Link href="/companies">Para Empresas</Link></li>
+            <li><Link href="/clients">Para Clientes</Link></li>
             <li><Link href="/about">Sobre nós</Link></li>
           </ul>
         </div>
@@ -37,7 +37,6 @@ export default function Footer() {
           <ul>
             <li><Link href="/legal/terms">Termos</Link></li>
             <li><Link href="/legal/privacy">Privacidade</Link></li>
-            <li><Link href="/legal/lgpd">LGPD</Link></li>
           </ul>
         </div>
 

@@ -223,63 +223,6 @@ export default function ClientLanding() {
     </section>
 
 
-
-
-
-
-
-
-
-      {/* Programa de Indicação */}
-      <section className={styles.referralSection}>
-        <div className={styles.referralContent}>
-          <div className={styles.referralText}>
-            <h2 className={styles.sectionTitleWithIcon}>
-              <Share2 size={32} className={styles.referralIcon} /> Indique empresas e ganhe dinheiro
-            </h2>
-            <div className={styles.referralBenefits}>
-              {[
-                { icon: TrendingUp, text: "Ganhe comissão sobre as transações" },
-                { icon: DollarSign, text: "Pagamentos direto na sua conta" },
-                { icon: Users, text: "Sem limite de indicações" },
-              ].map(({ icon: Icon, text }, i) => (
-                <div key={i} className={styles.benefitCardreferral}>
-                  <Icon size={24} />
-                  <p>{text}</p>
-                </div>
-              ))}
-            </div>
-            <h3 className={styles.referralSubtitle}>Como funciona:</h3>
-            <ul className={styles.referralSteps}>
-              {[
-                { title: "Crie seu código único", desc: "Gere um código de indicação pessoal na sua área do cliente" },
-                { title: "Compartilhe com empresas", desc: "Indique estabelecimentos que você gosta para se cadastrarem" },
-                { title: "Ganhe comissões", desc: "Receba % sobre compras de créditos feitas pelo estabelecimento" },
-              ].map(({ title, desc }, i) => (
-                <li key={title}>
-                  <span className={styles.stepIndicator}>{i + 1}</span>
-                  <div>
-                    <h4>{title}</h4>
-                    <p>{desc}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-            <div className={styles.referralCta}>
-              <Link href="/dashboard/referral" className={styles.primaryBtn}>Criar meu código de indicação</Link>
-              <p className={styles.note}>Disponível para clientes cadastrados</p>
-            </div>
-          </div>
-          <figure className={styles.referralImage}>
-            <Image src="/affiliate-code.png" alt="Painel de indicações" fill sizes="(max-width: 768px) 80vw, 40vw" />
-          </figure>
-        </div>
-      </section>
-
-
-
-
-
       {/* Vantagens */}
       <section className={styles.benefitsSection}>
         <h2 className={styles.sectionTitle}>Por que milhares de clientes escolhem Clubily</h2>

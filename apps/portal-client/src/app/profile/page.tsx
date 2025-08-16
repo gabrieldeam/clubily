@@ -429,7 +429,7 @@ export default function ProfilePage() {
 
               <div className={styles.affCTAs}>
                 <a
-                  href="https://clubi.ly/indicação"
+                  href="https://clubi.ly/indicacao"
                   target="_blank"
                   rel="noopener noreferrer"
                   className={styles.affBtnWhite}

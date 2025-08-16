@@ -2,9 +2,13 @@
   position: sticky;
   top: 0;
   z-index: 30;
-  background-color: #FFA600;
+  background-color: #FFA600; /* padrão */
   backdrop-filter: blur(8px);
   border-radius: 0 0 20px 20px;
+}
+
+.gradient {
+  background: linear-gradient(135deg, #8529ff 0%, #230969 100%);
 }
 
 .noRadius {

@@ -2,20 +2,44 @@
 
 import os
 import uuid
-from typing import List
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP 
+from typing import List, Optional   
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status, Query
 from sqlalchemy.orm import Session
 from app.api.deps import get_db, require_admin, get_current_company, get_redis
 from app.services.geocode_service import GeocodeService
 from app.models.category import Category
 from app.models.company import Company
-from app.schemas.category import CategoryRead
-from app.services.category_service import list_categories
+from app.schemas.category import CategoryRead, CategoryPage
+from app.services.category_service import list_categories, list_categories_paginated
 from sqlalchemy import or_, func
 from geoalchemy2 import functions as geo_func
 from redis import Redis
 
 router = APIRouter(tags=["categories"])
+
+def _parse_percent(raw: Optional[str]) -> Optional[Decimal]:
+    """
+    Aceita: None, '', 'null', '12', '12.5', '12,5'
+    Retorna: Decimal('12.50') ou None
+    """
+    if raw is None:
+        return None
+    raw = raw.strip().lower()
+    if raw in ("", "null", "none"):
+        return None
+    # suporta vírgula
+    raw = raw.replace(",", ".")
+    try:
+        v = Decimal(raw)
+    except (InvalidOperation, ValueError):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="commission_percent inválido")
+
+    if v < 0 or v > 100:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="commission_percent deve estar entre 0 e 100")
+
+    # fixa 2 casas decimais (ROUND_HALF_UP)
+    return v.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 @router.post(
     "/",
@@ -26,37 +50,56 @@ router = APIRouter(tags=["categories"])
 async def create_cat(
     name: str = Form(...),
     image: UploadFile = File(...),
+    commission_percent: str | None = Form(None),   # ✅ era float | None
     db: Session = Depends(get_db),
 ):
-    # 1) valida tipo de arquivo
+    # parse/valida comissão
+    cp = _parse_percent(commission_percent)         # ✅ Decimal ou None
+
     if not image.content_type.startswith("image/"):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Envie um arquivo de imagem válido")
 
-    # 2) prepara pasta e nome único
     save_dir = os.path.join(os.getcwd(), "app", "static", "categories")
     os.makedirs(save_dir, exist_ok=True)
     ext = os.path.splitext(image.filename)[1]
     filename = f"{uuid.uuid4()}{ext}"
     file_path = os.path.join(save_dir, filename)
 
-    # 3) grava no disco
     content = await image.read()
     with open(file_path, "wb") as f:
         f.write(content)
 
-    # 4) persiste no banco
     image_url = f"/static/categories/{filename}"
-    cat = Category(name=name, image_url=image_url)
+    cat = Category(name=name, image_url=image_url, commission_percent=cp)  # ✅ Decimal
     db.add(cat)
     db.commit()
     db.refresh(cat)
-
     return cat
+
 
 @router.get("/", response_model=list[CategoryRead])
 def read_cats(db: Session = Depends(get_db)):
     return list_categories(db)
 
+@router.get(
+    "/public",
+    response_model=CategoryPage,
+    status_code=status.HTTP_200_OK,
+    summary="Lista pública de categorias (com comissão), paginada e com busca opcional",
+)
+def read_categories_public(
+    page: int = Query(1, ge=1, description="Página (1-based)"),
+    size: int = Query(20, ge=1, le=100, description="Itens por página (máx 100)"),
+    q: Optional[str] = Query(None, description="Filtro por nome (contém)"),
+    db: Session = Depends(get_db),
+):
+    """
+    Endpoint **público** (não exige token).
+    Retorna categorias com campos completos (inclui `commission_percent`),
+    paginação e busca opcional por nome.
+    """
+    items, total = list_categories_paginated(db, page=page, size=size, q=q)
+    return CategoryPage(items=items, total=total, page=page, size=size)
 
 @router.post("/{category_id}", status_code=204)
 def add_category_to_company(
@@ -77,29 +120,31 @@ def add_category_to_company(
     response_model=CategoryRead,
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_admin)],
-    summary="Edita nome e/ou imagem de uma categoria (admin)"
+    summary="Edita nome, comissão e/ou imagem de uma categoria (admin)"
 )
 async def update_category(
     category_id: str,
     name: str | None = Form(None),
     image: UploadFile | None = File(None),
+    commission_percent: str | None = Form(None),   # ✅ era float | None
     db: Session = Depends(get_db),
 ):
-    # 1) busca a categoria
     cat = db.get(Category, category_id)
     if not cat:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Categoria não encontrada")
 
-    # 2) atualiza nome, se fornecido
+    # Só parseia se veio no form (inclusive '' para limpar)
+    if commission_percent is not None:
+        cp = _parse_percent(commission_percent)     # ✅ Decimal ou None
+        cat.commission_percent = cp
+
     if name is not None:
         cat.name = name
 
-    # 3) atualiza imagem, se fornecida
     if image is not None:
         if not image.content_type.startswith("image/"):
             raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Envie um arquivo de imagem válido")
 
-        # exclui arquivo antigo
         if cat.image_url:
             old_file = os.path.basename(cat.image_url)
             old_path = os.path.join(os.getcwd(), "app", "static", "categories", old_file)
@@ -109,7 +154,6 @@ async def update_category(
                 except OSError:
                     pass
 
-        # salva novo arquivo
         save_dir = os.path.join(os.getcwd(), "app", "static", "categories")
         os.makedirs(save_dir, exist_ok=True)
         ext = os.path.splitext(image.filename)[1]
@@ -120,7 +164,6 @@ async def update_category(
             f.write(content)
         cat.image_url = f"/static/categories/{new_filename}"
 
-    # 4) persiste e retorna
     db.commit()
     db.refresh(cat)
     return cat

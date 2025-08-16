@@ -493,11 +493,10 @@
   position: relative;
   border-radius: 20px;
   overflow: hidden;
-  background: radial-gradient(110% 90% at 0% 0%, #FF6A00 0%, #FF4C00 30%, #FFA600 100%);
+  background: linear-gradient(135deg, #8529ff 0%, #230969 100%);
   color: #fff;
   padding: 28px 22px;
-  scroll-margin-top: 90px; /* ancora suave pro /profile#affiliate */
-  box-shadow: 0 12px 28px rgba(255, 76, 0, .25);
+  scroll-margin-top: 90px; 
   margin-top: 10px;
 }
 
@@ -580,7 +579,7 @@
 
 .affBtnWhite {
   background: #fff;
-  color: #FF4C00;
+  color: #230969;
 }
 .affBtnWhite:hover { transform: translateY(-1px); box-shadow: 0 8px 18px rgba(0,0,0,.15); }
 

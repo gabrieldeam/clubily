@@ -1,4 +1,3 @@
-// src/app/admin/categories/page.tsx
 'use client';
 
 import { useEffect, useState, FormEvent } from 'react';
@@ -17,7 +16,7 @@ import Modal from '@/components/Modal/Modal';
 import FloatingLabelInput from '@/components/FloatingLabelInput/FloatingLabelInput';
 import styles from './page.module.css';
 
-// 👇 novo: picker/cropper 1:1
+// 👇 picker/cropper 1:1
 import ImagePickerSquare from '@/components/ImagePickerSquare/ImagePickerSquare';
 
 type ViewMode = 'table' | 'cards';
@@ -27,9 +26,7 @@ export default function CategoriesListPage() {
   const [loading, setLoading] = useState(true);
 
   const baseUrl = process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL ?? '';
-  const myLoader = ({ src }: { src: string }) => {
-    return `${process.env.NEXT_PUBLIC_IMAGE_PUBLIC_API_BASE_URL}${src}`;
-  };
+  const myLoader = ({ src }: { src: string }) => `${baseUrl}${src}`;
 
   // view mode
   const [viewMode, setViewMode] = useState<ViewMode>('table');
@@ -38,15 +35,15 @@ export default function CategoriesListPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedCat, setSelectedCat] = useState<CategoryRead | null>(null);
 
-  // create modal
+  // create/edit modals
   const [createOpen, setCreateOpen] = useState(false);
-  // edit modal
   const [editOpen, setEditOpen] = useState(false);
 
   // form state for create/edit
   const [name, setName] = useState('');
+  const [commission, setCommission] = useState(''); // 👈 string para aceitar vazio (NULL) e vírgula
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null); // 👈 preview do crop
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -74,6 +71,7 @@ export default function CategoriesListPage() {
 
   function openCreate() {
     setName('');
+    setCommission('');     // vazio = null
     setImageFile(null);
     setPreviewUrl(null);
     setError('');
@@ -86,8 +84,12 @@ export default function CategoriesListPage() {
   function openEdit(cat: CategoryRead) {
     setSelectedCat(cat);
     setName(cat.name);
+    setCommission(
+      cat.commission_percent !== null && cat.commission_percent !== undefined
+        ? String(cat.commission_percent)
+        : ''
+    );
     setImageFile(null);
-    // mostra preview da existente (pode ser trocada pelo cropper)
     setPreviewUrl(cat.image_url ? `${baseUrl}${cat.image_url}` : null);
     setError('');
     setEditOpen(true);
@@ -97,6 +99,18 @@ export default function CategoriesListPage() {
     setSelectedCat(null);
   }
 
+  // parse seguro pt-BR: aceita vírgula e vazio
+  function parseCommissionToNumberOrNull(raw: string): number | null {
+    const s = (raw ?? '').trim();
+    if (!s) return null;
+    const normalized = s.replace(',', '.');
+    const n = Number(normalized);
+    if (Number.isNaN(n)) throw new Error('Informe um número válido.');
+    if (n < 0 || n > 100) throw new Error('O percentual deve estar entre 0 e 100.');
+    // arredonda para 2 casas sem quebrar
+    return Math.round(n * 100) / 100;
+  }
+
   async function handleCreate(e: FormEvent) {
     e.preventDefault();
     if (!imageFile) {
@@ -104,7 +118,19 @@ export default function CategoriesListPage() {
       return;
     }
     try {
-      const payload: CategoryCreate = { name, image: imageFile };
+      let commission_percent: number | null = null;
+      try {
+        commission_percent = parseCommissionToNumberOrNull(commission);
+      } catch (err) {
+        setError((err as Error).message);
+        return;
+      }
+
+      const payload: CategoryCreate = {
+        name,
+        image: imageFile,
+        commission_percent, // pode ser null
+      };
       await createCategory(payload);
       await fetchCategories();
       closeCreate();
@@ -120,8 +146,20 @@ export default function CategoriesListPage() {
     e.preventDefault();
     if (!selectedCat) return;
     try {
-      const payload: Partial<CategoryUpdate> = { name };
+      let commission_percent: number | null = null;
+      try {
+        commission_percent = parseCommissionToNumberOrNull(commission);
+      } catch (err) {
+        setError((err as Error).message);
+        return;
+      }
+
+      const payload: Partial<CategoryUpdate> = {
+        name,
+        commission_percent, // pode ser null (limpa)
+      };
       if (imageFile) payload.image = imageFile;
+
       await updateCategory(selectedCat.id, payload as CategoryUpdate);
       await fetchCategories();
       closeEdit();
@@ -132,6 +170,11 @@ export default function CategoriesListPage() {
       setError(detail);
     }
   }
+
+  const fmtPct = (v?: number | null) =>
+    v === null || v === undefined
+      ? '—'
+      : `${new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 }).format(v)}%`;
 
   if (loading) return <p>Carregando categorias...</p>;
 
@@ -168,6 +211,7 @@ export default function CategoriesListPage() {
               <tr>
                 <th>Nome</th>
                 <th>Imagem</th>
+                <th>Comissão (%)</th> {/* 👈 novo */}
                 <th>Ações</th>
               </tr>
             </thead>
@@ -176,14 +220,19 @@ export default function CategoriesListPage() {
                 <tr key={cat.id}>
                   <td data-label="Nome">{cat.name}</td>
                   <td data-label="Imagem">
-                    <Image
-                      loader={myLoader}
-                      src={cat.image_url!}
-                      alt={cat.name}
-                      width={50}
-                      height={50}
-                      className={styles.thumb}
-                    />
+                    {cat.image_url ? (
+                      <Image
+                        loader={myLoader}
+                        src={cat.image_url}
+                        alt={cat.name}
+                        width={50}
+                        height={50}
+                        className={styles.thumb}
+                      />
+                    ) : '—'}
+                  </td>
+                  <td data-label="Comissão (%)">
+                    <span className={styles.badgePct}>{fmtPct(cat.commission_percent)}</span>
                   </td>
                   <td data-label="Ações" className={styles.actions}>
                     <button
@@ -211,7 +260,7 @@ export default function CategoriesListPage() {
               {cat.image_url && (
                 <Image
                   loader={myLoader}
-                  src={cat.image_url!}
+                  src={cat.image_url}
                   alt={cat.name}
                   width={260}
                   height={140}
@@ -220,6 +269,7 @@ export default function CategoriesListPage() {
               )}
               <div className={styles.cardBody}>
                 <h2>{cat.name}</h2>
+                <p className={styles.cardPct}><strong>Comissão:</strong> {fmtPct(cat.commission_percent)}</p>
               </div>
               <div className={styles.cardFooter}>
                 <button
@@ -248,7 +298,7 @@ export default function CategoriesListPage() {
             {selectedCat.image_url && (
               <Image
                 loader={myLoader}
-                src={selectedCat.image_url!}
+                src={selectedCat.image_url}
                 alt={selectedCat.name}
                 width={120}
                 height={120}
@@ -258,6 +308,10 @@ export default function CategoriesListPage() {
             <section>
               <h3>ID</h3>
               <p>{selectedCat.id}</p>
+            </section>
+            <section>
+              <h3>Comissão</h3>
+              <p>{fmtPct(selectedCat.commission_percent)}</p>
             </section>
           </div>
         )}
@@ -278,20 +332,27 @@ export default function CategoriesListPage() {
               required
             />
 
-            {/* 👇 Botão que abre o cropper 1:1 */}
+            <FloatingLabelInput
+              id="create-commission"
+              label="Comissão (%) — 0 a 100"
+              type="text"
+              value={commission}
+              onChange={(e) => setCommission(e.target.value)}
+              placeholder="ex.: 12,5"
+            />
+
             <ImagePickerSquare
               buttonLabel="Escolher imagem"
               stageSize={360}
               outputSize={512}
               outputFileName="category.jpg"
-              outputType="image/jpeg" // fundo branco garantido
+              outputType="image/jpeg"
               onCropped={(file, dataUrl) => {
                 setImageFile(file);
                 setPreviewUrl(dataUrl);
               }}
             />
 
-            {/* preview do recorte */}
             {previewUrl && (
               <div className={styles.preview}>
                 <Image
@@ -300,7 +361,6 @@ export default function CategoriesListPage() {
                   width={100}
                   height={100}
                   className={styles.thumb}
-                  // para dataURL usamos loader direto que retorna o src
                   loader={({ src }) => src}
                   unoptimized
                 />
@@ -331,7 +391,15 @@ export default function CategoriesListPage() {
               required
             />
 
-            {/* 👇 Botão que abre o cropper para trocar a imagem (opcional) */}
+            <FloatingLabelInput
+              id="edit-commission"
+              label="Comissão (%) — 0 a 100"
+              type="text"
+              value={commission}
+              onChange={(e) => setCommission(e.target.value)}
+              placeholder="ex.: 12,5"
+            />
+
             <ImagePickerSquare
               buttonLabel="Trocar imagem (opcional)"
               stageSize={360}
@@ -344,15 +412,10 @@ export default function CategoriesListPage() {
               }}
             />
 
-            {/* preview: mostra o recorte novo OU a imagem atual */}
             {(previewUrl || selectedCat?.image_url) && (
               <div className={styles.preview}>
                 <Image
-                  src={
-                    previewUrl
-                      ? previewUrl // dataURL do recorte
-                      : `${baseUrl}${selectedCat?.image_url}` // atual
-                  }
+                  src={previewUrl ? previewUrl : `${baseUrl}${selectedCat?.image_url}`}
                   alt="Preview"
                   width={100}
                   height={100}

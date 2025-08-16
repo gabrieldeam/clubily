@@ -9,19 +9,22 @@ import styles from './Navbar.module.css';
 const links = [
   { href: '/companies', label: 'Para Empresas' },
   { href: '/clients', label: 'Para Clientes' },
+  { href: '/indicacao', label: 'Indique e Ganhe' },
   { href: '/about', label: 'Sobre nós' },
   { href: '/blog', label: 'Blog' },
   { href: '/help', label: 'Ajuda' },
 ];
 
-export default function Navbar() {
+interface NavbarProps {
+  gradient?: boolean; // 👈 parâmetro opcional
+}
+
+export default function Navbar({ gradient = false }: NavbarProps) {
   const pathname = usePathname();
 
-  // estados de aberto/fechado
   const [mobileOpen, setMobileOpen] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
 
-  // refs para detectar clicks fora
   const dropdownRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLUListElement>(null);
   const hamburgerRef = useRef<HTMLButtonElement>(null);
@@ -31,61 +34,59 @@ export default function Navbar() {
   const closeMobile = () => setMobileOpen(false);
   const closeLogin = () => setLoginOpen(false);
 
-// useEffect só para o mobile menu (mantém como está)
-useEffect(() => {
-  function handleClickOutsideMobile(ev: MouseEvent) {
-    if (
-      mobileOpen &&
-      menuRef.current &&
-      hamburgerRef.current &&
-      !menuRef.current.contains(ev.target as Node) &&
-      !hamburgerRef.current.contains(ev.target as Node)
-    ) {
-      closeMobile();
+  // fechar mobile
+  useEffect(() => {
+    function handleClickOutsideMobile(ev: MouseEvent) {
+      if (
+        mobileOpen &&
+        menuRef.current &&
+        hamburgerRef.current &&
+        !menuRef.current.contains(ev.target as Node) &&
+        !hamburgerRef.current.contains(ev.target as Node)
+      ) {
+        closeMobile();
+      }
     }
-  }
 
-  document.addEventListener('mousedown', handleClickOutsideMobile);
-  return () =>
-    document.removeEventListener('mousedown', handleClickOutsideMobile);
-}, [mobileOpen]);
+    document.addEventListener('mousedown', handleClickOutsideMobile);
+    return () =>
+      document.removeEventListener('mousedown', handleClickOutsideMobile);
+  }, [mobileOpen]);
 
-// useEffect separado só para fechar o dropdown de login
-useEffect(() => {
-  function handleClickOutsideDropdown(ev: MouseEvent) {
-    if (
-      loginOpen &&
-      dropdownRef.current &&
-      !dropdownRef.current.contains(ev.target as Node)
-    ) {
-      closeLogin();
+  // fechar login
+  useEffect(() => {
+    function handleClickOutsideDropdown(ev: MouseEvent) {
+      if (
+        loginOpen &&
+        dropdownRef.current &&
+        !dropdownRef.current.contains(ev.target as Node)
+      ) {
+        closeLogin();
+      }
     }
-  }
 
-  document.addEventListener('mousedown', handleClickOutsideDropdown);
-  return () =>
-    document.removeEventListener('mousedown', handleClickOutsideDropdown);
-}, [loginOpen]);
+    document.addEventListener('mousedown', handleClickOutsideDropdown);
+    return () =>
+      document.removeEventListener('mousedown', handleClickOutsideDropdown);
+  }, [loginOpen]);
 
   return (
-    <header className={`${styles.header} ${mobileOpen ? styles.noRadius : ''}`}>
+    <header
+      className={`${styles.header} ${mobileOpen ? styles.noRadius : ''} ${
+        gradient ? styles.gradient : ''
+      }`}
+    >
       <nav className={styles.nav}>
         <Link href="/" className={styles.logo} onClick={closeMobile}>
           <Image src="/logo.svg" alt="Clubily" width={120} height={32} priority />
         </Link>
 
-        {/* menu principal */}
-        <ul
-          ref={menuRef}
-          className={`${styles.menu} ${mobileOpen ? styles.open : ''}`}
-        >
+        <ul ref={menuRef} className={`${styles.menu} ${mobileOpen ? styles.open : ''}`}>
           {links.map(({ href, label }) => (
             <li key={href}>
               <Link
                 href={href}
-                className={`${styles.link} ${
-                  pathname === href ? styles.active : ''
-                }`}
+                className={`${styles.link} ${pathname === href ? styles.active : ''}`}
                 onClick={closeMobile}
               >
                 {label}
@@ -95,7 +96,6 @@ useEffect(() => {
         </ul>
 
         <div className={styles.menudrops}>
-          {/* dropdown de login */}
           <div ref={dropdownRef} className={styles.dropdown}>
             <button
               type="button"
@@ -104,33 +104,20 @@ useEffect(() => {
             >
               Entrar
             </button>
-            <ul
-              className={`${styles.dropdownMenu} ${
-                loginOpen ? styles.open : ''
-              }`}
-            >
+            <ul className={`${styles.dropdownMenu} ${loginOpen ? styles.open : ''}`}>
               <li>
-                <a
-                  href="https://app.clubi.ly"
-                  className={styles.dropdownItem}
-                  rel="noopener noreferrer"
-                >
+                <a href="https://app.clubi.ly" className={styles.dropdownItem} rel="noopener noreferrer">
                   Como Cliente
                 </a>
               </li>
               <li>
-                <a
-                  href="https://portal.clubi.ly"
-                  className={styles.dropdownItem}
-                  rel="noopener noreferrer"
-                >
+                <a href="https://portal.clubi.ly" className={styles.dropdownItem} rel="noopener noreferrer">
                   Como Empresa
                 </a>
               </li>
             </ul>
           </div>
 
-          {/* hamburger (mobile) */}
           <button
             ref={hamburgerRef}
             className={styles.hamburger}

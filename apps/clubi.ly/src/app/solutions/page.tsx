@@ -9,32 +9,36 @@ export const metadata = {
 
 export default function Solutions() {
   const items = [
-    { href: 'cashback', label: 'Cashback', icon: <DollarSign size={32} /> },
-    { href: 'points', label: 'Pontos', icon: <Star size={32} /> },
-    { href: 'loyalty-card', label: 'Cartão Fidelidade', icon: <CreditCard size={32} /> },
+    { href: 'cashback', label: 'Cashback', icon: <DollarSign size={28} /> },
+    { href: 'points', label: 'Pontos', icon: <Star size={28} /> },
+    { href: 'loyalty-card', label: 'Cartão Fidelidade', icon: <CreditCard size={28} /> },
   ];
 
   return (
     <main className={styles.container}>
-      {/* Hero for Solutions */}
-      <section className={styles.hero} style={{ padding: '4rem 0', textAlign: 'center', background: 'linear-gradient(135deg, #1a1a1a 0%, #000 100%)' }}>
-        <div>
+      {/* Hero */}
+      <section className={styles.hero}>
+        <div className={styles.heroContent}>
           <h1 className={styles.heroTitle}>Nossas Soluções</h1>
-          <p className={styles.heroSubtitle} style={{ maxWidth: '600px', margin: '1rem auto', color: '#fff' }}>
+          <p className={styles.heroSubtitle}>
             Descubra como cada solução da Clubily pode transformar a fidelização dos seus clientes.
           </p>
         </div>
       </section>
 
-      {/* Solutions Grid */}
+      {/* Grid de soluções */}
       <section className={styles.section}>
         <div className={styles.featureGrid}>
           {items.map(({ href, label, icon }) => (
             <div key={href} className={styles.featureCard}>
-              <div className={styles.featureIconWrapper}>{icon}</div>
-              <h3>{label}</h3>
-              <p>Veja como o {label} da Clubily funciona.</p>
-              <Link href={`/solutions/${href}`} className={styles.primaryBtn}>
+              <div className={styles.featureIconWrapper} aria-hidden="true">{icon}</div>
+              <h3 className={styles.featureTitle}>{label}</h3>
+              <p className={styles.featureDescription}>Veja como o {label} da Clubily funciona.</p>
+              <Link
+                href={`/solutions/${href}`}
+                className={styles.primaryBtn}
+                aria-label={`Descobrir mais sobre ${label}`}
+              >
                 Descobrir →
               </Link>
             </div>
